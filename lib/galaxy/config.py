@@ -111,6 +111,8 @@ class Configuration( object ):
         self.user_label_filters = listify( kwargs.get( "user_tool_label_filters", [] ), do_strip=True )
         self.user_section_filters = listify( kwargs.get( "user_tool_section_filters", [] ), do_strip=True )
 
+        self.dynamic_post_processing_actions = listify( kwargs.get( "dynamic_post_processing_actions", [] ), do_strip=True )
+
         self.expose_user_name = kwargs.get( "expose_user_name", False )
         self.expose_user_email = kwargs.get( "expose_user_email", False )
 

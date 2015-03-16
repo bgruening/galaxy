@@ -1017,6 +1017,10 @@ use_interactive = True
 # modifying the following option.
 #toolbox_filter_base_modules = galaxy.tools.toolbox.filters,galaxy.tools.filters
 
+# Post processing actions can be defined dynamically by creating a python class
+# in lib/galaxy/jobs/actions/dynamic/.
+#dynamic_post_processing_actions = examples:notification_control
+
 # Galaxy Application Internal Message Queue
 
 # Galaxy uses AMQP internally TODO more documentation on what for.
