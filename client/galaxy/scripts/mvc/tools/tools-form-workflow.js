@@ -148,31 +148,31 @@ define(['utils/utils', 'mvc/tools/tools-form-base'],
                 label   : 'Add Actions: \'' + output_id + '\'',
                 type    : 'section',
                 inputs  : [{
-                    action      : 'RenameDatasetAction',
-                    argument    : 'newname',
-                    label       : 'Rename dataset',
-                    type        : 'text',
-                    value       : '',
-                    ignore      : '',
-                    help        : 'This action will rename the result dataset. Click <a href="https://wiki.galaxyproject.org/Learn/AdvancedWorkflow/Variables">here</a> for more information.'
-                },{
-                    action      : 'ChangeDatatypeAction',
-                    argument    : 'newtype',
-                    label       : 'Change datatype',
-                    type        : 'select',
-                    ignore      : '__empty__',
-                    value       : '__empty__',
-                    options     : extensions,
-                    help        : 'This action will change the datatype of the output to the indicated value.'
-                },{
-                    action      : 'TagDatasetAction',
-                    argument    : 'tags',
-                    label       : 'Tags',
-                    type        : 'text',
-                    value       : '',
-                    ignore      : '',
-                    help        : 'This action will set tags for the dataset.'
-                },{
+                        action      : 'RenameDatasetAction',
+                        argument    : 'newname',
+                        label       : 'Rename dataset',
+                        type        : 'text',
+                        value       : '',
+                        ignore      : '',
+                        help        : 'This action will rename the result dataset. Click <a href="https://wiki.galaxyproject.org/Learn/AdvancedWorkflow/Variables">here</a> for more information.'
+                    },{
+                        action      : 'ChangeDatatypeAction',
+                        argument    : 'newtype',
+                        label       : 'Change datatype',
+                        type        : 'select',
+                        ignore      : '__empty__',
+                        value       : '__empty__',
+                        options     : extensions,
+                        help        : 'This action will change the datatype of the output to the indicated value.'
+                    },{
+                        action      : 'TagDatasetAction',
+                        argument    : 'tags',
+                        label       : 'Tags',
+                        type        : 'text',
+                        value       : '',
+                        ignore      : '',
+                        help        : 'This action will set tags for the dataset.'
+                    },{
                     label   : 'Assign columns',
                     type    : 'section',
                     inputs  : [{
@@ -208,6 +208,16 @@ define(['utils/utils', 'mvc/tools/tools-form-base'],
                         argument    : 'nameCol',
                         label       : 'Name column',
                         type        : 'integer',
+                        value       : '',
+                        ignore      : ''
+                    },{
+                    label   : 'Advanced Action List',
+                    type    : 'section',
+                    inputs  : [{
+                        action      : 'DynamicAction',
+                        argument    : 'process',
+                        label       : 'Function to execute',
+                        type        : 'text',
                         value       : '',
                         ignore      : ''
                     }],
