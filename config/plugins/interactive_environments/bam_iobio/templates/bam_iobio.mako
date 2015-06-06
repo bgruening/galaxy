@@ -20,35 +20,21 @@ params = {
     }
 notebook_access_url = ie_request.url_template('http://%(galaxy_url)s:%(galaxy_port)s/?bam=http://%(galaxy_url)s:${PORT}/tmp/bamfile.bam' % (params))
 
-docker_cmd = ie_request.docker_cmd( )
-
-# Define variables for all ports that needs to be available for the iobio visualisation.
-ENV = {
-        'PUB_HOSTNAME': ie_request.attr.viz_config.get("docker", "galaxy_url"),
-        'INPUT_BAMFILE': hda.file_name,
-        'INPUT_BAMFILE_INDEX': hda.metadata.bam_index.file_name,
-        'PUB_HTTP_PORT': ie_request.attr.PORT
-        }
-
-# Setting up all environment variables and mounting in
-# the BAM file + index, readonly. No copying needed here.
-inject = """ -e PUB_HOSTNAME=%(PUB_HOSTNAME)s \
-    -e PUB_HTTP_PORT=%(PUB_HTTP_PORT)s \
-    -v %(INPUT_BAMFILE)s:/input/bamfile.bam:ro \
-    -v %(INPUT_BAMFILE_INDEX)s:/input/bamfile.bam.bai:ro \
-    -v """ % (ENV)
-
-# Inject all port numbers from as environment variable to the iobio container.
-# iobio will pick them up and adopt accordingly
-docker_cmd = docker_cmd.replace('-v', inject)
-ie_request.log.info("Starting BAM.iobio docker container with command [%s]" % docker_cmd)
-subprocess.call(docker_cmd, shell=True)
+ie_request.launch(env_override={
+    'PUB_HOSTNAME': ie_request.attr.viz_config.get("docker", "galaxy_url"),
+    'PUB_HTTP_PORT': ie_request.attr.PORT
+    },
+    volumes=[
+    '%s:/input/bamfile.bam:ro' % hda.file_name,
+    '%s:/input/bamfile.bam.bai:ro' % hda.metadata.bam_index.file_name
+    ]
+)
 
 root = h.url_for( '/' )
 %>
 <html>
 <head>
-${ ie.load_default_js() }
+    ${ ie.load_default_js() }
 </head>
 <body>
 
