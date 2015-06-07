@@ -24,8 +24,7 @@ bam = ie_request.volume(hda.file_name, '/input/bamfile.bam', how='ro')
 bam_index = ie_request.volume(hda.metadata.bam_index.file_name, '/input/bamfile.bam.bai', how='ro')
 
 ie_request.launch(env_override={
-    'PUB_HOSTNAME': ie_request.attr.viz_config.get("docker", "galaxy_url"),
-    'PUB_HTTP_PORT': ie_request.attr.PORT
+    'PUB_HOSTNAME': ie_request.attr.viz_config.get("docker", "galaxy_url")
     },
     volumes=[bam, bam_index]
 )
