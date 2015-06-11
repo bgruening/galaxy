@@ -18,37 +18,24 @@ params = {
     'galaxy_url': ie_request.attr.viz_config.get("docker", "galaxy_url"),
     'galaxy_port': ie_request.attr.PORT
     }
-notebook_access_url = ie_request.url_template('http://%(galaxy_url)s:%(galaxy_port)s/?bam=http://%(galaxy_url)s:${PORT}/tmp/bamfile.bam' % (params))
+notebook_access_url = ie_request.url_template('${PROXY_URL}/?bam=http://%(galaxy_url)s:${PORT}/tmp/bamfile.bam' % (params))
+service_polling_url = ie_request.url_template('ws://%(galaxy_url)s:${PORT}/bamstatsalive/status' % (params))
 
-docker_cmd = ie_request.docker_cmd( )
+bam = ie_request.volume(hda.file_name, '/input/bamfile.bam', how='ro')
+bam_index = ie_request.volume(hda.metadata.bam_index.file_name, '/input/bamfile.bam.bai', how='ro')
 
-# Define variables for all ports that needs to be available for the iobio visualisation.
-ENV = {
-        'PUB_HOSTNAME': ie_request.attr.viz_config.get("docker", "galaxy_url"),
-        'INPUT_BAMFILE': hda.file_name,
-        'INPUT_BAMFILE_INDEX': hda.metadata.bam_index.file_name,
-        'PUB_HTTP_PORT': ie_request.attr.PORT
-        }
-
-# Setting up all environment variables and mounting in
-# the BAM file + index, readonly. No copying needed here.
-inject = """ -e PUB_HOSTNAME=%(PUB_HOSTNAME)s \
-    -e PUB_HTTP_PORT=%(PUB_HTTP_PORT)s \
-    -v %(INPUT_BAMFILE)s:/input/bamfile.bam:ro \
-    -v %(INPUT_BAMFILE_INDEX)s:/input/bamfile.bam.bai:ro \
-    -v """ % (ENV)
-
-# Inject all port numbers from as environment variable to the iobio container.
-# iobio will pick them up and adopt accordingly
-docker_cmd = docker_cmd.replace('-v', inject)
-ie_request.log.info("Starting BAM.iobio docker container with command [%s]" % docker_cmd)
-subprocess.call(docker_cmd, shell=True)
+ie_request.launch(env_override={
+    'PUB_HOSTNAME': ie_request.attr.viz_config.get("docker", "galaxy_url"),
+    'PUB_HTTP_PORT': ie_request.attr.PORT
+    },
+    volumes=[bam, bam_index]
+)
 
 root = h.url_for( '/' )
 %>
 <html>
 <head>
-${ ie.load_default_js() }
+    ${ ie.load_default_js() }
 </head>
 <body>
 
@@ -56,6 +43,8 @@ ${ ie.load_default_js() }
 
         ${ ie.default_javascript_variables() }
         var notebook_access_url = '${ notebook_access_url }';
+        var service_polling_url = '${ service_polling_url }';
+
         ${ ie.plugin_require_config() }
 
         requirejs(['interactive_environments', 'plugin/bam_iobio'], function(){
@@ -75,10 +64,36 @@ ${ ie.load_default_js() }
             });
 
         };
-        // sleep 10 seconds
-        // this is currently needed to get the vis right
-        // plans exists to move this spinner into the container
-        setTimeout(startup, 10000);
+
+        (function poll() {
+            setTimeout(function inner() {
+                var socket = new WebSocket(service_polling_url);
+                var polling=1;
+
+                socket.onerror = function(event) {
+                    if (polling==1) {
+                        console.log("polling websocket");
+                        polling=0;
+                        poll();
+                    }
+                };
+                socket.onopen = function(event) {
+                    console.log("websocket open");
+                    polling=0;
+                    socket.close();
+                    startup();
+                };
+                socket.onclose = function(event) {
+                    if (polling==1) {
+                        console.log("polling websocket");
+                        polling=0;
+                        poll();
+                    }
+                };
+
+            }, 500);
+        })();
+
 
     </script>
 <div id="main">
