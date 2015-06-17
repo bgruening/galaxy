@@ -19,6 +19,7 @@ params = {
     'galaxy_port': ie_request.attr.PORT
     }
 notebook_access_url = ie_request.url_template('${PROXY_URL}/?bam=http://%(galaxy_url)s:${PORT}/tmp/bamfile.bam' % (params))
+service_polling_url = ie_request.url_template('ws://%(galaxy_url)s:${PORT}/bamstatsalive/status' % (params))
 
 bam = ie_request.volume(hda.file_name, '/input/bamfile.bam', how='ro')
 bam_index = ie_request.volume(hda.metadata.bam_index.file_name, '/input/bamfile.bam.bai', how='ro')
@@ -42,6 +43,7 @@ root = h.url_for( '/' )
 
         ${ ie.default_javascript_variables() }
         var notebook_access_url = '${ notebook_access_url }';
+        var service_polling_url = '${ service_polling_url }';
         ${ ie.plugin_require_config() }
 
         requirejs(['interactive_environments', 'plugin/bam_iobio'], function(){
@@ -61,10 +63,33 @@ root = h.url_for( '/' )
             });
 
         };
-        // sleep 10 seconds
-        // this is currently needed to get the vis right
-        // plans exists to move this spinner into the container
-        setTimeout(startup, 10000);
+        // polling until the container is ready
+        (function poll() {
+            setTimeout(function inner() {
+                var socket = new WebSocket(service_polling_url);
+                var polling = 1;
+                socket.onerror = function(event){
+                    if(polling == 1) {
+                        //console.log("polling websocket");
+                        polling = 0;
+                        poll();
+                    }
+                };
+                socket.onopen = function(event){
+                    //console.log("websocket open");
+                    polling = 0;
+                    socket.close();
+                    startup();
+                };
+                socket.onclose = function(event){
+                    if(polling == 1){
+                        //console.log("polling websocket");
+                        polling = 0;
+                        poll();
+                    }
+                };
+            }, 500);
+        })();
 
     </script>
 <div id="main">
