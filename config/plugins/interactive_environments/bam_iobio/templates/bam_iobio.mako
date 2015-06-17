@@ -19,7 +19,7 @@ params = {
     'galaxy_port': ie_request.attr.PORT
     }
 notebook_access_url = ie_request.url_template('${PROXY_URL}/?bam=http://%(galaxy_url)s:${PORT}/tmp/bamfile.bam' % (params))
-service_polling_url = ie_request.url_template('ws://%(galaxy_url)s:${PORT}/bamstatsalive/status' % (params))
+service_polling_url = ie_request.url_template('${PROXY_URL_WS}/bamstatsalive/status' % (params))
 
 bam = ie_request.volume(hda.file_name, '/input/bamfile.bam', how='ro')
 bam_index = ie_request.volume(hda.metadata.bam_index.file_name, '/input/bamfile.bam.bai', how='ro')
