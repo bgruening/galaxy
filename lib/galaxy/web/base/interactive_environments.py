@@ -71,7 +71,6 @@ class InteractiveEnviornmentRequest(object):
         # we always assume use of Galaxy dynamic proxy? None of these need to be specified
         # if using the Galaxy dynamic proxy.
         self.attr.PASSWORD_AUTH = _boolean_option("password_auth")
-        self.attr.APACHE_URLS = _boolean_option("apache_urls")
         self.attr.SSL_URLS = _boolean_option("ssl")
 
     def get_conf_dict(self):
@@ -122,37 +121,34 @@ class InteractiveEnviornmentRequest(object):
         else:
             return "false"
 
-    def url_template(self, url_template):
+    def url_template(self, template):
         """
             Process a URL template
 
             There are several variables accessible to the user:
 
-                - ${PROXY_URL} will be replaced with dynamically create proxy
+                - ${PROXY_URL} will be replaced with dynamically created proxy address
+                - ${PROXY_URL_WS} will be replaced with a websocket version of ${PROXY_URL}
                 - ${PORT} will be replaced with the port the docker image is attached to
         """
         # Figure out our substitutions
 
-        # Next several lines for older style replacements (not used with Galaxy dynamic
-        # proxy)
-
         if self.attr.SSL_URLS:
-            protocol = 'https'
+            http_protocol = 'https'
+            ws_protocol = 'wss'
         else:
-            protocol = 'http'
+            http_protocol = 'http'
+            ws_protocol = 'ws'
 
-        if not self.attr.APACHE_URLS:
-            # If they are not using apache URLs, that implies there's a port attached to the host
-            # string, thus we replace just the first instance of host that we see.
-            url_template = url_template.replace('${HOST}', '${HOST}:${PORT}', 1)
-
-        url_template = url_template.replace('${PROTO}', protocol) \
-            .replace('${HOST}', self.attr.HOST)
+        # The only difference between the BASE proxy_url/ws_url are protocols.
+        proxy_ws_url = str(self.attr.proxy_url).replace(http_protocol, ws_protocol)
 
         # Only the following replacements are used with Galaxy dynamic proxy
         # URLs
-        url = url_template.replace('${PROXY_URL}', str(self.attr.proxy_url)) \
-            .replace('${PORT}', str(self.attr.PORT))
+        url = template \
+            .replace('${PORT}', str(self.attr.PORT)) \
+            .replace('${PROXY_URL}', str(self.attr.proxy_url)) \
+            .replace('${PROXY_URL_WS}', proxy_ws_url)
         return url
 
     def volume(self, host_path, container_path, **kwds):
