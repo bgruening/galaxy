@@ -71,7 +71,6 @@ class InteractiveEnviornmentRequest(object):
         # we always assume use of Galaxy dynamic proxy? None of these need to be specified
         # if using the Galaxy dynamic proxy.
         self.attr.PASSWORD_AUTH = _boolean_option("password_auth")
-        self.attr.APACHE_URLS = _boolean_option("apache_urls")
         self.attr.SSL_URLS = _boolean_option("ssl")
 
     def get_conf_dict(self):

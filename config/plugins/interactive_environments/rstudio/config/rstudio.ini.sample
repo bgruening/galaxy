@@ -1,8 +1,6 @@
 [main]
 # This cannot be changed
 password_auth = True
-# Other
-apache_urls = False
 ssl = False
 
 [docker]
