@@ -8,7 +8,7 @@ from galaxy.util import sockets
 ie_request.load_deploy_config()
 ie_request.attr.docker_port = 80
 
-ie_request.get_conf_dict()
+conf = ie_request.get_conf_dict()
 
 ## General IE specific
 # Access URLs for the notebook from within galaxy.
@@ -25,7 +25,7 @@ bam = ie_request.volume(hda.file_name, '/input/bamfile.bam', how='ro')
 bam_index = ie_request.volume(hda.metadata.bam_index.file_name, '/input/bamfile.bam.bai', how='ro')
 
 ie_request.launch(env_override={
-    'PUB_HOSTNAME': ie_request.attr.viz_config.get("docker", "galaxy_url"),
+    'PUB_HOSTNAME': conf["galaxy_url"],
     'PUB_HTTP_PORT': ie_request.attr.PORT
     },
     volumes=[bam, bam_index]
