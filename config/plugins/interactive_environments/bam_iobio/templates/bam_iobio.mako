@@ -2,7 +2,6 @@
 
 <%
 import subprocess
-from galaxy.util import sockets
 
 # Sets ID and sets up a lot of other variables
 ie_request.load_deploy_config()
@@ -92,7 +91,7 @@ root = h.url_for( '/' )
         })();
 
     </script>
-<div id="main">
-</div>
+    <div id="main">
+    </div>
 </body>
 </html>

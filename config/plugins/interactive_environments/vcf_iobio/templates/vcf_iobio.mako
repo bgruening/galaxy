@@ -8,7 +8,7 @@ from galaxy.util import sockets
 ie_request.load_deploy_config()
 ie_request.attr.docker_port = 80
 
-ie_request.get_conf_dict()
+conf = ie_request.get_conf_dict()
 
 ## General IE specific
 # Access URLs for the notebook from within galaxy.
@@ -20,10 +20,10 @@ params = {
     }
 notebook_access_url = ie_request.url_template('http://%(galaxy_url)s:%(galaxy_port)s/?vcf=http://%(galaxy_url)s:${PORT}/tmp/vcffile.vcf.gz' % (params))
 
-docker_cmd = ie_request.docker_cmd( )
+vcf = ie_request.volume(hda.file_name, '/input/vcffile.vcf', how='ro')
 
-# Define variables for all ports that needs to be available for the iobio visualisation.
-ENV_KEYS = ['PUB_HTTP_PORT', 'PUB_TABIX_PORT', 'PUB_VCFDEPTHER_PORT', 'PUB_VCFSTATSALIVE_PORT']
+
+docker_cmd = ie_request.docker_cmd( )
 
 # VCF iobio needs to have vcf.gz and vcf.gz.tbi files.
 # We have added compression and indexing support into the container, so we can
@@ -31,53 +31,44 @@ ENV_KEYS = ['PUB_HTTP_PORT', 'PUB_TABIX_PORT', 'PUB_VCFDEPTHER_PORT', 'PUB_VCFST
 # The big disatvantage is that this can take a long time which will block the user experience.
 # We need to generate both files on the Galaxy side, before starting the visualisation.
 # This needs to be done! ToDo
-ENV = {
-        'PUB_HOSTNAME': ie_request.attr.viz_config.get("docker", "galaxy_url"),
-        'INPUT_VCFFILE': hda.file_name,
-        #'INPUT_VCFFILE_GZIP': '/home/bag/projects/code/docker/bamio/dir_vcf/vcffile.vcf.gz',
-        #'INPUT_VCFFILE_INDEX': '/home/bag/projects/code/docker/bamio/dir_vcf/vcffile.vcf.gz.tbi',
-        }
+env_override = {
+    'PUB_HOSTNAME': conf["galaxy_url"],
+    'PUB_HTTP_PORT': sockets.unused_port(),
+    'PUB_TABIX_PORT': sockets.unused_port(),
+    'PUB_VCFDEPTHER_PORT': sockets.unused_port(),
+    'PUB_VCFSTATSALIVE_PORT': sockets.unused_port(),
+    'INPUT_VCFFILE': hda.file_name,
+   #'INPUT_VCFFILE_GZIP': '/home/bag/projects/code/docker/bamio/dir_vcf/vcffile.vcf.gz',
+   #'INPUT_VCFFILE_INDEX': '/home/bag/projects/code/docker/bamio/dir_vcf/vcffile.vcf.gz.tbi',
+}
 
-# Get for every ENV_KEYS one free port.
-for key in ENV_KEYS:
-    port = sockets.unused_port()
-    ENV.update({key:port})
-
-# Setting up all environment variables and mounting in
-# the VCF file, readonly. No copying needed here.
 inject = """ -p %(PUB_HTTP_PORT)s:80 \
     -p %(PUB_TABIX_PORT)s:8000 \
     -p %(PUB_VCFDEPTHER_PORT)s:8001 \
     -p %(PUB_VCFSTATSALIVE_PORT)s:8002 \
-    -e PUB_HOSTNAME=%(PUB_HOSTNAME)s \
-    -e PUB_HTTP_PORT=%(PUB_HTTP_PORT)s \
-    -e PUB_TABIX_PORT=%(PUB_TABIX_PORT)s \
-    -e PUB_VCFDEPTHER_PORT=%(PUB_VCFDEPTHER_PORT)s \
-    -e PUB_VCFSTATSALIVE_PORT=%(PUB_VCFSTATSALIVE_PORT)s \
-    -v %(INPUT_VCFFILE)s:/input/vcffile.vcf:ro \
-    -v """ % (ENV)
+""" % env_override
 
+# TODO: This inject command isn't actually used, it's just here for documenting
+# what's supposed to happen, until the IOBIO folks can update their VCF image.
 # Inject all port numbers from as environment variable to the iobio container.
-# iobio will pick them up and adopt accordingly
-docker_cmd = docker_cmd.replace('-v', inject)
-ie_request.log.info("Starting VCF.iobio docker container with command [%s]" % docker_cmd)
+# iobio will pick them up and adapt accordingly
+#
+#docker_cmd = docker_cmd.replace('-v', inject)
+#ie_request.log.info("Starting VCF.iobio docker container with command [%s]" % docker_cmd)
+#subprocess.call(docker_cmd, shell=True)
 
-subprocess.call(docker_cmd, shell=True)
+ie_request.launch(env_override=env_override,
+    volumes=[vcf]
+)
+
 root = h.url_for( '/' )
 %>
 <html>
 <head>
-${ ie.load_default_js() }
+    ${ ie.load_default_js() }
 </head>
 <body>
-
-    <div id="main" width="100%" height="100%">
-        <table border="0" height="100%" width="100%">
-            <tr><td valign="center" align="center">
-                <img src="${root}static/style/largespinner.gif" id="spinner" class="spinner"/>
-            </td></tr>
-        </table>
-    </div>
+    <!-- TODO: unify spinners between this/bam -->
     <script type="text/javascript">
 
         $("#spinner").show();
@@ -107,5 +98,12 @@ ${ ie.load_default_js() }
         setTimeout(hide_spinner, 10000);
 
     </script>
+    <div id="main" width="100%" height="100%">
+        <table border="0" height="100%" width="100%">
+            <tr><td valign="center" align="center">
+                <img src="${root}static/style/largespinner.gif" id="spinner" class="spinner"/>
+            </td></tr>
+        </table>
+    </div>
 </body>
 </html>
