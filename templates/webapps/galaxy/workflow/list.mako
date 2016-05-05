@@ -9,6 +9,46 @@
 %>
 </%def>
 
+<%def name="stylesheets()">
+${parent.stylesheets()}
+    <style type="text/css">
+        .workflow-tags div {
+            background-color: #f2f2f2;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin-right: 5px;
+            float: left;
+        }
+    </style>
+</%def>
+
+<%def name="late_javascripts()">
+${parent.late_javascripts()}
+    <script type="text/javascript">
+        function collapse($elem) {
+            $elem.text($elem.attr('tag-name').substr(0,1) + '..');
+        }
+
+        function expand($elem) {
+            $elem.text($elem.attr('tag-name'));
+        }
+
+        $('.workflow-tags div')
+            .each(function(idx, item) {
+                collapse($(item));
+            })
+            .hover(
+                function() {
+                    expand($(this));
+                },
+                function() {
+                    collapse($(this));
+                }
+            );
+    </script>
+</%def>
+
 <%def name="title()">Workflow home</%def>
 
 <%def name="center_panel()">
@@ -49,7 +89,8 @@
                     <tr class="header">
                         <th>Name</th>
                         <th># of Steps</th>
-                        ## <th>Last Updated</th>
+                        <th>Last Updated</th>
+                        <th>Tags</th>
                         <th></th>
                     </tr>
                     %for i, workflow in enumerate( workflows ):
@@ -60,7 +101,14 @@
                                 </div>
                             </td>
                             <td>${len(workflow.latest_workflow.steps)}</td>
-                            ## <td>${str(workflow.update_time)[:19]}</td>
+                            <td>${workflow.update_time.strftime('%d.%m.%Y %X')}</td>
+                            <td>
+                                <div class="workflow-tags">
+                                    %for tag in workflow.w_tags:
+                                        <div tag-name="${h.to_unicode( tag ) | h}"></div>
+                                    %endfor
+                                </div>
+                            </td>
                             <td>
                                 <div popupmenu="wf-${i}-popup">
                                 <a class="action-button" href="${h.url_for( controller='workflow', action='editor', id=trans.security.encode_id( workflow.id ) )}" target="_parent">Edit</a>

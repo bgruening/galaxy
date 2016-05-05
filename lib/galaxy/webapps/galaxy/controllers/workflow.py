@@ -194,6 +194,14 @@ class WorkflowController( BaseUIController, SharableMixin, UsesStoredWorkflowMix
             .filter( model.StoredWorkflow.deleted == expression.false() ) \
             .order_by( desc( model.StoredWorkflow.update_time ) ) \
             .all()
+        tags = trans.sa_session \
+            .query( model.StoredWorkflowTagAssociation ) \
+            .filter_by( user=user ) \
+            .all()
+
+        for workflow in workflows:
+            workflow.w_tags = [tag.user_tname for tag in tags
+                               if tag.stored_workflow_id == workflow.id]
 
         # Legacy issue: all shared workflows must have slugs.
         slug_set = False
