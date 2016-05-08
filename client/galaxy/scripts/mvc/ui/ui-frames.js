@@ -31,6 +31,7 @@ var View = Backbone.View.extend({
     idle_interval   : 7, // frame idle interval
     skip_datatypes  : ['bigwig', 'bigbed', 'bam', 'rdata', 'sff', 'bcf'], // skip these items
     data_target_frame : 'data-target-frame',
+    current_frame_id  : null,
 
     initialize : function( options ) {
         var self = this;
@@ -75,6 +76,7 @@ var View = Backbone.View.extend({
      *              argument that is the frame's content DOM element
      */
     add: function( options ) {
+        var self = this;
         if ( this.frame_counter >= this.options.frame_max ) {
             Galaxy.modal.show( {
                 title   : 'Warning',
@@ -96,6 +98,8 @@ var View = Backbone.View.extend({
                 var $frame_el = $( this._frameTemplate( frame_id.substring( 1 ), options.title ) );
                 var $frame_content = $frame_el.find( '.f-content' );
                 this.$el.append( $frame_el );
+                
+                
                 // adds slider icons
                 $frame_content.append(                
                 	"<a class='f-scroll-left' href='#' data-target-frame=" + frame_id + "> < </a>"
@@ -109,13 +113,13 @@ var View = Backbone.View.extend({
                         $ ( '<iframe/>' ).addClass( 'f-iframe' )
                                          .attr( 'scrolling', 'auto' )
                                          .attr( 'src', options.url + ( options.url.indexOf( '?' ) === -1 ? '?' : '&' ) + 'widget=True' )
-                                         .attr("dataset-id", options.datasetid)
-                          );
+                                         .attr( "dataset-id", options.datasetid )
+                        ); 
                 } else if ( options.content ) {
                     _.isFunction( options.content ) ? options.content( $frame_content ) : $frame_content.append( options.content );
                     // makes the slider icons visible
-                    $(frame_id + ' #content_table').parent().css("position", "");
-                    $(frame_id + ' #content_table').attr("dataset-id", options.datasetid);
+                    $( frame_id + ' #content_table' ).parent().css( "position", "" );
+                    $( frame_id + ' #content_table' ).attr( "dataset-id", options.datasetid );
                 }
 
                 // construct a new frame
@@ -198,8 +202,11 @@ var View = Backbone.View.extend({
         'mousedown .f-pin'                  : '_eventFrameLock',
         'mousedown .f-scroll-left'          : '_eventItemScroll_left',
         'mousedown .f-scroll-right'         : '_eventItemScroll_right',
+        'mouseenter .f-iframe'              : '_eventShowItemSlider',
+        'mouseleave .f-iframe'              : '_eventHideItemSlider',
         'mouseenter .f-content'             : '_eventShowItemSlider',
         'mouseleave .f-content'             : '_eventHideItemSlider',
+        'mousemove .f-content'              : '_eventRegainItemSlider',
         'mouseenter #content_table'         : '_eventShowItemSlider',
         'mouseleave #content_table'         : '_eventHideItemSlider',
     },
@@ -275,6 +282,8 @@ var View = Backbone.View.extend({
                 this._frameInsert( this.frame_shadow, l );
             }
         }
+        // registers mouse movement inside iframe
+        this._registerMouseMoveInsideIframe(e);
     },
 
     /** Stop drag/resize events */
@@ -606,11 +615,14 @@ var View = Backbone.View.extend({
             frame_iframe = $( frame_id + ' iframe' ),
             frame_table = $( frame_id + ' #content_table' );
             
+            // gets the dataset id of the current item in the frame
             displayed_item_id = ( !frame_iframe.attr( 'dataset-id' ) ? frame_table.attr( 'dataset-id' ) : 
 								       frame_iframe.attr( 'dataset-id' ) );
             // if previous icon ('<') is clicked
             if( direction === 'left' ) {
                 item_counter = all_items_count - 1;
+                // reaches the currently displayed item and then moves back or next 
+                // based on the user action of < or >
                 while( item_counter >= 0 ) {
                     item_element = all_items.children[ item_counter ];
                     current_item_id = ( item_element.id ).split('-')[1];
@@ -643,7 +655,7 @@ var View = Backbone.View.extend({
                         element_id = element.attr( 'id' );
                         if( element_id ) {
                             item_id = element_id.split( '-' )[1];
-                            // jQuery fadeOut effect
+                            // jQuery fadeOut effect i.e. fades out the current data
                             this._jqueryFadeOutEffect( frame_iframe );
                             // fecthes the next item
                             this._fecthData( item_id, frame_id, element, 'right' );
@@ -657,6 +669,8 @@ var View = Backbone.View.extend({
 
      /** Jquery Fade out effect */
     _jqueryFadeOutEffect: function(el) {
+        // takes either div (for tabular data)
+        // or img for image tag/data
 	if( el.contents().find( 'div' ) ) {
 		el.contents().find( 'div' ).fadeOut( 'slow' );
         }
@@ -683,6 +697,8 @@ var View = Backbone.View.extend({
     _mergeSlideEvents: function( direction, self, event ) {
  	// clears and sets timeout intervals
         var selector = null;
+        // this selector logic is to differentiate the case of 
+        // full history data list and customized list from history list
         if( $( '.list-items' ).css( 'display' ) === "none" ) {
         	selector = $( '.list-panel .list-items' )[1];
         } 
@@ -691,6 +707,7 @@ var View = Backbone.View.extend({
 	}
         self._clearsInterval( self.idle_timer );
         self.idle_timer = self._setTimeout( self );
+        
         // slides to previous or next item
         self._slideItem( direction, selector, this.data_target_frame, event );   
     },
@@ -700,17 +717,18 @@ var View = Backbone.View.extend({
         var self = this,
             dataset,
             frame_config;
+	self.current_frame_id = frame_id;
         require([ 'mvc/dataset/data' ], function( DATA ) {
         	dataset = new DATA.Dataset( { id : dataset_id } );   
             	// fetches the dataset       
             	$.when( dataset.fetch() ).then( function() {
                 // Construct frame config based on dataset's type.
-                var frame_config = {
+                frame_config = {
                         title: dataset.get( 'name' )
-                    },
-                    is_tabular = _.find( [ 'tabular', 'interval' ] , function( data_type ) {
-                        return dataset.get( 'data_type' ).indexOf( data_type ) !== -1;
-                    });
+                },
+		is_tabular = _.find( [ 'tabular', 'interval' ] , function( data_type ) {
+		 	return dataset.get( 'data_type' ).indexOf( data_type ) !== -1;
+	        });
 
                 // Use tabular chunked display if dataset is tabular; otherwise load via URL.
                 if ( is_tabular ) {
@@ -735,7 +753,7 @@ var View = Backbone.View.extend({
                 }
                 _.extend( frame_config, {
                         datasetid: dataset.id
-                    });
+                });
                 // updates the iframe with new dataset
 		self._changeData( frame_config, frame_id, dataset.get( 'data_type' ), current_element, direction );
             });
@@ -743,6 +761,7 @@ var View = Backbone.View.extend({
     },
   
     // Skips some data types
+    // TODO: skip on the basis of mime types and not data types
     _skipDatatypes: function( datatype ) {
 	// skip_datatypes
         return _.contains( this.skip_datatypes, datatype );
@@ -812,15 +831,15 @@ var View = Backbone.View.extend({
                         frame_content_table = $( frame_id + ' #content_table' );
             		frame_content_table.parent().css( "position", "" );
             		frame_content_table.attr( "dataset-id", options.datasetid );
-                        
 		}
                 // updates the title of the frame
                 frame_title.text( options.title );
             }
+            this.current_frame_id = frame_id;
     },
 
     /** Removes the div of the tabular content */
-    _removeTabularDataDiv: function(frame_content) {
+    _removeTabularDataDiv: function( frame_content ) {
 	if( frame_content.children()[3] ) {
 		$( frame_content.children()[3] ).remove();
         }
@@ -830,6 +849,14 @@ var View = Backbone.View.extend({
     _eventShowItemSlider: function( event ) {
         var self = this, 
 	    frame_id = $( event.srcElement ).prev().attr( self.data_target_frame );
+	// gets frame id in case frame_id is undefined ( tabular data )
+        if( !frame_id && event ) {
+		frame_id = self._getCurrentFrameId( event );
+	}
+        if( !frame_id ) {
+		frame_id = self.current_frame_id;
+	}
+	self.current_frame_id = frame_id;
         // clears and sets timeout intervals
         self._clearsInterval( self.idle_timer );
         self.idle_timer = self._setTimeout( self );
@@ -840,22 +867,31 @@ var View = Backbone.View.extend({
     /** Fades out the item slider when mouse leaves the frame content */
      _eventHideItemSlider: function( event ) {
         var self = this,
-	    frame_id = $( event.srcElement ).prev().attr( self.data_target_frame ) ;
+	    frame_id = $( event.srcElement ).prev().attr( self.data_target_frame );
+        // gets frame id in case frame_id is undefined ( tabular data )
+        if( frame_id ) {
+		self.current_frame_id = frame_id;
+	}
+	else {
+		frame_id = self.current_frame_id;	
+	}
+        // hides the slider
         self._fadeOutSlider( frame_id );
+        // clears out the setInterval
         self._clearsInterval( self.idle_timer );
         self.idle_counter = 0;
     },
     
-    /** Fades out the item slider - jQuery fadeOut*/
+    /** Fades out the item slider - jQuery fadeOut */
     _fadeOutSlider: function( frame_id ) {
-        $( frame_id + ' .f-scroll-left' ).fadeOut( 'slow' );
-        $( frame_id + ' .f-scroll-right' ).fadeOut( 'slow' );
+        $( frame_id  + ' .f-scroll-left' ).css( 'display', 'none' );
+	$( frame_id  + ' .f-scroll-right' ).css( 'display', 'none' );
     },
     
-    /** Fades in the item slider - jQuery fadeIn*/
+    /** Fades in the item slider - jQuery fadeIn */
     _fadeInSlider: function( frame_id ) {
-        $( frame_id + ' .f-scroll-left' ).fadeIn( 'slow' );
-        $( frame_id + ' .f-scroll-right' ).fadeIn( 'slow' );
+        $( frame_id  + ' .f-scroll-left' ).css( 'display', 'block' );
+	$( frame_id  + ' .f-scroll-right' ).css( 'display', 'block' );
     },
 
     /** Increments the counter to when the user is idle */
@@ -866,9 +902,9 @@ var View = Backbone.View.extend({
         // checks if the idle counter is greater than a threshold
         if( self.idle_counter > self.idle_interval ) {
                 // fades out the sliders and clears timeout interval
-                $( '.f-scroll-left' ).fadeOut( 'slow' );
-        	$( '.f-scroll-right' ).fadeOut( 'slow' );
+                self._fadeOutSlider( self.current_frame_id );
                 self._clearsInterval( self.idle_timer );
+                self.idle_counter = 0;
 	}
     },
 
@@ -882,6 +918,44 @@ var View = Backbone.View.extend({
     /** Sets timeout*/
     _setTimeout: function( self ) {
     	return setInterval( function() { self._frameIdle(self); }, self.interval ); 
+    },
+
+    //** Event for mousemove in the frame. */
+    //** Brings back the slider when mouse is moved inside the frame  */
+    _eventRegainItemSlider: function(e) {
+        var self = this,
+	    frame_id = self.current_frame_id,
+            dataset_id = null;
+        
+        // gets the frame id in case of tabular data
+        if( !frame_id && event) {
+                frame_id = self._getCurrentFrameId( event );
+        }
+        // clears the previous setInterval and sets a new one
+	self.idle_counter = 0;
+        self._clearsInterval( self.idle_timer );
+        self.idle_timer = self._setTimeout( self );
+        self._fadeInSlider( self.current_frame_id );
+    },
+
+    //** Registers mouse movement inside iframe */
+    _registerMouseMoveInsideIframe: function( e ) {
+        var self = this,
+            iframe_contents = $( 'iframe' ).contents();
+        // registers jQuery mousemove event for iframe
+	iframe_contents.find('body').on( 'mousemove', function() { 
+		self._eventRegainItemSlider();
+        });
+    },
+
+    //** Gets the current or active frame id */
+    _getCurrentFrameId: function( event ) {
+        var source_element, frame_id;
+        if( event ) {
+                source_element = $( event.srcElement );
+		frame_id = source_element.parent().parent().parent().parent().parent().find( '.f-scroll-left' ).attr( this.data_target_frame );
+	}
+        return frame_id;
     },
 });
 

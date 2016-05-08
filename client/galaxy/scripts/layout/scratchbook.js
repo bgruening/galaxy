@@ -80,6 +80,9 @@ return Backbone.View.extend({
                         data_type: (dataset.get( 'data_type' ).split('.')[3]).toLowerCase()
                     });
                 }
+                _.extend( frame_config, {
+                        datasetid: dataset.id
+                });
                 self.add( frame_config );
             });
         });
