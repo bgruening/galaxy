@@ -98,15 +98,8 @@ var View = Backbone.View.extend({
                 var $frame_el = $( this._frameTemplate( frame_id.substring( 1 ), options.title ) );
                 var $frame_content = $frame_el.find( '.f-content' );
                 this.$el.append( $frame_el );
-                
-                
-                // adds slider icons
-                $frame_content.append(                
-                	"<a class='f-scroll-left' href='#' data-target-frame=" + frame_id + "> < </a>"
-                );
-                $frame_content.append(
-                	"<a class='f-scroll-right' href='#' data-target-frame=" + frame_id + "> > </a>"
-                );
+                // appends slider's template to the frame
+                this._appendSliderTemplate( $frame_content, frame_id );
                 // configure content
                 if ( options.url ) {
                     $frame_content.append(
@@ -118,8 +111,8 @@ var View = Backbone.View.extend({
                 } else if ( options.content ) {
                     _.isFunction( options.content ) ? options.content( $frame_content ) : $frame_content.append( options.content );
                     // makes the slider icons visible
-                    $( frame_id + ' #content_table' ).parent().css( "position", "" );
-                    $( frame_id + ' #content_table' ).attr( "dataset-id", options.datasetid );
+                    // and appends datasetid attribute
+                    this._appendTabularDataAttributesTemplate( frame_id, options.datasetid );
                 }
 
                 // construct a new frame
@@ -695,21 +688,21 @@ var View = Backbone.View.extend({
 
     /** Merges the left or right click events on sliders */
     _mergeSlideEvents: function( direction, self, event ) {
- 	// clears and sets timeout intervals
-        var selector = null;
         // this selector logic is to differentiate the case of 
         // full history data list and customized list from history list
-        if( $( '.list-items' ).css( 'display' ) === "none" ) {
-        	selector = $( '.list-panel .list-items' )[1];
-        } 
-        else {
-		selector = ".list-items";
-	}
-        self._clearsInterval( self.idle_timer );
+        var selector = this._getSelector();
+ 	// clears existing timeout and sets again
+        self._clearIdleCounterInterval( self );
         self.idle_timer = self._setTimeout( self );
-        
         // slides to previous or next item
         self._slideItem( direction, selector, this.data_target_frame, event );   
+    },
+
+    //** Gets the selector */
+    _getSelector: function() {
+        var condition = ($( '.list-items' ).css( 'display' ) === "none");
+        //selector = condition ? $( '.list-panel .list-items' )[1] : ".list-items";
+        return (condition ? $( '.list-panel .list-items' )[1] : ".list-items");
     },
    
     /** Fetches the next item */
@@ -774,7 +767,7 @@ var View = Backbone.View.extend({
                 is_present = this._skipDatatypes( datatype ),
                 element = null,
                 element_id = null,
-                item_id = null,
+                dataset_id = null,
                 frame_content = $( frame_id + ' .f-content' ),
                 frame_content_table = null,
                 frame_iframe = $( frame_id + ' iframe' ),
@@ -784,22 +777,19 @@ var View = Backbone.View.extend({
             if( is_present ) {
 		if( direction === 'left' ) {
                         // finds the previous element
-			element = ( $( curr_element ) ).prev();
-                        element_id = element.attr( 'id' );
-                        if( element_id ) {
-                            item_id = element_id.split( '-' )[1];	
-                        }	
+			element = ( $( curr_element ) ).prev();	
 		}
                 else {
                         // finds the next element
 			element = ( $( curr_element ) ).next();
-                        element_id = element.attr( 'id' );
-                        if( element_id ) {
-                            item_id = element_id.split( '-' )[1];
-                        }
 		}
-                // fetches the desired item
-                this._fecthData( item_id, frame_id, element, direction );
+                element_id = element.attr( 'id' );
+                // gets the dataset id
+                if( element_id ) {
+                    dataset_id = element_id.split( '-' )[1];	
+                }
+                // fetches the next or previous item as current item is skipped
+                this._fecthData( dataset_id, frame_id, element, direction );
 	    }
             else {
                 // updates the data into the iframe or table based on the datatype
@@ -827,10 +817,8 @@ var View = Backbone.View.extend({
                         this._removeTabularDataDiv( frame_content );
 			// updates the content 
 		 	_.isFunction( options.content ) ? options.content( frame_content ) : frame_content.append( options.content );
-            		// makes the slider icons visible
-                        frame_content_table = $( frame_id + ' #content_table' );
-            		frame_content_table.parent().css( "position", "" );
-            		frame_content_table.attr( "dataset-id", options.datasetid );
+            		// makes the slider icons visible and appends datasetid
+                        this._appendTabularDataAttributesTemplate( frame_id, options.datasetid );                        
 		}
                 // updates the title of the frame
                 frame_title.text( options.title );
@@ -858,10 +846,9 @@ var View = Backbone.View.extend({
 	}
 	self.current_frame_id = frame_id;
         // clears and sets timeout intervals
-        self._clearsInterval( self.idle_timer );
+	self._clearIdleCounterInterval( self );
         self.idle_timer = self._setTimeout( self );
         self._fadeInSlider( frame_id );
-        self.idle_counter = 0;
     },
     
     /** Fades out the item slider when mouse leaves the frame content */
@@ -877,9 +864,8 @@ var View = Backbone.View.extend({
 	}
         // hides the slider
         self._fadeOutSlider( frame_id );
-        // clears out the setInterval
-        self._clearsInterval( self.idle_timer );
-        self.idle_counter = 0;
+        // clears the setInterval
+        self._clearIdleCounterInterval( self );
     },
     
     /** Fades out the item slider - jQuery fadeOut */
@@ -903,8 +889,7 @@ var View = Backbone.View.extend({
         if( self.idle_counter > self.idle_interval ) {
                 // fades out the sliders and clears timeout interval
                 self._fadeOutSlider( self.current_frame_id );
-                self._clearsInterval( self.idle_timer );
-                self.idle_counter = 0;
+                self._clearIdleCounterInterval( self );
 	}
     },
 
@@ -926,14 +911,13 @@ var View = Backbone.View.extend({
         var self = this,
 	    frame_id = self.current_frame_id,
             dataset_id = null;
-        
+        console.log( "e:" + e );
         // gets the frame id in case of tabular data
         if( !frame_id && event) {
                 frame_id = self._getCurrentFrameId( event );
         }
         // clears the previous setInterval and sets a new one
-	self.idle_counter = 0;
-        self._clearsInterval( self.idle_timer );
+        self._clearIdleCounterInterval( self );
         self.idle_timer = self._setTimeout( self );
         self._fadeInSlider( self.current_frame_id );
     },
@@ -956,6 +940,30 @@ var View = Backbone.View.extend({
 		frame_id = source_element.parent().parent().parent().parent().parent().find( '.f-scroll-left' ).attr( this.data_target_frame );
 	}
         return frame_id;
+    },
+
+    //** Appends slider icons */
+    _appendSliderTemplate: function( el, frame_id ) {
+	// appends slider icons
+        el.append(                
+        	"<a class='f-scroll-left' href='#' data-target-frame=" + frame_id + "> < </a>"
+        );
+        el.append(
+        	"<a class='f-scroll-right' href='#' data-target-frame=" + frame_id + "> > </a>"
+        );
+    },
+
+    //** Appends attributes to tabular data */
+    _appendTabularDataAttributesTemplate: function( frame_id, dataset_id) {
+        var content_table = $( frame_id + ' #content_table' );
+	content_table.parent().css( "position", "" );
+        content_table.attr( "dataset-id", dataset_id );
+    },
+
+    //** Resets the interval */
+    _clearIdleCounterInterval: function( self ) {
+	self.idle_counter = 0;
+        self._clearsInterval( self.idle_timer );
     },
 });
 
