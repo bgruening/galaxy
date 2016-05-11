@@ -28,7 +28,7 @@ var View = Backbone.View.extend({
     idle_counter    : 0,
     idle_timer	    : null,
     interval        : 1000, // interval to increment idle counter
-    idle_interval   : 7, // frame idle interval
+    idle_interval   : 1, // frame idle interval
     skip_datatypes  : ['bigwig', 'bigbed', 'bam', 'rdata', 'sff', 'bcf'], // skip these items
     data_target_frame : 'data-target-frame',
     current_frame_id : null,
