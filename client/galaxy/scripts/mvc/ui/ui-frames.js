@@ -911,7 +911,6 @@ var View = Backbone.View.extend({
         var self = this,
 	    frame_id = self.current_frame_id,
             dataset_id = null;
-        console.log( "e:" + e );
         // gets the frame id in case of tabular data
         if( !frame_id && event) {
                 frame_id = self._getCurrentFrameId( event );
