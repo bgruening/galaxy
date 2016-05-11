@@ -76,12 +76,12 @@ return Backbone.View.extend({
                 }
                 else {
                     _.extend( frame_config, {
-                        url: Galaxy.root + 'datasets/' + dataset.id + '/display/?preview=True',
-                        data_type: (dataset.get( 'data_type' ).split('.')[3]).toLowerCase()
+                        url: Galaxy.root + 'datasets/' + dataset.id + '/display/?preview=True'
                     });
                 }
                 _.extend( frame_config, {
-                        datasetid: dataset.id
+                        datasetid: dataset.id,
+                        data_type: dataset.get( 'data_type' ).toLowerCase()
                 });
                 self.add( frame_config );
             });
