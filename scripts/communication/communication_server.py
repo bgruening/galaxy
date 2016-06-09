@@ -44,6 +44,7 @@ from galaxy.model import mapping
 from galaxy.util.properties import load_app_properties
 from galaxy.web.security import SecurityHelper
 from galaxy.util.sanitize_html import sanitize_html
+from galaxy.util import unicodify
 
 # Get config file and load up SA session
 config = get_config( sys.argv )
@@ -76,9 +77,9 @@ def findUserByCookie(request):
     if not cookie_value:
         return None
 
-    session_key = security_helper.decode_guid(cookie_value)
+    session_key = security_helper.decode_guid(unicodify(cookie_value))
     user_session = sa_session.query(model.GalaxySession) \
-            .filter_by(session_key=session_key).first()
+            .filter_by(session_key=unicodify(session_key)).first()
 
     if user_session:
         return user_session.user
