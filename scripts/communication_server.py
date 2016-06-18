@@ -91,29 +91,29 @@ template = """<!DOCTYPE HTML>
       transition: background 0.4s;
     }
 
-    .clearable.x  { background-position: right 5px center; } 
+    .clearable.x  { background-position: right 5px center; }
     .clearable.onX{ cursor: pointer; }
-    .clearable::-ms-clear {display: none; width:0; height:0;} 
-       
+    .clearable::-ms-clear {display: none; width:0; height:0;}
+
     .size {
         height: 30px;
                 width: 790px;
         margin-bottom:5px;
-        
-    } 
+
+    }
 
         /* Styles for top right icons */
         .right_icons {
-                margin: 0px 0px 10px 780px;
-    }  
+                margin: 0px 0px 10px 745px;
+	}
 
-        #clear_messages{
-        cursor: pointer;
-        color: black;
-    }
+        .anchor{
+		cursor: pointer;
+		color: black;
+	}
 
         .messages {
-        overflow: auto; 
+        overflow: auto;
         height: 330px;
     }
 
@@ -132,7 +132,7 @@ template = """<!DOCTYPE HTML>
         font-style: italic;
         font-size: 14px;
     }
-    
+
     .user_name {
         font-style: italic;
         font-size: 13px;
@@ -143,12 +143,13 @@ template = """<!DOCTYPE HTML>
         background-color: #DFE5F9;
         width: 790px;
     }
-    
-  
+
+
     </style>
 </head>
-<body style="overflow: hidden";> 
+<body style="overflow: hidden";>
     <div class="right_icons">
+<<<<<<< HEAD
         <i id="online_status" class="fa fa-comments" aria-hidden="true" style="" title=""></i>
         <i id="clear_messages" class="fa fa-trash-o" aria-hidden="true" title="Clear all messages"></i>
     </div>
@@ -166,20 +167,38 @@ template = """<!DOCTYPE HTML>
             <i class="icon fa fa fa-play"></i>&nbsp;<span class="title">Re-connect</span>
         </button> -->
         </form>
+=======
+    	<i id="online_status" class="fa fa-comments" aria-hidden="true" style="" title=""></i>
+	<i id="chat_history" class="anchor fa fa-history" aria-hidden="true" style="" title="Show chat history"></i>
+	<i id="settings" class="anchor fa fa-cog" aria-hidden="true" style="" title="All settings"></i>
+    	<i id="clear_messages" class="anchor fa fa-trash-o" aria-hidden="true" title="Clear all messages"></i>
+    </div>
+    <div id="all_messages" class="messages"></div>
+    <div class="send_message">
+	    <form id="broadcast" method="POST" action='#'>
+		<input id="send_data" class="size clearable" type="text" name="" value="" placeholder="Type your message..." autocomplete="off" />
+		<button id="btn-send" type="submit" title="Send message">
+			<i class="icon fa fa fa-paper-plane" style="color:#00FF00"></i>&nbsp;<span class="title">Send Message</span>
+		</button>
+                <button id="btn-disconnect" type="submit" title="Disconnect from server" class="connect_disconnect">
+			<i class="icon fa fa fa-stop" style="color:#FF0000"></i>&nbsp;<span class="title">Disconnect</span>
+		</button>
+	    </form>
+>>>>>>> b7cb803... added show full chat history feature
     </div>
 
     <script type="text/javascript" src="https://code.jquery.com/jquery-1.10.2.js"></script>
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
     <script type="text/javascript" charset="utf-8">
-        
-       
-        // the namespace events connect to 
+
+
+        // the namespace events connect to
         var namespace = '/chat',
-    socket = io.connect( window.location.protocol + '//' + document.domain + ':' + location.port + namespace); 
-      
+    socket = io.connect( window.location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
         // socketio events
         var events_module = {
-        // event handler for sent data from server     
+        // event handler for sent data from server
         event_response: function( socket ) {
             socket.on('event response', function( msg ) {
                 var orig_message = msg.data.split(':'),
@@ -188,6 +207,7 @@ template = """<!DOCTYPE HTML>
                     $all_messages = $('#all_messages');
                             // builds the message to be displayed
                             message = utils.build_message( orig_message, uid );
+<<<<<<< HEAD
                 // append only for non empty messages
                 if( orig_message[0].length > 0 ) {
                         utils.append_message($all_messages, message);
@@ -195,10 +215,30 @@ template = """<!DOCTYPE HTML>
                 // updates the user session storage with all the messages
                 sessionStorage[uid]  = $all_messages.html();
                 // show the last item by scrolling to the end
-                utils.scroll_to_last($all_messages);                
+                utils.scroll_to_last($all_messages);
             });
         },
         // event handler for new connections
+=======
+		        // append only for non empty messages
+		        if( orig_message[0].length > 0 ) {
+		                utils.append_message($all_messages, message);
+			}
+		        // updates the user session storage with all the messages
+		        sessionStorage[uid] = $all_messages.html();
+			if(localStorage[uid]) {
+				localStorage[uid] = localStorage[uid] + " " + $all_messages.html();
+			}
+			else {
+				localStorage[uid] = $all_messages.html();
+			}
+
+		        // show the last item by scrolling to the end
+		        utils.scroll_to_last($all_messages);
+		    });
+		},
+		// event handler for new connections
+>>>>>>> b7cb803... added show full chat history feature
                 event_connect: function( socket ) {
             socket.on( 'connect', function() {
                 var send_data = { };
@@ -246,6 +286,7 @@ template = """<!DOCTYPE HTML>
                         socket.emit( 'event disconnect', send_data );
                         sessionStorage.removeItem(uid);
                                                 disconnected_message = "<div class='disconn_msg'>" + disconnected_message + "</div>";
+<<<<<<< HEAD
                         utils.append_message( $el_all_messages,  disconnected_message);
                                 this.is_connected = false;
                         utils.update_online_status( $el_online_status, this.is_connected );
@@ -262,7 +303,7 @@ template = """<!DOCTYPE HTML>
     utils.switch_connect_disconnect( $el_connect_disconnect, "btn-disconnect", "Disconnect", "fa-stop", "fa-play",  disconnect_tooltip);
                     utils.update_online_status( $el_online_status, this.is_connected );
                                 // show the last item by scrolling to the end
-                    utils.scroll_to_last( $el_all_messages ); 
+                    utils.scroll_to_last( $el_all_messages );
                 }
                 return false;
                 });
@@ -275,8 +316,49 @@ template = """<!DOCTYPE HTML>
                         return false;
                 });
         },
-    
+
     }
+=======
+						utils.append_message( $el_all_messages,  disconnected_message);
+				                this.is_connected = false;
+						utils.update_online_status( $el_online_status, this.is_connected );
+		  utils.switch_connect_disconnect( $el_connect_disconnect, "btn-connect", "Re-connect", "fa-play", "fa-stop", connect_tooltip, "#00FF00" );
+		                                //$el, btn_id, btn_text, fa_class_add, fa_class_remove, btn_tooltip
+		                                utils.scroll_to_last( $el_all_messages );
+					}
+				}
+				else if ( id === "btn-connect" ) {
+		                        socket.connect();
+		                        this.is_connected = true;
+					connected_message = "<div class='conn_msg'>" + connected_message + "</div>";
+					utils.append_message( $el_all_messages, connected_message );
+	utils.switch_connect_disconnect( $el_connect_disconnect, "btn-disconnect", "Disconnect", "fa-stop", "fa-play",  disconnect_tooltip, "#FF0000");
+					utils.update_online_status( $el_online_status, this.is_connected );
+		                        // show the last item by scrolling to the end
+					utils.scroll_to_last( $el_all_messages );
+				}
+				return false;
+	    		});
+		},
+		// clear all the messages
+		clear_messages: function() {
+			$( '#clear_messages' ).click(function( event ){
+                                // clears all the messages
+                		$("#all_messages").html("");
+                		return false;
+	    		});
+		},
+
+		// shows full chat history
+		show_chat_history: function() {
+			$( '#chat_history' ).click( function( events ) {
+				utils.fill_messages(localStorage[utils.get_userid()]);
+			});
+
+		}
+
+	}
+>>>>>>> b7cb803... added show full chat history feature
 
         // utility methods
         var utils = {
@@ -291,11 +373,12 @@ template = """<!DOCTYPE HTML>
                 return unescape( username_data.split('=')[1] + "-" + userid_data.split('=')[1] );
             }
             else {
-                return "";    
+                return "";
             }
         },
 
                 // fill in all messages
+<<<<<<< HEAD
         fill_messages: function () {
             var uid = utils.get_userid(),
                 message_html = $.parseHTML( sessionStorage[uid] ),
@@ -322,7 +405,7 @@ template = """<!DOCTYPE HTML>
             $el.scrollTop( $el[0].scrollHeight );
         },
 
-        // append message 
+        // append message
         append_message: function($el, message) {
             //$el.append( $('<div' + '/' + '>' ).text( message ).html() );
                 //$el.append('<br><br>');
@@ -330,17 +413,55 @@ template = """<!DOCTYPE HTML>
             $el.append( message );
             $el.append('<br>')
         },
-                // builds message 
+=======
+		fill_messages: function ( collection ) {
+			var uid = utils.get_userid(),
+			    message_html = $.parseHTML( collection ),
+			    $el_all_messages = $('#all_messages');
+			// clears the previous items
+                        $('#all_messages').html("");
+			if(collection) {
+				$el_all_messages.append( $( '<div' + '/' + '>' ).html( message_html ) );
+			}
+			// show the last item by scrolling to the end
+			utils.scroll_to_last($el_all_messages);
+		},
+
+		// gets the user id
+		get_userid: function() {
+			return utils.get_userdata().split('-')[1];
+		},
+
+		// gets the user name
+		get_username: function() {
+			return utils.get_userdata().split('-')[0];
+		},
+
+		// scrolls to the last of element
+		scroll_to_last: function($el) {
+			$el.scrollTop( $el[0].scrollHeight );
+		},
+
+		// append message
+		append_message: function($el, message) {
+			//$el.append( $('<div' + '/' + '>' ).text( message ).html() );
+		        //$el.append('<br><br>');
+			message = "<div>" + message + "</div>";
+			$el.append( message );
+			$el.append('<br>')
+		},
+>>>>>>> b7cb803... added show full chat history feature
+                // builds message
                 build_message: function(original_message, uid) {
                     var from_uid = original_message[1].split('-')[1],
                 message_user = "",
                 message_text = "";
-                
+
                         // for user's own messages
                         if ( from_uid === uid ) {
                                 message_user = "<span class='user_name'> me <br> </span>";
                 message_text = "<div class='user_message'>" + unescape( original_message[0] ) + "</div>";
-                
+
             }
             // for other user's messages
             else {
@@ -358,8 +479,9 @@ template = """<!DOCTYPE HTML>
                 $el.prop( "title", "You are offline!" ).css( "color", "#FF0000");
             }
         },
-             
+
                 // switch buttons connect and disconnect
+<<<<<<< HEAD
         switch_connect_disconnect: function( $el, btn_id, btn_text, fa_class_add, fa_class_remove, btn_tooltip) {
                         $el.prop("id", btn_id).prop("title", btn_tooltip);
                         $el.find('i').removeClass(fa_class_remove).addClass(fa_class_add);
@@ -368,7 +490,7 @@ template = """<!DOCTYPE HTML>
     }
 
     // this snippet is for adding a clear icon in the message textbox
-    function tog(v){return v?'addClass':'removeClass';} 
+    function tog(v){return v?'addClass':'removeClass';}
     $(document).on('input', '.clearable', function(){
         $(this)[tog(this.value)]('x');
     }).on('mousemove', '.x', function( e ){
@@ -380,7 +502,7 @@ template = """<!DOCTYPE HTML>
 
         // registers the events when this document is ready
         $(document).ready(function(){
-        // fill the messages if user is already connected 
+        // fill the messages if user is already connected
         // and comes back to the chat window
         utils.fill_messages();
         // updates online status text
@@ -398,6 +520,48 @@ template = """<!DOCTYPE HTML>
                 //click_events.connect(socket);
         // clears all the messages
         click_events.clear_messages();
+=======
+		switch_connect_disconnect: function( $el, btn_id, btn_text, fa_class_add, fa_class_remove, btn_tooltip, icon_color) {
+                        $el.prop("id", btn_id).prop("title", btn_tooltip);
+                        $el.find('i').removeClass(fa_class_remove).addClass(fa_class_add).css("color", icon_color);
+			$el.find('span').text(btn_text);
+		},
+	}
+
+	// this snippet is for adding a clear icon in the message textbox
+	function tog(v){return v?'addClass':'removeClass';}
+	$(document).on('input', '.clearable', function(){
+	    $(this)[tog(this.value)]('x');
+	}).on('mousemove', '.x', function( e ){
+	    $(this)[tog(this.offsetWidth-18 < e.clientX-this.getBoundingClientRect().left)]('onX');
+	}).on('touchstart click', '.onX', function( ev ){
+	    ev.preventDefault();
+	    $(this).removeClass('x onX').val('').change();
+	});
+
+        // registers the events when this document is ready
+        $(document).ready(function(){
+		// fill the messages if user is already connected
+		// and comes back to the chat window
+		var uid = utils.get_userid();
+		//alert(uid);
+		utils.fill_messages(sessionStorage[uid]);
+		// updates online status text
+		utils.update_online_status( $('#online_status'), true );
+		// registers response event
+		events_module.event_response(socket);
+		// registers connect event
+		events_module.event_connect(socket);
+
+		// broadcast the data
+		click_events.broadcast_data(socket);
+		// disconnet the user from the chat server
+		click_events.connect_disconnect(socket);
+
+                click_events.show_chat_history();
+		// clears all the messages
+		click_events.clear_messages();
+>>>>>>> b7cb803... added show full chat history feature
         });
 
     </script>
@@ -414,7 +578,7 @@ def index():
 @socketio.on('event connect', namespace='/chat')
 def event_connect(message):
     print("connected")
-    
+
 
 @socketio.on('event broadcast', namespace='/chat')
 def event_broadcast(message):
