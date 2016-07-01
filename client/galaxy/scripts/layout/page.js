@@ -2,8 +2,9 @@ define([
     'layout/masthead',
     'layout/panel',
     'mvc/ui/ui-modal',
-    'mvc/base-mvc'
-], function( Masthead, Panel, Modal, BaseMVC ) {
+    'mvc/base-mvc',
+    "mvc/tool/tool-form"
+], function( Masthead, Panel, Modal, BaseMVC, ToolForm ) {
 
 // ============================================================================
 var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
@@ -11,7 +12,12 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
 
     el : 'body',
     className : 'full-content',
-
+    events: {
+        'keydown': "invokeSearchOverlay",
+        'keyup .txtbx-search-data': "searchData",
+        'click .remove-search-screen': "removeOverlay",
+        'click .tool-search-link': "searchedToolLink"
+    },
     _panelIds : [
         'left', 'center', 'right'
     ],
@@ -48,6 +54,11 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
         this.renderMessageBox();
         this.renderInactivityBox();
         this.renderPanels();
+        // registers the search overlay
+        this.invokeSearchOverlay();
+        this.removeOverlay();
+        this.searchData();
+        this.searchedToolLink();
         return this;
     },
 
@@ -105,9 +116,200 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
         return this;
     },
 
+    /** invokes overlay of the search screen */ 
+    invokeSearchOverlay: function( e ) { 
+        if( e ) {
+            e.stopPropagation();
+            var $el_search_screen = $('.search-screen'),
+                $el_search_screen_overlay = $('.search-screen-overlay'),
+                $el_search_txtbx = $('.txtbx-search-data'),
+                $el_search_result = $('.search-results');
+            if ( ( e.which === 81 || e.keyCode === 81 ) && e.ctrlKey ) {
+                // clears the data of previous search
+                $el_search_txtbx.val("");
+                $el_search_result.html("");
+                // shows the overlay and search screen
+                $el_search_screen_overlay.css('display', 'block');
+                $el_search_screen.css('display', 'block');
+                $el_search_txtbx.focus();
+            }
+            // removes the overlay and hides the search screen
+            else if ( e.which === 27 || e.keyCode === 27 ) {
+                this.removeOverlay();
+            }
+        }
+    },
+    /** removes the search overlay */ 
+    removeOverlay: function() {
+        var $el_search_screen = $('.search-screen'),
+            $el_search_screen_overlay = $('.search-screen-overlay');
+        $el_search_screen_overlay.css('display', 'none');
+        $el_search_screen.css('display', 'none');
+    },
+
+    /** searches with the query */ 
+    searchData: function( e ) {
+        if( e ) {
+            e.stopPropagation();
+            var $el_search_txtbx = $('.txtbx-search-data'),
+                query = "",
+                url_root = Galaxy.root + 'api/tools',
+                $el_search_result = $('.search-results'),
+                link = null,
+                search_query_minimum_length = 3,
+                self = this;
+            query = $el_search_txtbx.val();
+            query = query.trim();
+            if(query.length < search_query_minimum_length) {
+                $el_search_result.html("");
+                $el_search_result.css("display","none");
+            }
+            // performs search if enter is pressed or query length increases the minimum character length
+            else if ( ( e.which === 13 || e.keyCode === 13 ) || query.length >= search_query_minimum_length ) {
+                $.get( url_root, { q: query }, function ( search_result ) {
+                    $el_search_result.html("");
+                    $el_search_result.css("display","none");
+                    self._templateSearchlinks( search_result, self ); 
+                }, "json" );
+            }
+            // removes the overlay and hides the search screen
+            // on clicking escape key
+            else if ( e.which === 27 || e.keyCode === 27 ) {
+                this.removeOverlay();
+            }
+        }
+    },
+
+    // opens the respective link as the modal pop up or in the center of the main screen
+    searchedToolLink: function( e ) {
+        if( e ) {
+	    var id = "",
+	        form_style = "",
+	        version = "", 
+                $target_element = null;
+	    this.removeOverlay();
+            // sets the target element as jQuery element
+	    if( e.srcElement ) {
+                $target_element = $( e.srcElement );
+	    }
+	    else if( e.target ) {
+                $target_element = $( e.target );
+	    }
+            // fetches the properties
+            id = $target_element.attr('data-toolid');
+            form_style = $target_element.attr('data-formstyle');
+            version = $target_element.attr('data-version');
+            // loads as modal popup
+	    if( id === 'upload1') {
+	        Galaxy.upload.show();
+	    }
+            // opens the link in the iframe
+	    else if ( form_style === 'regular' ) {
+	        var form = new ToolForm.View( { id : id, version : version } );
+	        form.deferred.execute(function() {
+	            Galaxy.app.display( form );
+	        });
+	    }
+        }
+    },
+
+    /** creates collection of templates of all sections and links */
+    _templateSearchlinks: function( search_result, self ) {
+        var $el_search_result = $('.search-results'),
+            template_dict = [];
+        for( var i = 0; i < search_result.length; i++ ) {
+            var all_sections = Galaxy.toolPanel.attributes.layout.models;
+            for( var j = 0; j < all_sections.length; j++ ) {
+                var all_tools = all_sections[j].attributes.elems,
+                    is_present = false, 
+                    tools_template = "",
+                    section_header_id = "",
+                    section_header_name = "";
+                for( var k = 0; k < all_tools.length; k++ ) {
+                    if( search_result[i] === all_tools[k].id ) {
+                        is_present = true;
+                        var link = all_tools[k].attributes.link,
+                            name = all_tools[k].attributes.name + " " + all_tools[k].attributes.description,
+                            version = all_tools[k].attributes.version,
+                            form_style = all_tools[k].attributes.form_style,
+                            tool_id = all_tools[k].attributes.id;
+                        tools_template = tools_template +  self._buildLinkTemplate( link, name, version, form_style, tool_id );
+                    }
+                } // end of innermost for loop
+                if( is_present ) {
+                    section_header_id = all_sections[j].attributes.id;
+                    section_header_name = all_sections[j].attributes.name;
+                    template_dict = self.appendTemplate( template_dict, section_header_id, section_header_name, tools_template );
+                }
+            }  // end of second level for loop        
+        } // end of first level for loop
+
+        // makes the template of the fetched sections and tools
+        self.makeSearchResultTemplate( $el_search_result, template_dict );
+    },
+
+    /** checks if element exists in the collection */
+    checkValue: function( collection, id ) {
+        for(var i = 0; i < collection.length; i++ ) {
+            if( id === collection[i].id ) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    /** appends the template or creates a new section */
+    appendTemplate: function( collection, id, name, text ) {
+        var is_present = false;
+        for(var i = 0; i < collection.length; i++ ) {
+            if( id === collection[i].id ) {
+                collection[i].template = collection[i].template + + " " + text;
+                is_present = true;
+            }
+        }
+        if(!is_present) {
+            collection.push({ id: id, template: text, name: name });
+        }
+        return collection;
+    },
+
+    /** builds the fetched items template using the dict */ 
+    makeSearchResultTemplate: function( $el_search_result, collection ) {
+        var header_template = "";
+        for( var i = 0; i < collection.length; i++ ) {
+            header_template = this._buildHeaderTemplate( collection[i].id, collection[i].name );
+            $el_search_result.append( header_template );
+            $el_search_result.append( collection[i].template );
+
+            $el_search_result.find("a.tool-search-link").click(function( e ) {
+                e.preventDefault();
+            });
+        }
+        // jQuery slow fadeIn effect
+        $el_search_result.fadeIn('slow');
+    },
+
+    /** builds section header template */
+    _buildHeaderTemplate: function( id, name ) {
+        return "<div class='search-tool-section-name' data-id='searched_" + id + "' >" + name + "</div>";
+    },
+
+    /** builds tool link template */
+    _buildLinkTemplate: function( link, name, version, form_style, tool_id ) {
+        return "<a class='tool-search-link btn btn-primary' href='" + link + 
+               "' role='button' title='" + name + "' target='galaxy_main' data-version='" + version + 
+               "' data-formstyle='"+ form_style +"' data-toolid='" + tool_id + "'>"  + name +  "</a>";
+    },
+
     /** body template */
     _template: function() {
         return [
+            // template for search overlay
+	    '<div id="search_screen_overlay" class="search-screen-overlay"></div>',
+	    '<div id="search_screen" class="search-screen">' +
+	        '<input class="txtbx-search-data form-control" type="text" value="" placeholder="Type your query..." />' + 
+                '<div class="search-results"></div>' +
+	    '</div>',
             '<div id="everything">',
                 '<div id="background"/>',
                 '<div id="masthead"/>',
