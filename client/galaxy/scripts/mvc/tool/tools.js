@@ -247,6 +247,7 @@ var Tool = Backbone.Model.extend({
                 tool_id: this.id,
                 inputs: this.get_inputs_dict()
             }, additional_params);
+
         // Because job may require indexing datasets, use server-side
         // deferred to ensure that job is run. Also use deferred that
         // resolves to outputs from tool.
