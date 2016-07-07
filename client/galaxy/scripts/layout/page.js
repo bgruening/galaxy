@@ -16,7 +16,8 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
         'keydown': "invokeSearchOverlay",
         'keyup .txtbx-search-data': "searchData",
         'click .remove-search-screen': "removeOverlay",
-        'click .tool-search-link': "searchedToolLink"
+        'click .tool-search-link': "searchedToolLink",
+        'click .history-search-link': "removeOverlay"
     },
     _panelIds : [
         'left', 'center', 'right'
@@ -162,14 +163,13 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
             query = query.trim();
             if(query.length < search_query_minimum_length) {
                 $el_search_result.html("");
-                $el_search_result.css("display","none");
             }
             // performs search if enter is pressed or query length increases the minimum character length
             else if ( ( e.which === 13 || e.keyCode === 13 ) || query.length >= search_query_minimum_length ) {
                 $.get( url_root, { q: query }, function ( search_result ) {
                     $el_search_result.html("");
-                    $el_search_result.css("display","none");
-                    self._templateSearchlinks( search_result, self ); 
+                    self._templateHistorySearch( query );
+                    self._templateSearchlinks( search_result, self );
                 }, "json" );
             }
             // removes the overlay and hides the search screen
@@ -210,6 +210,10 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
 	            Galaxy.app.display( form );
 	        });
 	    }
+            else if ( form_style === 'special' ) {
+                // redirects to url other than the Galaxy
+                document.location = $target_element.attr('href');
+            }
         }
     },
 
@@ -221,19 +225,14 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
             var all_sections = Galaxy.toolPanel.attributes.layout.models;
             for( var j = 0; j < all_sections.length; j++ ) {
                 var all_tools = all_sections[j].attributes.elems,
-                    is_present = false, 
+                    is_present = false,
                     tools_template = "",
                     section_header_id = "",
                     section_header_name = "";
                 for( var k = 0; k < all_tools.length; k++ ) {
                     if( search_result[i] === all_tools[k].id ) {
                         is_present = true;
-                        var link = all_tools[k].attributes.link,
-                            name = all_tools[k].attributes.name + " " + all_tools[k].attributes.description,
-                            version = all_tools[k].attributes.version,
-                            form_style = all_tools[k].attributes.form_style,
-                            tool_id = all_tools[k].attributes.id;
-                        tools_template = tools_template +  self._buildLinkTemplate( link, name, version, form_style, tool_id );
+                        tools_template = tools_template + self._buildLinkTemplate( all_tools[k].attributes );
                     }
                 } // end of innermost for loop
                 if( is_present ) {
@@ -248,9 +247,41 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
         self.makeSearchResultTemplate( $el_search_result, template_dict );
     },
 
+    /** searches for items in history list */
+    _templateHistorySearch: function( query ) {
+        var history_items = Galaxy.currHistoryPanel.collection.models,
+            template_string = "",
+            $el_search_result = $('.search-results'),
+            is_present = false;
+        for(var counter = 0; counter < history_items.length; counter++) {
+            var item = history_items[counter].attributes,
+                name = item.name;
+            name = name.toLowerCase();
+            query = query.toLowerCase();
+            if( name.indexOf( query ) > -1 ) {
+                template_string = template_string + this._buildHistorySearchTemplate( item );
+                is_present = true;
+            }
+        }
+        // makes the history section only if a result is present
+        if( is_present ) {
+            $el_search_result.append( this._buildHeaderTemplate( 'history', 'History' ) );
+            $el_search_result.append( template_string );
+        }
+    },
+
+    /** builds links for history searched items */
+    _buildHistorySearchTemplate: function( attributes ) {
+        return "<a class='history-search-link btn btn-primary " + attributes.dataset_id +
+               "' href='/datasets/" + attributes.dataset_id + "/display/?preview=True" +
+               "' role='button' title='" + attributes.name +
+               "' target='galaxy_main'" +
+               ">" + attributes.name + "</a>";
+    },
+
     /** checks if element exists in the collection */
     checkValue: function( collection, id ) {
-        for(var i = 0; i < collection.length; i++ ) {
+        for( var i = 0; i < collection.length; i++ ) {
             if( id === collection[i].id ) {
                 return true;
             }
@@ -295,10 +326,12 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
     },
 
     /** builds tool link template */
-    _buildLinkTemplate: function( link, name, version, form_style, tool_id ) {
-        return "<a class='tool-search-link btn btn-primary' href='" + link + 
-               "' role='button' title='" + name + "' target='galaxy_main' data-version='" + version + 
-               "' data-formstyle='"+ form_style +"' data-toolid='" + tool_id + "'>"  + name +  "</a>";
+    _buildLinkTemplate: function( attributes ) {
+        return "<a class='tool-search-link btn btn-primary " + attributes.id + " ' href='" + attributes.link +
+               "' role='button' title='" + attributes.name + " " + attributes.description +
+               "' target='" + attributes.target + "' data-version='" + attributes.version +
+               "' minsizehint='" + attributes.min_width +
+               "' data-formstyle='" + attributes.form_style + "' data-toolid='" + attributes.id + "' >" + attributes.name + "</a>";
     },
 
     /** body template */
