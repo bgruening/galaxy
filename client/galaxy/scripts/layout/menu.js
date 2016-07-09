@@ -12,9 +12,9 @@ var Collection = Backbone.Collection.extend({
         this.reset();
         
         //gets the chat view
-        var commview = new GenericNav.GenericNavView({ type: "chat" });
+        var extendedNavItem = new GenericNav.GenericNavView();
         // Chat tab
-        this.add(commview.render()); 
+        this.add(extendedNavItem.render()); 
  
         //
         // Analyze data tab.

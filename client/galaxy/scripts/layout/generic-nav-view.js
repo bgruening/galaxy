@@ -3,8 +3,7 @@ define(['mvc/ui/ui-modal'], function( Modal ) {
 
 var GenericNavView = Backbone.View.extend({
 
-    initialize: function ( options ) {
-        this.type = options.type;
+    initialize: function ( ) {
         this.modal = null;
     },
 
@@ -19,11 +18,14 @@ var GenericNavView = Backbone.View.extend({
 	    src = host + ":" + port + query_string,
 	    $el_chat_modal_header = null,
 	    $el_chat_modal_body = null,
-            iframe_template = '<iframe class="f-iframe fade in" src="' + src + '" style="width:100%; height:100%;"> </iframe>',
-            header_template  = '<i class="fa fa-comment" aria-hidden="true" title="Communicate with other users"></i>' +
-	                       '<i class="fa fa-times close-modal" aria-hidden="true" ' +
-                               'style="float: right; cursor: pointer;" title="Close"></i>';
- 
+            iframe_template = '<iframe class="f-iframe fade in communication-iframe" src="' + src + '"> </iframe>',
+            header_template = '<i class="fa fa-comment" aria-hidden="true" title="Communicate with other users"></i>' +
+	                      '<i class="fa fa-times close-modal" aria-hidden="true" ' +
+                              'title="Close"></i>',
+            frame_height = 350,
+            frame_width = 600,
+            class_names = 'ui-modal chat-modal';
+
 	// deletes the chat modal if already present and create one
         if( $( '.chat-modal' ).length > 0 ) {
             $( '.chat-modal' ).remove();
@@ -31,11 +33,11 @@ var GenericNavView = Backbone.View.extend({
         // creates a modal
 	GenericNavView.modal = new Modal.View({
 	    body            : iframe_template,
-	    height          : 350,
-	    width           : 600,
+	    height          : frame_height,
+	    width           : frame_width,
 	    closing_events  : true,
 	    title_separator : false,
-            cls             : 'ui-modal chat-modal'
+            cls             : class_names
 	});
 
 	// shows modal
@@ -43,31 +45,30 @@ var GenericNavView = Backbone.View.extend({
         $el_chat_modal_header = $( '.chat-modal .modal-header' );
         $el_chat_modal_body = $( '.chat-modal .modal-body' );
 	// adjusts the css of bootstrap modal for chat
-	$el_chat_modal_header.css( 'padding', '3px' );
-	$el_chat_modal_body.css( 'padding', '2px' );
+        $el_chat_modal_header.addClass('modal-header-body');
+        $el_chat_modal_body.addClass('modal-header-body');
 	$el_chat_modal_header.find( 'h4' ).remove();
-	$el_chat_modal_header.removeAttr( 'min-height' ).removeAttr( 'padding' ).removeAttr( 'border' );
+        $el_chat_modal_header.removeAttr( 'min-height padding border' );
 	$el_chat_modal_header.append( header_template );
 	// click event of the close button for chat
 	$( '.close-modal' ).click(function( e ) {
 	    $( '.chat-modal' ).css( 'display', 'none' );
 	});
+        return this;
     },
 
     /**renders the chat icon as a nav item*/
     render: function() {
         var self = this,
             navItem = {};
-        if( self.type === 'chat' ) {
-            navItem = {
-                id              : 'show-chat-online',
-                icon            : 'fa-comment-o',
-                tooltip         : 'Chat online',
-                visible         : false,
-                onclick         : self.makeModalIframe
-            }
-            return navItem;
+        navItem = {
+            id              : 'show-chat-online',
+            icon            : 'fa-comment-o',
+            tooltip         : 'Chat online',
+            visible         : false,
+            onclick         : self.makeModalIframe
         }
+        return navItem;
     }
 });
 
