@@ -1,10 +1,12 @@
 define([
     "mvc/list/list-item",
     "ui/loading-indicator",
+    "layout/generic-search",
     "mvc/base-mvc",
     "utils/localization",
     "ui/search-input"
-], function( LIST_ITEM, LoadingIndicator, BASE_MVC, _l ){
+    
+], function( LIST_ITEM, LoadingIndicator, Search, BASE_MVC, _l ){
 
 'use strict';
 
@@ -102,6 +104,8 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
         this.subtitle = attributes.subtitle || '';
 
         this._setUpListeners();
+
+        
     },
 
     /** free any sub-views the list has */
@@ -355,7 +359,8 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
      */
     renderItems : function( $whereTo ){
         $whereTo = $whereTo || this.$el;
-        var panel = this;
+        var panel = this,
+            historySearch = null;
         panel.log( this + '.renderItems', $whereTo );
 
         var $list = panel.$list( $whereTo );
@@ -378,6 +383,10 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
         }
         panel.trigger( 'views:ready', panel.views );
 
+        /** returns history search object for the search overlay */
+        historySearch = new Search.HistorySearch();
+        historySearch.getHistorySearchList(panel._filterCollection());
+
         return panel.views;
     },
 
@@ -394,7 +403,7 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
     _filterItem : function( model ){
         // override this
         var panel = this;
-        return ( _.every( panel.filters.map( function( fn ){ return fn.call( model ); }) ) )
+        return ( _.every( panel.filters.map( function( fn ) { return fn.call( model ); }) ) )
             && ( !panel.searchFor || model.matchesAll( panel.searchFor ) );
     },
 

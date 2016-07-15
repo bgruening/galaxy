@@ -1,5 +1,5 @@
 /** Generic search feature **/
-define(["mvc/tool/tool-form"], function( ToolForm ) {
+define(["mvc/tool/tool-form"], function( ToolForm) {
 
 var GenericSearch = Backbone.View.extend({
     initialize: function ( ) {
@@ -36,47 +36,75 @@ var GenericSearch = Backbone.View.extend({
 	    // removes the overlay and hides the search screen
 	    else if ( evt.which === 27 || evt.keyCode === 27 ) {
 	        this.removeOverlay();
+                this.resetHistorySearch();
 	    }
         }
     },
 
     /** removes the search overlay */ 
     removeOverlay: function() {
-        var $el_search_screen = $('.search-screen'),
-            $el_search_screen_overlay = $('.search-screen-overlay');
-        $el_search_screen_overlay.css('display', 'none');
-        $el_search_screen.css('display', 'none');
+        var $el_search_screen = $( '.search-screen' ),
+            $el_search_screen_overlay = $( '.search-screen-overlay' );
+        $el_search_screen_overlay.css( 'display', 'none' );
+        $el_search_screen.css( 'display', 'none' );
+    },
+
+    /** resets the original history search */
+    resetHistorySearch: function() {
+        var $el = $( '.search-input .search-query' );
+        $el.focus();
+        // triggers the escape key press
+        $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
+        $el.blur();
     },
 
     /** searches with the query */ 
     searchData: function( _self, e ) {
-        var $el_search_txtbx = $('.txtbx-search-data'),
+        var $el_search_txtbx = $( '.txtbx-search-data' ),
             query = "",
             url_root = Galaxy.root + 'api/tools',
-            $el_search_result = $('.search-results'),
+            $el_search_result = $( '.search-results' ),
+            $el_search_history_input = $( '.search-input .search-query' ),
             link = null,
-            search_query_minimum_length = 3;
+            search_query_minimum_length = 3,
+            search_result = null;
+
         if( e ) {
             e.stopPropagation();
-            query = $el_search_txtbx.val();
-            query = query.trim();
-            if(query.length < search_query_minimum_length) {
+            query = ( $el_search_txtbx.val() ).trim();
+            //query = query.trim();
+            if( query.length < search_query_minimum_length ) {
                 $el_search_result.html("");
             }
             // performs search if enter is pressed or query length increases the minimum character length
             else if ( ( e.which === 13 || e.keyCode === 13 ) || query.length >= search_query_minimum_length ) {
-                $.get( url_root, { q: query }, function ( search_result ) {
-                    $el_search_result.html("");
-                    _self._templateHistorySearch( query );
-                    _self._templateSearchlinks( search_result, _self );
-                }, "json" );
+                $el_search_result.html( "" );
+                _self.triggerToolSearch( url_root, query, _self );
+                _self.triggerHistorySearch( query );
             }
             // removes the overlay and hides the search screen
             // on clicking escape key
             else if ( e.which === 27 || e.keyCode === 27 ) {
                 _self.removeOverlay();
+                _self.resetHistorySearch();
             }
         }
+    },
+
+    /** asynchronous fetch call for tool search */ 
+    triggerToolSearch: function( url_root, query, self ) {
+        $.get( url_root, { q: query }, function ( search_result ) {
+            // makes template out of the search results
+            self._templateSearchlinks( search_result, self );
+        }, "json" );
+    },
+
+    /** triggers history item search in the original history search */
+    triggerHistorySearch: function( query ) {
+        var $el = $( '.search-input .search-query' );
+        $el.val( query );
+        $el.trigger( $.Event("keyup", { keyCode: 13, which: 13 }) );
+        $el.trigger( $.Event("keyup", { keyCode: 13, which: 13 }) );
     },
 
     /** opens the respective link as the modal pop up or in the center of the main screen */
@@ -95,11 +123,11 @@ var GenericSearch = Backbone.View.extend({
                 $target_element = $( e.target );
 	    }
             // fetches the properties
-            id = $target_element.attr('data-toolid');
-            form_style = $target_element.attr('data-formstyle');
-            version = $target_element.attr('data-version');
+            id = $target_element.attr( 'data-toolid' );
+            form_style = $target_element.attr( 'data-formstyle' );
+            version = $target_element.attr( 'data-version' );
             // loads as modal popup
-	    if( id === 'upload1') {
+	    if( id === 'upload1' ) {
 	        Galaxy.upload.show();
 	    }
             // opens the link in the iframe
@@ -111,14 +139,14 @@ var GenericSearch = Backbone.View.extend({
 	    }
             else if ( form_style === 'special' ) {
                 // redirects to url other than the Galaxy
-                document.location = $target_element.attr('href');
+                document.location = $target_element.attr( 'href' );
             }
         }
     },
 
     /** creates collection of templates of all sections and links */
     _templateSearchlinks: function( search_result, self ) {
-        var $el_search_result = $('.search-results'),
+        var $el_search_result = $( '.search-results' ),
             template_dict = [];
         for( var i = 0; i < search_result.length; i++ ) {
             var all_sections = Galaxy.toolPanel.attributes.layout.models;
@@ -143,34 +171,7 @@ var GenericSearch = Backbone.View.extend({
         } // end of first level for loop
 
         // makes the template of the fetched sections and tools
-        self.makeSearchResultTemplate( $el_search_result, template_dict );
-    },
-
-    /** searches for items in history list */
-    _templateHistorySearch: function( query ) {
-        var history_items = Galaxy.currHistoryPanel.collection.models,
-            template_string = "",
-            $el_search_result = $('.search-results'),
-            is_present = false,
-            self = this;
-        for(var counter = 0; counter < history_items.length; counter++) {
-            var item = history_items[counter].attributes,
-                name = item.name;
-            name = name.toLowerCase();
-            query = query.toLowerCase();
-            if( name.indexOf( query ) > -1 ) {
-                template_string = template_string + this._buildHistorySearchTemplate( item );
-                is_present = true;
-            }
-        }
-        // makes the history section only if a result is present
-        if( is_present ) {
-            $el_search_result.append( this._buildHeaderTemplate( 'history', 'History' ) );
-            $el_search_result.append( template_string );
-            $(".history-search-link").click(function( e ) {
-                self.removeOverlay();
-            });
-        }
+        self.makeToolSearchResultTemplate( $el_search_result, template_dict );
     },
 
     /** checks if element exists in the collection */
@@ -188,32 +189,33 @@ var GenericSearch = Backbone.View.extend({
         var is_present = false;
         for(var i = 0; i < collection.length; i++ ) {
             if( id === collection[i].id ) {
-                collection[i].template = collection[i].template + + " " + text;
+                collection[i].template = collection[i].template + " " + text;
                 is_present = true;
             }
         }
         if(!is_present) {
-            collection.push({ id: id, template: text, name: name });
+            collection.push( { id: id, template: text, name: name } );
         }
         return collection;
     },
 
     /** builds the fetched items template using the dict */ 
-    makeSearchResultTemplate: function( $el_search_result, collection ) {
+    makeToolSearchResultTemplate: function( $el_search_result, collection ) {
         var header_template = "",
             self = this;
         for( var i = 0; i < collection.length; i++ ) {
             header_template = this._buildHeaderTemplate( collection[i].id, collection[i].name );
             $el_search_result.append( header_template );
             $el_search_result.append( collection[i].template );
-            $el_search_result.find("a.tool-search-link").click(function( e ) {
+            $el_search_result.find( "a.tool-search-link" ).click(function( e ) {
                 // stops the default behaviour of anchor click
                 e.preventDefault();
                 self.searchedToolLink( self, e );
+                self.resetHistorySearch();
             });
         }
         // jQuery slow fadeIn effect
-        $el_search_result.fadeIn('slow');
+        $el_search_result.fadeIn( 'slow' );
     },
 
     /** builds section header template */
@@ -230,15 +232,6 @@ var GenericSearch = Backbone.View.extend({
                "' data-formstyle='" + attributes.form_style + "' data-toolid='" + attributes.id + "' >" + attributes.name + "</a>";
     },
 
-    /** builds links for history searched items */
-    _buildHistorySearchTemplate: function( attributes ) {
-        return "<a class='history-search-link btn btn-primary " + attributes.dataset_id +
-               "' href='/datasets/" + attributes.dataset_id + "/display/?preview=True" +
-               "' role='button' title='" + attributes.name +
-               "' target='galaxy_main'" +
-               ">" + attributes.name + "</a>";
-    },
-
     /** template for search overlay */
     _template: function() {
         return '<div class="overlay-wrapper">' + 
@@ -252,8 +245,70 @@ var GenericSearch = Backbone.View.extend({
    
 });
 
+var HistorySearch = Backbone.View.extend({
+
+    /** gets the items for history search */
+    getHistorySearchList: function( items ) {
+        // removes the old history search items
+        $( '.search-history' ).remove();
+        $( '.history-search-link' ).remove();
+        if( items.length > 0 ) {
+            this.makeHistoryList( items );
+        }
+    },
+
+    /** makes a template of the history items returned by search routine */
+    makeHistoryList: function( history_items ) {
+        var template_string = "",
+            $el_search_result = $( '.search-results' ),
+            self = this;
+        for( var counter = 0; counter < history_items.length; counter++ ) {
+            var item = history_items[counter].attributes;
+            template_string = template_string + self._buildHistorySearchTemplate( item );
+        }
+        $el_search_result.append( self._buildHeaderTemplate( 'history', 'History' ) );
+        $el_search_result.append( template_string );
+        $( ".history-search-link" ).click(function( e ) {
+            self.removeOverlay();
+            self.resetHistorySearch();
+        });
+    },
+
+    /** builds links for history searched items */
+    _buildHistorySearchTemplate: function( attributes ) {
+        return "<a class='history-search-link btn btn-primary " + attributes.dataset_id +
+               "' href='/datasets/" + attributes.dataset_id + "/display/?preview=True" +
+               "' role='button' title='" + attributes.name +
+               "' target='galaxy_main'" +
+               ">" + attributes.name + "</a>";
+    },
+
+    /** builds section header template */
+    _buildHeaderTemplate: function( id, name ) {
+        return "<div class='search-tool-section-name search-history' data-id='searched_" + id + "' >" + name + "</div>";
+    },
+
+    /** removes the search overlay */ 
+    removeOverlay: function() {
+        var $el_search_screen = $( '.search-screen' ),
+            $el_search_screen_overlay = $( '.search-screen-overlay' );
+        $el_search_screen_overlay.css( 'display', 'none' );
+        $el_search_screen.css( 'display', 'none' );
+    },
+   
+    /** resets the original history search */
+    resetHistorySearch: function() {
+        var $el = $( '.search-input .search-query' );
+        $el.focus();
+        // triggers the escape key press
+        $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
+        $el.blur();
+    }
+});
+
 return {
-    GenericSearch  : GenericSearch
+    GenericSearch  : GenericSearch,
+    HistorySearch  : HistorySearch
 };
 
 });
