@@ -1722,52 +1722,85 @@ div.toolTitleNoSection
 
 // ============================= Tool Search overlay ==========================================
 
-.search-screen-overlay
-{ 
-	position:fixed; 
-	top:0; 
-	left:0; 
-	background:rgba(0,0,0,0.9); 
-	z-index: 201; 
-        width:100%; 
-	height:100%; 
-	display:none;
-        opacity: 2;
+.overlay-wrapper {
+    margin-top: -5%; 
 }
 
-.search-screen 
-{ 
-	position:relative; 
-	z-index: 202; 
-	display:block;
+.search-screen-overlay { 
+    position: fixed; 
+    top:0; 
+    left:0; 
+    background:rgba(0,0,0,0.9); 
+    z-index: 201; 
+    width:100%; 
+    height:100%; 
+    display:none;
+    opacity: 2;
+}
+
+.search-screen { 
+    position: fixed; 
+    z-index: 202;
+    width:100%; 
+    height:100%;
+    display:block;
 }
 
 .txtbx-search-data {
-	margin-left: 35%;
-        margin-top: 10%;
-        height: 30px;
-        width: 25%;
-        padding:2px;
-        font-size: 14px;
+    margin-left: 35%;
+    margin-top: 10%;
+    height: 30px;
+    width: 25%;
+    padding:2px;
+    font-size: 14px;
 }
 
 .search-results {
-        margin-left: 10%;
-        margin-top: 2%;
-        margin: 2% 5% 0% 5%;
-        overflow-x: hidden;
-        overflow-y: auto;
-        height: 350px;
-        display: none;
+    margin: -1% 2% 2% 2%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 75%;
+    width: 96%
+    display: none;
+
 }
 
 .tool-search-link {
-        text-decoration: none; 
-	text-align:center;
-        margin-bottom: 4px;
+    text-decoration: none; 
+    text-align:center;
+    margin-bottom: 4px;
 }
 
 .search-tool-section-name {
-        color: white;
-        margin-top: 1%;
+    color: white;
+    margin-top: 1%;
+}
+
+.overlay-filters {
+    margin: 1% 2% 1% 2%;
+    display: none;
+}
+
+.overlay-filters a {
+    color: white;
+    margin-right: 1%;
+    cursor: pointer;
+}
+
+.text-underline {
+    text-decoration: underline;
+}
+
+.search-tool-main-section {
+    margin-top: 1%;
+}
+.search-tool-main-section span {
+    color: white;
+}
+
+.section-hr {
+    color: white;
+    width: 80%;
+    margin: 0px;
+    padding: 0px;
 }
