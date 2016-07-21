@@ -2,7 +2,7 @@
 define(["mvc/tool/tool-form"], function( ToolForm) {
 
 var GenericSearch = Backbone.View.extend({
-
+    search_query_minimum_length: 3,
     active_filter: "all",
 
     initialize: function ( ) {
@@ -28,6 +28,7 @@ var GenericSearch = Backbone.View.extend({
 	    $el_search_result = $( '.search-results' );
         if( evt ) {
 	    evt.stopPropagation();
+            // click of ctrl+q
 	    if ( ( evt.which === 81 || evt.keyCode === 81 ) && evt.ctrlKey ) {
 	        // clears the data of previous search
 	        $el_search_txtbx.val( "" );
@@ -37,7 +38,7 @@ var GenericSearch = Backbone.View.extend({
 	        $el_search_screen.css( 'display', 'block' );
 	        $el_search_txtbx.focus();
 	    }
-	    // removes the overlay and hides the search screen
+	    // removes the overlay and hides the search screen on clicking escape key
 	    else if ( evt.which === 27 || evt.keyCode === 27 ) {
 	        this.removeOverlay();
                 this.resetHistorySearch();
@@ -70,28 +71,18 @@ var GenericSearch = Backbone.View.extend({
             $el_search_result = $( '.search-results' ),
             $el_search_history_input = $( '.search-input .search-query' ),
             link = null,
-            search_query_minimum_length = 3,
             search_result = null;
 
         if( e ) {
             e.stopPropagation();
             query = ( $el_search_txtbx.val() ).trim();
-            if( query.length < search_query_minimum_length ) {
+            if( query.length < self.search_query_minimum_length ) {
                 $el_search_result.html("");
             }
             // performs search if enter is pressed or query length increases the minimum character length
-            else if ( ( e.which === 13 || e.keyCode === 13 ) && query.length >= search_query_minimum_length ) {
+            else if ( ( e.which === 13 || e.keyCode === 13 ) && query.length >= self.search_query_minimum_length ) {
                 // searches in all categories and defaults to 'All' search filter in the search overlay
-                // TODO: to replace this if-elseif-else block by searchOne method
-                if( self.active_filter === "tools" ) {
-                    self.triggerToolSearch( url_root, query, self );
-                }
-                else if( self.active_filter === "history" ) {
-                    self.triggerHistorySearch( query );
-                }
-                else {
-                    self.searchAll( self, url_root, query );
-                }
+                self.searchOne( self, self.active_filter, query );
             }
             // removes the overlay and hides the search screen
             // on clicking escape key
@@ -105,55 +96,55 @@ var GenericSearch = Backbone.View.extend({
     /** performs search with the selected filter */
     searchWithFilter: function( type, _this, self ) {
         if( !$( _this ).hasClass( 'filter-active' ) ) {
-             self.applyDomOperations( _this );
-             self.active_filter = type;
-             self.searchOne( self, self.active_filter );
+             var query = ( $( '.txtbx-search-data' ).val() ).trim();
+             if( query.length >= self.search_query_minimum_length ) {
+                 self.applyDomOperations( _this );
+                 self.active_filter = type;
+                 self.searchOne( self, self.active_filter, query );
+             }
         }
     },
 
     /** calls with one filter */
-    searchOne: function( self, type ) {
-        var url = Galaxy.root + 'api/tools',
-            query = ( $( '.txtbx-search-data' ).val() ).trim();
+    searchOne: function( self, type, query ) {
+        var url = Galaxy.root + 'api/tools';
         switch( type ) {
             case "all":
-                self.searchAll( self, url, query.trim() );
+                self.searchAll( self, url, query );
                 break;
             case "tools":
-                self.triggerToolSearch( url, query.trim(), self );
+                self.triggerToolSearch( url, query, self );
                 break;
             case "history":
-                self.triggerHistorySearch( query.trim() );
+                self.triggerHistorySearch( query );
                 break;
             default:
-                self.searchAll( self, url, query.trim() );
+                self.searchAll( self, url, query );
         }
+    },
+
+    /** creates click events for the search categories */
+    clickEvents: function( selector, type, self ) {
+        $( selector ).click(function( e ) {
+            self.searchWithFilter( type, this, self );
+        });
     },
 
     /** registers filter click events */
     registerFilterClicks: function( self ) {
-
-        $('.all-filter').click(function( e ) {
-            self.searchWithFilter( "all", this, self );
-        });
-
-        $('.tool-filter').click(function( e ) {
-            self.searchWithFilter( "tools", this, self );
-        });
-
-        $('.history-filter').click(function( e ) {
-            self.searchWithFilter( "history", this, self );
-        });
+        self.clickEvents( '.all-filter', "all", self );
+        self.clickEvents( '.tool-filter', "tools", self );
+        self.clickEvents( '.history-filter', "history", self );
     },
 
     /** applies the text decoration to the search overlay filters */
     applyDomOperations: function( self ) {
         var $el_filter = $('.overlay-filters a');
         $( '.search-results' ).html( "" );
-        $el_filter.css('text-decoration', 'underline');
-        $el_filter.removeClass( 'filter-active' );
-        $( self ).css( 'text-decoration', 'none' );
-        $( self ).addClass('filter-active');
+        $el_filter.css('text-decoration', 'underline').removeClass( 'filter-active' );
+        //$el_filter.removeClass( 'filter-active' );
+        $( self ).css( 'text-decoration', 'none' ).addClass('filter-active');
+        //$( self );
     },
 
     /** searches in all categories */
@@ -167,8 +158,7 @@ var GenericSearch = Backbone.View.extend({
         $el_all_filter.css( 'text-decoration', 'none' );
         if( !$el_all_filter.hasClass( 'filter-active' ) ) {
             $el_all_filter.addClass('filter-active');
-        }
-        
+        }  
         // searches for history
         self.triggerHistorySearch( query );
         // searches for tools
@@ -179,20 +169,26 @@ var GenericSearch = Backbone.View.extend({
     triggerToolSearch: function( url_root, query, self ) {
         $.get( url_root, { q: query }, function ( search_result ) {
             // makes template out of the search results
-            if( search_result.length > 0 ) {
-                $('.no-results').remove();
+            var $el_search_result = $('.search-results'), 
+                $el_no_result = $('.no-results');
+            if( search_result.length > 0 && self.active_filter === "tools" ) {
+                $el_search_result.html("");
                 self._templateSearchlinks( search_result, self );
             }
-            else if ( search_result.length == 0 && self.active_filter === "tools" ) {
-                $('.search-results').html("");
-                $('.search-results').append('<div class="no-results">No results for this query</div>');
+            else if( search_result.length > 0 && self.active_filter === "all" ) {
+                $el_no_result.remove();
+                self._templateSearchlinks( search_result, self );
             }
-            else if( search_result.length == 0 && self.active_filter === "all" ) {
-                if( $('.search-results').html() === "" ) {
-                    $('.search-results').append('<div class="no-results">No results for this query</div>');
+            else if ( search_result.length === 0 && self.active_filter === "tools" ) {
+                $el_search_result.html("");
+                $el_search_result.append( self._templateNoResults() );
+            }
+            else if( search_result.length === 0 && self.active_filter === "all" ) {
+                if( $el_search_result.html() === "" ) {
+                    $el_search_result.append( self._templateNoResults() );
                 }
                 else {
-                    $('.no-results').remove();
+                    $el_no_result.remove();
                 }
             }
 
@@ -343,16 +339,24 @@ var GenericSearch = Backbone.View.extend({
         return '<div class="overlay-wrapper">' + 
 	           '<div id="search_screen_overlay" class="search-screen-overlay"></div>' +
 	           '<div id="search_screen" class="search-screen">' +
-	               '<input class="txtbx-search-data form-control" type="text" value="" placeholder="Type your query..." />' + 
+	               '<input class="txtbx-search-data form-control" type="text" value="" ' + 
+                           'placeholder="Give at least 3 letters to search" />' + 
                        '<div class="overlay-filters">' + 
                            '<a class="all-filter"> All </a>' +
                            '<a class="tool-filter"> Tools </a>' +
                            '<a class="history-filter"> History </a>' +
+                           '<a class="workflow-filter"> Workflow </a>' +
+                           '<a class="datalibrary-filter"> Data Library </a>' +
                        '</div>' +
                        '<div class="search-results">' +  
                        '</div>' +
 	           '</div>' +
                '</div>';
+    },
+
+    /** template for no results for any query */
+    _templateNoResults: function() {
+        return '<div class="no-results">No results for this query</div>';
     }
    
 });
@@ -361,23 +365,25 @@ var HistorySearch = Backbone.View.extend({
 
     /** gets the items for history search */
     getHistorySearchList: function( items ) {
+        var $el_search_result = $( '.search-results' ),
+            $el_no_result = $('.no-results');
         // removes the old history search items
         $( '.search-history' ).remove();
         $( '.history-search-link' ).remove();
         if( items.length > 0 ) {
-            $('.no-results').remove();
+            $el_no_result.remove();
             this.makeHistoryList( items );
         }
         else if( items.length == 0 && $('.history-filter').hasClass( 'filter-active' ) ) {
-            $('.search-results').html("");
-            $('.search-results').append('<div class="no-results">No results for this query</div>');
+            $el_search_result.html("");
+            $el_search_result.append( this._templateNoResults() );
         }
         else if( items.length == 0 && $('.all-filter').hasClass( 'filter-active' ) ) {
-            if( $('.search-results').html() === "" ) {
-                $('.search-results').append('<div class="no-results">No results for this query</div>');
+            if( $el_search_result.html() === "" ) {
+                $el_search_result.append( this._templateNoResults() );
             }
             else {
-                $('.no-results').remove();
+                $el_no_result.remove();
             }
         }
     },
@@ -415,6 +421,11 @@ var HistorySearch = Backbone.View.extend({
     _buildHeaderTemplate: function( id, name ) {
             return "<div class='search-tool-section-name search-history section-header-all' data-id='searched_" +
                    id + "' >" + name + "<hr class='section-hr' align='left'></div>";
+    },
+
+    /** template for no results for any query */
+    _templateNoResults: function() {
+        return '<div class="no-results">No results for this query</div>';
     },
 
     /** removes the search overlay */ 
