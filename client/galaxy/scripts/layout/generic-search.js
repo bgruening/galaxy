@@ -15,7 +15,14 @@ var GenericSearch = Backbone.View.extend({
         var self = this;
         this.removeOverlay();
         // registers the keyup event in the search textbox
-        $('.txtbx-search-data').on('keyup', function( e ) { self.searchData( self, e ); });
+        $('.txtbx-search-data').on('keyup', function( e ) { 
+            self.searchData( self, e ); 
+            //var timer;
+            //clearTimeout(timer);
+            //timer = setTimeout(function() {
+                //self.searchData( self, e ); 
+            //}, 500);
+        });
         this.registerFilterClicks( self );
         return this;
     },
@@ -28,8 +35,8 @@ var GenericSearch = Backbone.View.extend({
 	    $el_search_result = $( '.search-results' );
         if( evt ) {
 	    evt.stopPropagation();
-            // click of ctrl+q
-	    if ( ( evt.which === 81 || evt.keyCode === 81 ) && evt.ctrlKey ) {
+            // click of ctrl + alt + q shows search overlay
+	    if ( ( evt.which === 81 || evt.keyCode === 81 ) && evt.ctrlKey && evt.altKey ) {
 	        // clears the data of previous search
 	        $el_search_txtbx.val( "" );
 	        $el_search_result.html( "" );
@@ -69,18 +76,18 @@ var GenericSearch = Backbone.View.extend({
             query = "",
             url_root = Galaxy.root + 'api/tools',
             $el_search_result = $( '.search-results' ),
-            $el_search_history_input = $( '.search-input .search-query' ),
             link = null,
             search_result = null;
 
         if( e ) {
             e.stopPropagation();
             query = ( $el_search_txtbx.val() ).trim();
+
             if( query.length < self.search_query_minimum_length ) {
                 $el_search_result.html("");
             }
             // performs search if enter is pressed or query length increases the minimum character length
-            else if ( ( e.which === 13 || e.keyCode === 13 ) && query.length >= self.search_query_minimum_length ) {
+            else if ( ( e.which === 13 || e.keyCode === 13 ) || query.length >= self.search_query_minimum_length ) {
                 // searches in all categories and defaults to 'All' search filter in the search overlay
                 self.searchOne( self, self.active_filter, query );
             }
@@ -142,9 +149,7 @@ var GenericSearch = Backbone.View.extend({
         var $el_filter = $('.overlay-filters a');
         $( '.search-results' ).html( "" );
         $el_filter.css('text-decoration', 'underline').removeClass( 'filter-active' );
-        //$el_filter.removeClass( 'filter-active' );
         $( self ).css( 'text-decoration', 'none' ).addClass('filter-active');
-        //$( self );
     },
 
     /** searches in all categories */
@@ -168,31 +173,34 @@ var GenericSearch = Backbone.View.extend({
     /** asynchronous fetch call for tool search */ 
     triggerToolSearch: function( url_root, query, self ) {
         $.get( url_root, { q: query }, function ( search_result ) {
-            // makes template out of the search results
-            var $el_search_result = $('.search-results'), 
-                $el_no_result = $('.no-results');
-            if( search_result.length > 0 && self.active_filter === "tools" ) {
-                $el_search_result.html("");
-                self._templateSearchlinks( search_result, self );
-            }
-            else if( search_result.length > 0 && self.active_filter === "all" ) {
-                $el_no_result.remove();
-                self._templateSearchlinks( search_result, self );
-            }
-            else if ( search_result.length === 0 && self.active_filter === "tools" ) {
-                $el_search_result.html("");
+            self.useToolSearchData( search_result, self );
+        }, "json" );
+    },
+ 
+    /** makes template out of the search results*/
+    useToolSearchData: function( search_result, self) {
+        var $el_search_result = $('.search-results'), 
+            $el_no_result = $('.no-results');
+        if( search_result.length > 0 && self.active_filter === "tools" ) {
+            $el_search_result.html( "" );
+            self._templateSearchlinks( search_result, self );
+        }
+        else if( search_result.length > 0 && self.active_filter === "all" ) {   
+            $el_no_result.remove();     
+            self._templateSearchlinks( search_result, self );
+        }
+        else if ( search_result.length === 0 && self.active_filter === "tools" ) {
+            $el_search_result.html( "" );
+            $el_search_result.append( self._templateNoResults() );
+        }
+        else if( search_result.length === 0 && self.active_filter === "all" ) {
+            if( $el_search_result.html() === "" ) {
                 $el_search_result.append( self._templateNoResults() );
             }
-            else if( search_result.length === 0 && self.active_filter === "all" ) {
-                if( $el_search_result.html() === "" ) {
-                    $el_search_result.append( self._templateNoResults() );
-                }
-                else {
-                    $el_no_result.remove();
-                }
+            else {
+                $el_no_result.remove();
             }
-
-        }, "json" );
+        }
     },
 
     /** triggers history item search in the original history search */
