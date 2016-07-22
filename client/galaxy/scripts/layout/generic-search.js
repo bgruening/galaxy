@@ -17,11 +17,6 @@ var GenericSearch = Backbone.View.extend({
         // registers the keyup event in the search textbox
         $('.txtbx-search-data').on('keyup', function( e ) { 
             self.searchData( self, e ); 
-            //var timer;
-            //clearTimeout(timer);
-            //timer = setTimeout(function() {
-                //self.searchData( self, e ); 
-            //}, 500);
         });
         this.registerFilterClicks( self );
         return this;
@@ -181,6 +176,7 @@ var GenericSearch = Backbone.View.extend({
     useToolSearchData: function( search_result, self) {
         var $el_search_result = $('.search-results'), 
             $el_no_result = $('.no-results');
+
         if( search_result.length > 0 && self.active_filter === "tools" ) {
             $el_search_result.html( "" );
             self._templateSearchlinks( search_result, self );
@@ -273,7 +269,9 @@ var GenericSearch = Backbone.View.extend({
                 }
             }  // end of second level for loop        
         } // end of first level for loop
-
+        // removes the tool search result section if already present
+        $el_search_result.find('.search-tool-main-section').remove();
+        // makes a new tool search result section
         $el_search_result.append("<div class='search-tool-main-section'></div>");
         // makes the template of the fetched sections and tools
         self.makeToolSearchResultTemplate( $el_search_result, template_dict );
@@ -311,6 +309,7 @@ var GenericSearch = Backbone.View.extend({
             $el_tool_section = $('.search-tool-main-section');
         $el_tool_section.html("");
         if( self.active_filter === "all" ) {
+            // adds tool header in the tool search result section if the search category is 'All'
             $el_tool_section.append("<span class='section-header-all'>Tools <hr class='section-hr' align='left'></span>");
         }
         for( var i = 0; i < collection.length; i++ ) {
