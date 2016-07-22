@@ -247,34 +247,52 @@ var GenericSearch = Backbone.View.extend({
     /** creates collection of templates of all sections and links */
     _templateSearchlinks: function( search_result, self ) {
         var $el_search_result = $( '.search-results' ),
-            template_dict = [];
+            template_dict = [], 
+            tool_template = "";
         for( var i = 0; i < search_result.length; i++ ) {
             var all_sections = Galaxy.toolPanel.attributes.layout.models;
             for( var j = 0; j < all_sections.length; j++ ) {
-                var all_tools = all_sections[j].attributes.elems,
-                    is_present = false,
-                    tools_template = "",
-                    section_header_id = "",
-                    section_header_name = "";
-                for( var k = 0; k < all_tools.length; k++ ) {
-                    if( search_result[i] === all_tools[k].id ) {
-                        is_present = true;
-                        tools_template = tools_template + self._buildLinkTemplate( all_tools[k].attributes );
+                if( all_sections[j].attributes.model_class === "ToolSection" ) {
+                    var all_tools = all_sections[j].attributes.elems,
+                        is_present = false,
+                        tools_template = "",
+                        section_header_id = "",
+                        section_header_name = "";
+                    for( var k = 0; k < all_tools.length; k++ ) {
+                        if( search_result[i] === all_tools[k].id ) {
+                            is_present = true;
+                            tools_template = tools_template + self._buildLinkTemplate( all_tools[k].attributes );
+                        }
+                    } // end of innermost for loop
+                    if( is_present ) {
+                        section_header_id = all_sections[j].attributes.id;
+                        section_header_name = all_sections[j].attributes.name;
+                        template_dict = self.appendTemplate( template_dict, section_header_id, section_header_name, tools_template );
                     }
-                } // end of innermost for loop
-                if( is_present ) {
-                    section_header_id = all_sections[j].attributes.id;
-                    section_header_name = all_sections[j].attributes.name;
-                    template_dict = self.appendTemplate( template_dict, section_header_id, section_header_name, tools_template );
                 }
             }  // end of second level for loop        
         } // end of first level for loop
+
+        for( var i = 0; i < search_result.length; i++ ) {
+            var all_sections = Galaxy.toolPanel.attributes.layout.models;
+            for( var j = 0; j < all_sections.length; j++ ) {
+                if( all_sections[j].attributes.model_class === "Tool" || all_sections[j].attributes.model_class === "DataSourceTool" ) {
+                    var attributes = all_sections[j].attributes,
+                        is_tool_present = false;
+                    if( search_result[i] === attributes.id ) {
+                        is_tool_present = true;
+                        tool_template = tool_template + self._buildLinkTemplate( attributes );
+                    }
+                }
+            }  // end of second level for loop        
+        } // end of first level for loop
+
         // removes the tool search result section if already present
         $el_search_result.find('.search-tool-main-section').remove();
         // makes a new tool search result section
         $el_search_result.append("<div class='search-tool-main-section'></div>");
         // makes the template of the fetched sections and tools
-        self.makeToolSearchResultTemplate( $el_search_result, template_dict );
+        self.makeToolSearchResultTemplate( $el_search_result, template_dict, tool_template );
     },
 
     /** checks if element exists in the collection */
@@ -303,15 +321,20 @@ var GenericSearch = Backbone.View.extend({
     },
 
     /** builds the fetched items template using the dict */ 
-    makeToolSearchResultTemplate: function( $el_search_result, collection ) {
+    makeToolSearchResultTemplate: function( $el_search_result, collection, tool_template ) {
         var header_template = "",
             self = this,
             $el_tool_section = $('.search-tool-main-section');
         $el_tool_section.html("");
+        
         if( self.active_filter === "all" ) {
             // adds tool header in the tool search result section if the search category is 'All'
             $el_tool_section.append("<span class='section-header-all'>Tools <hr class='section-hr' align='left'></span>");
         }
+        if( tool_template.length > 0 ) {
+            $el_tool_section.append( tool_template );
+        }
+    
         for( var i = 0; i < collection.length; i++ ) {
             header_template = this._buildHeaderTemplate( collection[i].id, collection[i].name );
             $el_tool_section.append( header_template );
