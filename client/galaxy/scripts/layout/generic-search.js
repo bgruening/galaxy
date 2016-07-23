@@ -373,8 +373,8 @@ var GenericSearch = Backbone.View.extend({
                            'placeholder="Give at least 3 letters to search" />' + 
                        '<div class="overlay-filters">' + 
                            '<a class="all-filter"> All </a>' +
+                           '<a class="history-filter"> Current Datasets </a>' +
                            '<a class="tool-filter"> Tools </a>' +
-                           '<a class="history-filter"> History </a>' +
                            '<a class="workflow-filter"> Workflow </a>' +
                            '<a class="datalibrary-filter"> Data Library </a>' +
                        '</div>' +
@@ -428,7 +428,7 @@ var HistorySearch = Backbone.View.extend({
             template_string = template_string + self._buildHistorySearchTemplate( item );
         }
         if( $('.all-filter').hasClass( 'filter-active' ) ) {
-            $el_search_result.append( self._buildHeaderTemplate( 'history', 'History' ) );
+            $el_search_result.append( self._buildHeaderTemplate( 'currdataset', 'Current Datasets' ) );
         }
         $el_search_result.append( template_string );
         $( ".history-search-link" ).css( 'margin-top', '1%' );
