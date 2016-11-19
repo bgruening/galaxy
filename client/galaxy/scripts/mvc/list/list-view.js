@@ -383,9 +383,8 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
         }
         panel.trigger( 'views:ready', panel.views );
 
-        /** returns history search object for the search overlay */
-        historySearch = new Search.HistorySearch();
-        historySearch.getHistorySearchList(panel._filterCollection());
+        /** Return history search object for the search overlay */
+        historySearch = new Search.HistorySearch({ 'items': panel._filterCollection() });
 
         return panel.views;
     },
