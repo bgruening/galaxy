@@ -353,7 +353,7 @@ var SearchItems = Backbone.View.extend({
         $el_tool_section.html("");        
         if( self.getActiveFilter() === "all" ) {
             // Add tool header in the tool search result section if the search category is 'All'
-            $el_tool_section.append( self.tool_section_header_template );
+            $el_tool_section.append( tool_section_header_template );
         }
         
         _.each( collection, function( item ) {
@@ -430,12 +430,13 @@ var SearchItems = Backbone.View.extend({
 
         if( self.getActiveFilter() === "all" ) {
             $el_search_result.append( self._buildHeaderTemplate( 'currdataset', 'Current Datasets', class_name ) );
+            $el_search_result.append("<hr class='search-history section-hr' align='left'>")
         }
 
         $el_search_result.append( template_string );
-        $el_history_link.css( 'margin-top', '1%' );
+        $el_search_result.find( ".history-search-link" ).css( 'margin-top', '1%' );
         // Reset the history search when overlay is removed
-        $el_history_link.click(function( e ) {
+        $el_search_result.find( ".history-search-link" ).click(function( e ) {
             self.removeOverlay();
             self.resetHistorySearch();
         });
