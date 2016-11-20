@@ -1,28 +1,15 @@
 /** Generic search feature **/
-define(["mvc/tool/tool-form"], function( ToolForm ) {
+define(["mvc/tool/tool-form", 'libs/underscore'], function( ToolForm, _ ) {
 
-var GenericSearch = Backbone.View.extend({
-    search_query_minimum_length: 3,
-    active_filter: "all",
+var SearchOverlay = Backbone.View.extend({
 
     initialize: function ( ) {
-        // Render the template
+        this.search_query_minimum_length = 3;
+        this.active_filter = "all";
         $('.full-content').prepend( this._template() );
     },
 
-    /** Register the events */
-    render: function() {
-        var self = this;
-        this.removeOverlay();
-        // Register the keyup event in the search textbox
-        $('.txtbx-search-data').on('keyup', function( e ) { 
-            self.searchData( self, e );
-        });
-        this.registerFilterClicks( self );
-        return this;
-    },
-
-    /** Invoke the overlay */
+    /** Invoke the search overlay */
     invokeOverlay: function( evt ) {
         var $el_search_screen = $( '.search-screen' ),
 	    $el_search_screen_overlay = $( '.search-screen-overlay' ),
@@ -48,21 +35,25 @@ var GenericSearch = Backbone.View.extend({
         }
     },
 
+    /** Register the events */
+    render: function() {
+        var self = this, 
+            $el_search_textbox = $('.txtbx-search-data');
+        this.removeOverlay();
+        // Register the keyup event in the search textbox
+        $el_search_textbox.on('keyup', function( e ) { 
+            self.searchData( self, e );
+        });
+        this.registerFilterClicks( self );
+        return this;
+    },
+
     /** Remove the search overlay */ 
     removeOverlay: function() {
         var $el_search_screen = $( '.search-screen' ),
             $el_search_screen_overlay = $( '.search-screen-overlay' );
         $el_search_screen_overlay.css( 'display', 'none' );
         $el_search_screen.css( 'display', 'none' );
-    },
-
-    /** Reset the original history search */
-    resetHistorySearch: function() {
-        var $el = $( '.search-input .search-query' );
-        $el.focus();
-        // Trigger the escape key press
-        $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
-        $el.blur();
     },
 
     /** Search with the query */ 
@@ -86,13 +77,31 @@ var GenericSearch = Backbone.View.extend({
                 // searches in all categories and defaults to 'All' search filter in the search overlay
                 self.searchOne( self, self.active_filter, query );
             }
-            // Remove the overlay and hides the search screen
-            // on clicking escape key
-            else if ( e.which === 27 || e.keyCode === 27 ) {
-                self.removeOverlay();
-                self.resetHistorySearch();
-            }
         }
+    },
+
+    /** Register filter click events */
+    registerFilterClicks: function( self ) {
+        self.clickEvents( '.all-filter', "all", self );
+        self.clickEvents( '.tool-filter', "tools", self );
+        self.clickEvents( '.history-filter', "history", self );
+    },
+
+    /** Reset the original history search */
+    resetHistorySearch: function() {
+        var $el = $( '.search-input .search-query' );
+        $el.focus();
+        $el.val('');
+        // Trigger the escape key press
+        $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
+        $el.blur();
+    },
+
+    /** Click events for the search categories */
+    clickEvents: function( selector, type, self ) {
+        $( selector ).click(function( e ) {
+            self.searchWithFilter( type, this, self );
+        });
     },
 
     /** Search with the selected filter */
@@ -105,6 +114,14 @@ var GenericSearch = Backbone.View.extend({
                  self.searchOne( self, self.active_filter, query );
              }
         }
+    },
+
+    /** Apply the text decoration to the search overlay filters */
+    applyDomOperations: function( self ) {
+        var $el_filter = $('.overlay-filters a');
+        $( '.search-results' ).html( "" );
+        $el_filter.css('text-decoration', 'underline').removeClass( 'filter-active' );
+        $( self ).css( 'text-decoration', 'none' ).addClass( 'filter-active' );
     },
 
     /** Call with one filter */
@@ -125,43 +142,20 @@ var GenericSearch = Backbone.View.extend({
         }
     },
 
-    /** Click events for the search categories */
-    clickEvents: function( selector, type, self ) {
-        $( selector ).click(function( e ) {
-            self.searchWithFilter( type, this, self );
-        });
-    },
-
-    /** Register filter click events */
-    registerFilterClicks: function( self ) {
-        self.clickEvents( '.all-filter', "all", self );
-        self.clickEvents( '.tool-filter', "tools", self );
-        self.clickEvents( '.history-filter', "history", self );
-    },
-
-    /** Apply the text decoration to the search overlay filters */
-    applyDomOperations: function( self ) {
-        var $el_filter = $('.overlay-filters a');
-        $( '.search-results' ).html( "" );
-        $el_filter.css('text-decoration', 'underline').removeClass( 'filter-active' );
-        $( self ).css( 'text-decoration', 'none' ).addClass('filter-active');
-    },
-
     /** Search in all categories */
     searchAll: function( self, url_root, query ) {
         var $el_search_result = $( '.search-results' ),
             $el_overlay_filters = $( '.overlay-filters' ),
-            $el_all_filter = $('.all-filter');
+            $el_all_filter = $( '.all-filter' );
 
         $el_search_result.html( "" );
         $el_overlay_filters.css( 'display', 'block' );
         $el_all_filter.css( 'text-decoration', 'none' );
         if( !$el_all_filter.hasClass( 'filter-active' ) ) {
-            $el_all_filter.addClass('filter-active');
+            $el_all_filter.addClass( 'filter-active' );
         }  
         // Search for history
         self.triggerHistorySearch( query );
-
         // Search for tools
         self.triggerToolSearch( url_root, query, self );
     },
@@ -169,47 +163,213 @@ var GenericSearch = Backbone.View.extend({
     /** Asynchronous get call for fetching tools */ 
     triggerToolSearch: function( url_root, query, self ) {
         $.get( url_root, { q: query }, function ( search_result ) {
-            self.useToolSearchData( search_result, self );
+            toolSearch = new SearchItems({ 'tools': search_result });
         }, "json" );
     },
- 
-    /** Make template out of the search results*/
-    useToolSearchData: function( search_result, self) {
-        var $el_search_result = $('.search-results'), 
-            $el_no_result = $('.no-results');
 
-        if( search_result.length > 0 ) {
-            if( self.active_filter === "tools" ) {
-                $el_search_result.html( "" );
-                self._templateSearchlinks( search_result, self );
-            }
-            else if( self.active_filter === "all" ){
-                $el_no_result.remove();     
-                self._templateSearchlinks( search_result, self );
-            }
-        }
-        else {
-            if( self.active_filter === "tools" ) {
-                $el_search_result.html( "" );
-                $el_search_result.append( self._templateNoResults() );
-            }
-            else if( self.active_filter === "all" ) {
-                if( $el_search_result.html() === "" ) {
-                    $el_search_result.append( self._templateNoResults() );
-                }
-                else {
-                    $el_no_result.remove();
-                }
-            }
-        }
-    },
-
-    /** Trigger history item search in the original history search */
+    /** Trigger history search in the original history search */
     triggerHistorySearch: function( query ) {
         var $el = $( '.search-input .search-query' );
         $el.val( query );
         $el.trigger( $.Event("keyup", { keyCode: 13, which: 13 }) );
         $el.trigger( $.Event("keyup", { keyCode: 13, which: 13 }) );
+    },
+ 
+    /** Template for search overlay */
+    _template: function() {
+        return '<div class="overlay-wrapper">' + 
+	           '<div id="search_screen_overlay" class="search-screen-overlay"></div>' +
+	           '<div id="search_screen" class="search-screen">' +
+	               '<input class="txtbx-search-data form-control" type="text" value="" ' + 
+                           'placeholder="Give at least 3 letters to search" />' + 
+                       '<div class="overlay-filters">' + 
+                           '<a class="all-filter"> All </a>' +
+                           '<a class="history-filter"> Current Datasets </a>' +
+                           '<a class="tool-filter"> Tools </a>' +
+                           '<a class="workflow-filter"> Workflow </a>' +
+                           '<a class="datalibrary-filter"> Data Library </a>' +
+                       '</div>' +
+                       '<div class="search-results">' +  
+                       '</div>' +
+	           '</div>' +
+               '</div>';
+    }
+   
+});
+
+/** Display search items from Tools, Current datasets */
+var SearchItems = Backbone.View.extend({
+    self : this,
+    data : {},
+    $el_search_result : $( '.search-results' ), 
+    $el_no_result : $( '.no-results' ),
+    $el_history_filter : $( '.history-filter' ),
+    $el_all_filter : $( '.all-filter' ),
+    $el_tool_filter : $( '.tool-filter' ),
+
+    /** Initialize the variables */
+    initialize: function( item ) {
+        var type = Object.keys( item )[0];
+        if ( this.data ) {
+            switch( type ) {
+                case "tools": 
+                    this.data.tools = item[type];
+                    break;
+                case "current_dataset":
+                    this.data.current_dataset = item[type];
+                    break;
+                default:
+            }
+            this.refreshView( this.data );
+        }
+    },
+
+    /** Return the active filter */
+    getActiveFilter: function() {
+        var active_filter = "all";
+        if( $( '.tool-filter' ).hasClass( 'filter-active' ) ) {
+            return "tools";
+        }
+        else if ( $( '.history-filter' ).hasClass( 'filter-active' ) ) {
+            return "history";
+        }
+        else { return active_filter; }
+
+    },
+
+    /** Update the view as search data comes in */
+    refreshView: function( items ) {
+        var has_result = false, 
+            $el_search_result = $( '.search-results' );
+
+        this.$el_no_result.remove();
+        if ( this.getActiveFilter() === "all" ) {
+
+            if ( items['current_dataset'] && items['current_dataset'].length > 0 ) {
+                has_result = true;
+                this.makeHistorySection( items['current_dataset'] );
+            }
+
+            if ( items['tools'] && items['tools'].length > 0 ) {
+                has_result = true;
+                this.makeToolSection( items['tools'] );
+            }
+
+            if( !has_result ){
+                $el_search_result.html( "" );
+                $el_search_result.append( this._templateNoResults() );
+                return;
+            }
+        }
+        else if ( this.getActiveFilter() === "history" ) {
+            if ( !items['current_dataset'] || items['current_dataset'].length == 0 ) {
+                $el_search_result.html( "" );
+                $el_search_result.append( this._templateNoResults() );
+                return;
+            }
+            this.makeHistorySection( items['current_dataset'] );
+        }
+        else if( this.getActiveFilter() === "tools" ) {
+            if ( !items['tools'] || items['tools'].length == 0 ) {
+                $el_search_result.html( "" );
+                $el_search_result.append( this._templateNoResults() );
+                return;
+            }
+            this.makeToolSection( items['tools'] );
+        }
+    },
+
+    /** Create collection of templates of all sections and links for tools */
+    makeToolSection: function( search_result ) {
+        var template_dict = [], 
+            tool_template = "",
+            self = this,
+            $el_search_result = $( '.search-results' );
+
+        _.each( search_result, function( item ) {
+            var all_sections = Galaxy.toolPanel.attributes.layout.models;
+            _.each( all_sections, function( section ) {
+                if( section.attributes.model_class === "ToolSection" ) {
+                    var all_tools = section.attributes.elems,
+                        is_present = false,
+                        tools_template = "",
+                        section_header_id = "",
+                        section_header_name = "";
+
+                    _.each( all_tools, function( tool ) {
+                        if( tool.id === item ) {
+                            is_present = true;
+                            var attrs = tool.attributes;
+                            tools_template = tools_template + self._buildLinkTemplate( attrs.id, attrs.link, attrs.name, attrs.description, attrs.target, 'tool-search-link', attrs.version, attrs.min_width, attrs.form_style );
+                        }
+                    });
+                    if( is_present ) {
+                        section_header_id = section.attributes.id;
+                        section_header_name = section.attributes.name;
+                        template_dict = self.appendTemplate( template_dict, section_header_id, section_header_name, tools_template );
+                    }
+                }
+                else if( section.attributes.model_class === "Tool" || section.attributes.model_class === "DataSourceTool" ) {
+                    var attributes = section.attributes;
+                    if( item === attributes.id ) {
+                        tool_template = tool_template + self._buildLinkTemplate( attributes.id, attributes.link, attributes.name, attributes.description, attributes.target, 'tool-search-link', attributes.version, attributes.min_width, attributes.form_style );
+                    }
+                }
+            });
+        });
+
+        // Remove the tool search result section if already present
+        $el_search_result.find('.search-tool-main-section').remove();
+        // Make a new tool search result section
+        $el_search_result.append("<div class='search-tool-main-section'></div>");
+        // Make template for sections and tools
+        self.makeToolSearchResultTemplate( template_dict, tool_template );        
+    },
+
+    /** Append the template or creates a new section */
+    appendTemplate: function( collection, id, name, text ) {
+        var is_present = false;
+ 
+        _.each( collection, function( item ) {
+            if( id === item.id ) {
+                item.template = item.template + " " + text;
+                is_present = true;
+            }
+        });
+        if(!is_present) {
+            collection.push( { id: id, template: text, name: name } );
+        }
+        return collection;
+    },
+
+    /** Build the fetched items template using the template dictionary */ 
+    makeToolSearchResultTemplate: function( collection, tool_template ) {
+        var header_template = "",
+            self = this,
+            $el_tool_section = $('.search-tool-main-section'),
+            $el_search_result = $( '.search-results' ),
+            tool_section_header_template = "<span class='section-header-all'>Tools <hr class='section-hr' align='left'></span>";
+
+        $el_tool_section.html("");        
+        if( self.getActiveFilter() === "all" ) {
+            // Add tool header in the tool search result section if the search category is 'All'
+            $el_tool_section.append( self.tool_section_header_template );
+        }
+        
+        _.each( collection, function( item ) {
+            header_template = self._buildHeaderTemplate( item.id, item.name, 'search-tool-section-name' );
+            $el_tool_section.append( header_template );
+            $el_tool_section.append( item.template );
+        });
+
+        $el_search_result.find( "a.tool-search-link" ).click(function( e ) {
+            // Stop the default behaviour of anchor click
+            e.preventDefault();
+            self.searchedToolLink( self, e );
+            self.resetHistorySearch();
+        }); 
+        // jQuery slow fadeIn effect
+        $el_search_result.fadeIn( 'slow' );
     },
 
     /** Open the respective link as the modal pop up or in the center of the main screen */
@@ -249,216 +409,56 @@ var GenericSearch = Backbone.View.extend({
         }
     },
 
-    /** Create collection of templates of all sections and links */
-    _templateSearchlinks: function( search_result, self ) {
-        var $el_search_result = $( '.search-results' ),
-            template_dict = [], 
-            tool_template = "";
-        for( var i = 0; i < search_result.length; i++ ) {
-            var all_sections = Galaxy.toolPanel.attributes.layout.models;
-            for( var j = 0; j < all_sections.length; j++ ) {
-                if( all_sections[j].attributes.model_class === "ToolSection" ) {
-                    var all_tools = all_sections[j].attributes.elems,
-                        is_present = false,
-                        tools_template = "",
-                        section_header_id = "",
-                        section_header_name = "";
- 
-                    for( var k = 0; k < all_tools.length; k++ ) {
-                        if( search_result[i] === all_tools[k].id ) {
-                            is_present = true;
-                            tools_template = tools_template + self._buildLinkTemplate( all_tools[k].attributes );
-                        }
-                    } // End of innermost for loop
-                    if( is_present ) {
-                        section_header_id = all_sections[j].attributes.id;
-                        section_header_name = all_sections[j].attributes.name;
-                        template_dict = self.appendTemplate( template_dict, section_header_id, section_header_name, tools_template );
-                    }
-                }
-                else if( all_sections[j].attributes.model_class === "Tool" || all_sections[j].attributes.model_class === "DataSourceTool" ) {
-                    var attributes = all_sections[j].attributes;
-                    if( search_result[i] === attributes.id ) {
-                        tool_template = tool_template + self._buildLinkTemplate( attributes );
-                    }
-                }
-            }  // End of second level for loop        
-        } // End of first level for loop
-
-        // Remove the tool search result section if already present
-        $el_search_result.find('.search-tool-main-section').remove();
-        // Make a new tool search result section
-        $el_search_result.append("<div class='search-tool-main-section'></div>");
-        // Make the template of the fetched sections and tools
-        self.makeToolSearchResultTemplate( $el_search_result, template_dict, tool_template );
-    },
-
-    /** Check if element exists in the collection */
-    checkValue: function( collection, id ) {
-        for( var i = 0; i < collection.length; i++ ) {
-            if( id === collection[i].id ) {
-                return true;
-            }
-        }
-        return false;
-    },
-
-    /** Append the template or creates a new section */
-    appendTemplate: function( collection, id, name, text ) {
-        var is_present = false;
-        for(var i = 0; i < collection.length; i++ ) {
-            if( id === collection[i].id ) {
-                collection[i].template = collection[i].template + " " + text;
-                is_present = true;
-            }
-        }
-        if(!is_present) {
-            collection.push( { id: id, template: text, name: name } );
-        }
-        return collection;
-    },
-
-    /** Build the fetched items template using the dict */ 
-    makeToolSearchResultTemplate: function( $el_search_result, collection, tool_template ) {
-        var header_template = "",
-            self = this,
-            $el_tool_section = $('.search-tool-main-section');
-        $el_tool_section.html("");
-        
-        if( self.active_filter === "all" ) {
-            // Add tool header in the tool search result section if the search category is 'All'
-            $el_tool_section.append("<span class='section-header-all'>Tools <hr class='section-hr' align='left'></span>");
-        }
-        if( tool_template.length > 0 ) {
-            //$el_tool_section.append( tool_template );
-        }
-    
-        for( var i = 0; i < collection.length; i++ ) {
-            header_template = this._buildHeaderTemplate( collection[i].id, collection[i].name );
-            $el_tool_section.append( header_template );
-            $el_tool_section.append( collection[i].template );
-            $el_search_result.find( "a.tool-search-link" ).click(function( e ) {
-                // Stop the default behaviour of anchor click
-                e.preventDefault();
-                self.searchedToolLink( self, e );
-                self.resetHistorySearch();
-            });
-        }
-        // jQuery slow fadeIn effect
-        $el_search_result.fadeIn( 'slow' );
-    },
-
-    /** Build section header template */
-    _buildHeaderTemplate: function( id, name ) {
-        return "<div class='search-tool-section-name' data-id='searched_" + id + "' >" + name + "</div>";
-    },
-
-    /** Build tool link template */
-    _buildLinkTemplate: function( attributes ) {
-        return "<a class='tool-search-link btn btn-primary " + attributes.id + " ' href='" + attributes.link +
-               "' role='button' title='" + attributes.name + " " + attributes.description +
-               "' target='" + attributes.target + "' data-version='" + attributes.version +
-               "' minsizehint='" + attributes.min_width +
-               "' data-formstyle='" + attributes.form_style + "' data-toolid='" + attributes.id + "' >" + attributes.name + "</a>";
-    },
-
-    /** Template for search overlay */
-    _template: function() {
-        return '<div class="overlay-wrapper">' + 
-	           '<div id="search_screen_overlay" class="search-screen-overlay"></div>' +
-	           '<div id="search_screen" class="search-screen">' +
-	               '<input class="txtbx-search-data form-control" type="text" value="" ' + 
-                           'placeholder="Give at least 3 letters to search" />' + 
-                       '<div class="overlay-filters">' + 
-                           '<a class="all-filter"> All </a>' +
-                           '<a class="history-filter"> Current Datasets </a>' +
-                           '<a class="tool-filter"> Tools </a>' +
-                           '<a class="workflow-filter"> Workflow </a>' +
-                           '<a class="datalibrary-filter"> Data Library </a>' +
-                       '</div>' +
-                       '<div class="search-results">' +  
-                       '</div>' +
-	           '</div>' +
-               '</div>';
-    },
-
-    /** Template for no results for any query */
-    _templateNoResults: function() {
-        return '<div class="no-results">No results for this query</div>';
-    }
-   
-});
-
-var HistorySearch = Backbone.View.extend({
-
-    initialize: function ( options ) {
-        this.historyItems = options.items;
-
-        // Remove the previous history search items
-        $( '.search-history' ).remove();
-        $( '.history-search-link' ).remove();
-
-        this.checkItemsActiveFilter( this.historyItems );
-    },
-
-    /** Get the items for history search */
-    checkItemsActiveFilter: function( items ) {
-        var $el_search_result = $( '.search-results' ),
-            $el_no_result = $('.no-results');
-        
-        if( items.length > 0 ) {
-            $el_no_result.remove();
-            this.makeHistorySearchSection( items );
-        } // If history filter is active
-        else if( items.length == 0 && $('.history-filter').hasClass( 'filter-active' ) ) {
-            $el_search_result.html("");
-            $el_search_result.append( this._templateNoResults() );
-        } // If all filter is active
-        else if( items.length == 0 && $('.all-filter').hasClass( 'filter-active' ) ) {
-            if( $el_search_result.html() === "" ) {
-                $el_search_result.append( this._templateNoResults() );
-            }
-            else {
-                $el_no_result.remove();
-            }
-        }
-    },
-
     /** Make a template of the history items returned by search routine */
-    makeHistorySearchSection: function( history_items ) {
+    makeHistorySection: function( history_items ) {
         var template_string = "",
             $el_search_result = $( '.search-results' ),
-            self = this;
-        
-        for( var counter = history_items.length - 1; counter >= 0; counter-- ) {
-            var item = history_items[counter].attributes;
-            template_string = template_string + self._buildHistorySearchTemplate( item );
+            $el_history_link = $( ".history-search-link" ),
+            self = this,
+            link = "",
+            class_name = 'search-tool-section-name search-history section-header-all';
+
+        // Remove the history search result section if already present
+        $el_search_result.find('.search-history').remove();
+        $el_history_link.remove();
+      
+        _.each( history_items.reverse(), function( item ) {
+            var attr = item.attributes;
+            link = "/datasets/" + attr.dataset_id + "/display/?preview=True";
+            template_string = template_string + self._buildLinkTemplate( attr.dataset_id, link, attr.name, attr.description, 'galaxy_main', 'history-search-link' );
+        });
+
+        if( self.getActiveFilter() === "all" ) {
+            $el_search_result.append( self._buildHeaderTemplate( 'currdataset', 'Current Datasets', class_name ) );
         }
-        if( $('.all-filter').hasClass( 'filter-active' ) ) {
-            $el_search_result.append( self._buildHeaderTemplate( 'currdataset', 'Current Datasets' ) );
-        }
+
         $el_search_result.append( template_string );
-        $( ".history-search-link" ).css( 'margin-top', '1%' );
+        $el_history_link.css( 'margin-top', '1%' );
         // Reset the history search when overlay is removed
-        $( ".history-search-link" ).click(function( e ) {
+        $el_history_link.click(function( e ) {
             self.removeOverlay();
             self.resetHistorySearch();
         });
     },
 
-    /** Build links for history searched items */
-    _buildHistorySearchTemplate: function( attributes ) {
-        return "<a class='history-search-link btn btn-primary " + attributes.dataset_id +
-               "' href='/datasets/" + attributes.dataset_id + "/display/?preview=True" +
-               "' role='button' title='" + attributes.name +
-               "' target='galaxy_main'" +
-               ">" + attributes.name + "</a>";
+    /** Return links template */
+    _buildLinkTemplate: function( id, link, name, description, target, cls, version, min_width, form_style ) {
+        var template = "";
+            template = "<a class='" + cls + " btn btn-primary " + id + " ' href='" + link +
+               "' role='button' title='" + name + " " + (description ? description : "") +
+               "' target='" + target;
+            if( cls.indexOf('tool') > -1 ) {
+                template = template + "' data-version='" + version +
+                    "' minsizehint='" + min_width +
+                    "' data-formstyle='" + form_style + "' data-toolid='" + id;
+            }
+            template = template + "' >" + name + "</a>";
+        return template
     },
 
     /** Build section header template */
-    _buildHeaderTemplate: function( id, name ) {
-            return "<div class='search-tool-section-name search-history section-header-all' data-id='searched_" +
-                   id + "' >" + name + "<hr class='section-hr' align='left'></div>";
+    _buildHeaderTemplate: function( id, name, cls ) {
+        return "<div class='" + cls + "' data-id='searched_" + id + "' >" + name + "</div>";
     },
 
     /** Template for no results for any query */
@@ -483,11 +483,12 @@ var HistorySearch = Backbone.View.extend({
         $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
         $el.blur();
     }
+
 });
 
 return {
-    GenericSearch  : GenericSearch,
-    HistorySearch  : HistorySearch
+    SearchOverlay  : SearchOverlay,
+    SearchItems    : SearchItems
 };
 
 });

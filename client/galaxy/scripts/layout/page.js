@@ -42,7 +42,7 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
         this.$el.append( this.modal.$el );
         this.$messagebox = this.$( '#messagebox' );
         this.$inactivebox = this.$( '#inactivebox' );
-        this.searchoverlay = new Search.GenericSearch();
+        this.searchoverlay = new Search.SearchOverlay();
     },
 
     render : function() {
