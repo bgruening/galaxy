@@ -30,7 +30,7 @@ var SearchOverlay = Backbone.View.extend({
 	    // Remove the overlay and hides the search screen on clicking escape key
 	    else if ( evt.which === 27 || evt.keyCode === 27 ) {
 	        this.removeOverlay();
-                this.resetHistorySearch();
+                this.resetCurrentDatasetSearch();
 	    }
         }
     },
@@ -84,14 +84,14 @@ var SearchOverlay = Backbone.View.extend({
     registerFilterClicks: function( self ) {
         self.clickEvents( '.all-filter', "all", self );
         self.clickEvents( '.tool-filter', "tools", self );
-        self.clickEvents( '.history-filter', "history", self );
+        self.clickEvents( '.currdataset-filter', "current_dataset", self );
+        self.clickEvents( '.datalibrary-filter', "data_library", self );
     },
 
-    /** Reset the original history search */
-    resetHistorySearch: function() {
+    /** Reset the original current dataset search */
+    resetCurrentDatasetSearch: function() {
         var $el = $( '.search-input .search-query' );
         $el.focus();
-        $el.val('');
         // Trigger the escape key press
         $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
         $el.blur();
@@ -134,8 +134,11 @@ var SearchOverlay = Backbone.View.extend({
             case "tools":
                 self.triggerToolSearch( url, query, self );
                 break;
-            case "history":
-                self.triggerHistorySearch( query );
+            case "current_dataset":
+                self.triggerCurrentDatasetSearch( query );
+                break;
+            case "data_library":
+                self.triggerDataLibrarySearch( query );
                 break;
             default:
                 self.searchAll( self, url, query );
@@ -154,10 +157,12 @@ var SearchOverlay = Backbone.View.extend({
         if( !$el_all_filter.hasClass( 'filter-active' ) ) {
             $el_all_filter.addClass( 'filter-active' );
         }  
-        // Search for history
-        self.triggerHistorySearch( query );
+        // Search for current dataset
+        self.triggerCurrentDatasetSearch( query );
         // Search for tools
         self.triggerToolSearch( url_root, query, self );
+        // Search for data library
+        self.triggerDataLibrarySearch();
     },
 
     /** Asynchronous get call for fetching tools */ 
@@ -167,12 +172,20 @@ var SearchOverlay = Backbone.View.extend({
         }, "json" );
     },
 
-    /** Trigger history search in the original history search */
-    triggerHistorySearch: function( query ) {
+    /** Trigger current dataset search in the original current dataset search */
+    triggerCurrentDatasetSearch: function( query ) {
         var $el = $( '.search-input .search-query' );
         $el.val( query );
         $el.trigger( $.Event("keyup", { keyCode: 13, which: 13 }) );
         $el.trigger( $.Event("keyup", { keyCode: 13, which: 13 }) );
+    },
+
+    /** Trigger data library search */
+    triggerDataLibrarySearch: function( query ) {
+        var url = Galaxy.root + 'api/libraries?deleted=false';
+        $.get( url, function ( library_data ) {
+            libSearch = new SearchItems({ 'data_library': library_data });
+        }, "json" );
     },
  
     /** Template for search overlay */
@@ -184,7 +197,7 @@ var SearchOverlay = Backbone.View.extend({
                            'placeholder="Give at least 3 letters to search" />' + 
                        '<div class="overlay-filters">' + 
                            '<a class="all-filter"> All </a>' +
-                           '<a class="history-filter"> Current Datasets </a>' +
+                           '<a class="currdataset-filter"> Current Datasets </a>' +
                            '<a class="tool-filter"> Tools </a>' +
                            '<a class="workflow-filter"> Workflow </a>' +
                            '<a class="datalibrary-filter"> Data Library </a>' +
@@ -201,11 +214,6 @@ var SearchOverlay = Backbone.View.extend({
 var SearchItems = Backbone.View.extend({
     self : this,
     data : {},
-    $el_search_result : $( '.search-results' ), 
-    $el_no_result : $( '.no-results' ),
-    $el_history_filter : $( '.history-filter' ),
-    $el_all_filter : $( '.all-filter' ),
-    $el_tool_filter : $( '.tool-filter' ),
 
     /** Initialize the variables */
     initialize: function( item ) {
@@ -213,12 +221,14 @@ var SearchItems = Backbone.View.extend({
         if ( this.data ) {
             switch( type ) {
                 case "tools": 
-                    this.data.tools = item[type];
+                    this.data.tools = item[ type ];
                     break;
                 case "current_dataset":
-                    this.data.current_dataset = item[type];
+                    this.data.current_dataset = item[ type ];
                     break;
-                default:
+                case "data_library":
+                    this.data.data_library = item[ type ];
+                    break;
             }
             this.refreshView( this.data );
         }
@@ -227,55 +237,68 @@ var SearchItems = Backbone.View.extend({
     /** Return the active filter */
     getActiveFilter: function() {
         var active_filter = "all";
-        if( $( '.tool-filter' ).hasClass( 'filter-active' ) ) {
-            return "tools";
-        }
-        else if ( $( '.history-filter' ).hasClass( 'filter-active' ) ) {
-            return "history";
-        }
-        else { return active_filter; }
-
+        active_filter = ( $( '.tool-filter' ).hasClass( 'filter-active') ? "tools" : active_filter );
+        active_filter = ( $( '.currdataset-filter' ).hasClass( 'filter-active' ) ? "current_dataset" : active_filter );
+        active_filter = ( $( '.datalibrary-filter' ).hasClass( 'filter-active' ) ? "data_library" : active_filter );
+        return active_filter;
     },
 
     /** Update the view as search data comes in */
     refreshView: function( items ) {
-        var has_result = false, 
+        var has_result = true,
+            $el_search_result = $( '.search-results' ),
+            $el_no_result = $( '.no-results' ),
+            filter = this.getActiveFilter(),
+            data = null;
+
+        $el_no_result.remove();
+        if( filter === "all" ) {
+            this.makeAllSection();
+        }
+        else {
+            // If the selected filter has no data
+            data = items[ filter ];
+            if ( !data || data.length == 0 ) {
+                this.showEmptySection( $el_search_result );
+                return;
+            }
+            switch( filter ) {
+                case "current_dataset":
+                    this.makeCurrentDatasetSection( data );
+                    break;
+                case "tools":
+                    this.makeToolSection( data );
+                    break;
+                case "data_library":
+                    this.makeDataLibrarySection( data );
+                    break;
+                default:
+                    this.makeAllSection();
+            }
+        }
+    },
+
+    /** Show empty section if there is no search result */
+    showEmptySection: function( $el ) {
+        $el.html( "" );
+        $el.append( this._templateNoResults() );
+    },
+
+    /** Create templates for all the categories in the search result */
+    makeAllSection: function() {
+        var has_result = false,
             $el_search_result = $( '.search-results' );
 
-        this.$el_no_result.remove();
-        if ( this.getActiveFilter() === "all" ) {
-
-            if ( items['current_dataset'] && items['current_dataset'].length > 0 ) {
+        for( type in this.data ) {
+            if( this.data[ type ] && this.data[ type ].length > 0 ) {
                 has_result = true;
-                this.makeHistorySection( items['current_dataset'] );
-            }
-
-            if ( items['tools'] && items['tools'].length > 0 ) {
-                has_result = true;
-                this.makeToolSection( items['tools'] );
-            }
-
-            if( !has_result ){
-                $el_search_result.html( "" );
-                $el_search_result.append( this._templateNoResults() );
-                return;
+                type === "current_dataset" && this.makeCurrentDatasetSection( this.data[ type ] );
+                type === "tools" && this.makeToolSection( this.data[ type ] );
+                type === "data_library" && this.makeDataLibrarySection( this.data[ type ] );
             }
         }
-        else if ( this.getActiveFilter() === "history" ) {
-            if ( !items['current_dataset'] || items['current_dataset'].length == 0 ) {
-                $el_search_result.html( "" );
-                $el_search_result.append( this._templateNoResults() );
-                return;
-            }
-            this.makeHistorySection( items['current_dataset'] );
-        }
-        else if( this.getActiveFilter() === "tools" ) {
-            if ( !items['tools'] || items['tools'].length == 0 ) {
-                $el_search_result.html( "" );
-                $el_search_result.append( this._templateNoResults() );
-                return;
-            }
-            this.makeToolSection( items['tools'] );
+        if( !has_result ) {
+            this.showEmptySection( $el_search_result );
         }
     },
 
@@ -366,7 +389,7 @@ var SearchItems = Backbone.View.extend({
             // Stop the default behaviour of anchor click
             e.preventDefault();
             self.searchedToolLink( self, e );
-            self.resetHistorySearch();
+            self.resetCurrentDatasetSearch();
         }); 
         // jQuery slow fadeIn effect
         $el_search_result.fadeIn( 'slow' );
@@ -409,36 +432,68 @@ var SearchItems = Backbone.View.extend({
         }
     },
 
-    /** Make a template of the history items returned by search routine */
-    makeHistorySection: function( history_items ) {
+    /** Make a template of the current dataset items returned by search routine */
+    makeCurrentDatasetSection: function( currdataset_items ) {
         var template_string = "",
             $el_search_result = $( '.search-results' ),
-            $el_history_link = $( ".history-search-link" ),
+            $el_currdataset_link = $( ".currdataset-search-link" ),
             self = this,
             link = "",
-            class_name = 'search-tool-section-name search-history section-header-all';
+            class_name = 'search-tool-section-name search-currdataset section-header-all';
 
-        // Remove the history search result section if already present
-        $el_search_result.find('.search-history').remove();
-        $el_history_link.remove();
+        // Remove the current dataset search result section if already present
+        $el_search_result.find('.search-currdataset').remove();
+        $el_currdataset_link.remove();
       
-        _.each( history_items.reverse(), function( item ) {
+        _.each( currdataset_items.reverse(), function( item ) {
             var attr = item.attributes;
             link = "/datasets/" + attr.dataset_id + "/display/?preview=True";
-            template_string = template_string + self._buildLinkTemplate( attr.dataset_id, link, attr.name, attr.description, 'galaxy_main', 'history-search-link' );
+            template_string = template_string + self._buildLinkTemplate( attr.dataset_id, link, attr.name, attr.description, 'galaxy_main', 'currdataset-search-link' );
         });
 
         if( self.getActiveFilter() === "all" ) {
             $el_search_result.append( self._buildHeaderTemplate( 'currdataset', 'Current Datasets', class_name ) );
-            $el_search_result.append("<hr class='search-history section-hr' align='left'>")
+            $el_search_result.append("<hr class='search-currdataset section-hr' align='left'>")
         }
 
         $el_search_result.append( template_string );
-        $el_search_result.find( ".history-search-link" ).css( 'margin-top', '1%' );
-        // Reset the history search when overlay is removed
-        $el_search_result.find( ".history-search-link" ).click(function( e ) {
+        $el_search_result.find( ".currdataset-search-link" ).css( 'margin-top', '1%' );
+        // Reset the current dataset search when overlay is removed
+        $el_search_result.find( ".currdataset-search-link" ).click(function( e ) {
             self.removeOverlay();
-            self.resetHistorySearch();
+            self.resetCurrentDatasetSearch();
+        });
+    },
+
+    /** Make a template for Data library search results */
+    makeDataLibrarySection: function( datalib_items ) {
+        var template_string = "",
+            $el_search_result = $( '.search-results' ),
+            $el_datalib_link = $( ".datalib-search-link" ),
+            self = this,
+            link = "",
+            class_name = 'search-tool-section-name search-datalib section-header-all';
+
+        // Remove the data lib search result section if already present
+        $el_search_result.find('.search-datalib').remove();
+        $el_datalib_link.remove();
+      
+        _.each( datalib_items, function( item ) {
+            link = Galaxy.root + "library/list#folders/" + item.root_folder_id;
+            template_string = template_string + self._buildLinkTemplate( item.id, link, item.name, item.description, 'galaxy_main', 'datalib-search-link' );
+        });
+
+        if( self.getActiveFilter() === "all" ) {
+            $el_search_result.append( self._buildHeaderTemplate( 'datalibrary', 'Data Libraries', class_name ) );
+            $el_search_result.append("<hr class='search-datalib section-hr' align='left'>")
+        }
+
+        $el_search_result.append( template_string );
+        $el_search_result.find( ".datalib-search-link" ).css( 'margin-top', '1%' );
+        // Reset the current dataset search when overlay is removed
+        $el_search_result.find( ".datalib-search-link" ).click(function( e ) {
+            self.removeOverlay();
+            self.resetCurrentDatasetSearch();
         });
     },
 
@@ -475,11 +530,10 @@ var SearchItems = Backbone.View.extend({
         $el_search_screen.css( 'display', 'none' );
     },
    
-    /** Reset the original history search */
-    resetHistorySearch: function() {
+    /** Reset the original current dataset search */
+    resetCurrentDatasetSearch: function() {
         var $el = $( '.search-input .search-query' );
         $el.focus();
-        $el.val('');
         // Trigger the escape key press
         $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
         $el.blur();
