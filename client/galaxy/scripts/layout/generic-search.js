@@ -68,7 +68,7 @@ var SearchOverlay = Backbone.View.extend({
         if( e ) {
             e.stopPropagation();
             query = ( $el_search_txtbx.val() ).trim();
-
+            query = query.toLowerCase();
             if( query.length < self.search_query_minimum_length ) {
                 $el_search_result.html("");
             }
@@ -157,12 +157,12 @@ var SearchOverlay = Backbone.View.extend({
         if( !$el_all_filter.hasClass( 'filter-active' ) ) {
             $el_all_filter.addClass( 'filter-active' );
         }  
-        // Search for current dataset
+        // Search for current datasets
         self.triggerCurrentDatasetSearch( query );
         // Search for tools
         self.triggerToolSearch( url_root, query, self );
-        // Search for data library
-        self.triggerDataLibrarySearch();
+        // Search for data libraries
+        self.triggerDataLibrarySearch( query );
     },
 
     /** Asynchronous get call for fetching tools */ 
@@ -184,7 +184,15 @@ var SearchOverlay = Backbone.View.extend({
     triggerDataLibrarySearch: function( query ) {
         var url = Galaxy.root + 'api/libraries?deleted=false';
         $.get( url, function ( library_data ) {
-            libSearch = new SearchItems({ 'data_library': library_data });
+            present_list = [];
+            // Filter the result based on query
+            _.each( library_data, function( item ) {
+                var name = item.name.toLowerCase();
+                if ( name.indexOf( query ) > -1 ) {
+                    present_list.push( item );
+                }
+            });
+            libSearch = new SearchItems({ 'data_library': present_list });
         }, "json" );
     },
  
@@ -467,6 +475,8 @@ var SearchItems = Backbone.View.extend({
 
     /** Make a template for Data library search results */
     makeDataLibrarySection: function( datalib_items ) {
+        // TODO: merge with makeCurrentDatasetSection method if display
+        // remains the same with Current dataset section
         var template_string = "",
             $el_search_result = $( '.search-results' ),
             $el_datalib_link = $( ".datalib-search-link" ),
