@@ -26,6 +26,8 @@ var SearchOverlay = Backbone.View.extend({
 	        $el_search_screen_overlay.css( 'display', 'block' );
 	        $el_search_screen.css( 'display', 'block' );
 	        $el_search_txtbx.focus();
+                pinnedLink = new SearchItems({});
+                pinnedLink.buildPinnedLinks();
 	    }
 	    // Remove the overlay and hides the search screen on clicking escape key
 	    else if ( evt.which === 27 || evt.keyCode === 27 ) {
@@ -210,6 +212,7 @@ var SearchOverlay = Backbone.View.extend({
                            '<a class="workflow-filter"> Workflow </a>' +
                            '<a class="datalibrary-filter"> Data Library </a>' +
                        '</div>' +
+                       '<div class="pinned-results"></div>' +
                        '<div class="search-results">' +  
                        '</div>' +
 	           '</div>' +
@@ -222,7 +225,6 @@ var SearchOverlay = Backbone.View.extend({
 var SearchItems = Backbone.View.extend({
     self : this,
     data : {},
-
     /** Initialize the variables */
     initialize: function( item ) {
         var type = Object.keys( item )[0];
@@ -373,13 +375,73 @@ var SearchItems = Backbone.View.extend({
         return collection;
     },
 
+    /** Build pinned links if any when search overlay is invoked */ 
+    buildPinnedLinks: function() {
+        var self = this;
+        // Build the pinned result if any
+        if ( window.Galaxy.user.id ) {
+            if( localStorage.getItem( window.Galaxy.user.id + "_search_pref" ) ) {
+                var items = localStorage.getItem( window.Galaxy.user.id + "_search_pref" ),
+                    $el_pinned_result = $(".pinned-results");
+                $el_pinned_result.html("");
+                $el_pinned_result.html( JSON.parse( items ).pinned_results );
+                self.registerToolLinkClick( self, $el_pinned_result );
+            }
+        }
+    },
+
+    /** Set local/session storage for pinned/removed search results */
+    setDataStorage: function( self, elem ) {
+        var key = "",
+            localStorageObject = {},
+            $el_pinned_result = $( ".pinned-results" );
+        if ( window.Galaxy.user.id ) {
+            key = window.Galaxy.user.id + "_search_pref";
+            if( localStorage.getItem( key ) ) {
+                localStorageObject = JSON.parse( localStorage.getItem( key ) );
+                if( localStorageObject.pinned_results ) {
+                    localStorageObject.pinned_results = localStorageObject.pinned_results + " " + elem;
+                }
+                else {
+                    localStorageObject.pinned_results = elem;
+                }
+            }
+            else {
+                localStorageObject.pinned_results = elem;
+            }
+            localStorage.setItem( key, JSON.stringify( localStorageObject ) );
+            $el_pinned_result.html("");
+            $el_pinned_result.html( localStorageObject.pinned_results );
+            self.registerToolLinkClick( self, $el_pinned_result );
+        }
+        else {
+            key = "search_pref";
+        }
+    },
+
+    /** Pin link to the top */
+    pinLink: function( self, $el ) {
+        self.setDataStorage( self, $el[0].outerHTML );
+    },
+
+    /** Register tool search link click */
+    registerToolLinkClick: function( self, $el ) {
+        $el.find( "a.tool-search-link" ).click(function( e ) {
+            e.preventDefault();
+            self.searchedToolLink( self, e );
+            self.resetCurrentDatasetSearch();
+        });
+    },
+
     /** Build the fetched items template using the template dictionary */ 
     makeToolSearchResultTemplate: function( collection, tool_template ) {
         var header_template = "",
             self = this,
             $el_tool_section = $('.search-tool-main-section'),
             $el_search_result = $( '.search-results' ),
-            tool_section_header_template = "<span class='section-header-all'>Tools <hr class='section-hr' align='left'></span>";
+            tool_section_header_template = "<span class='section-header-all'>Tools <hr class='section-hr' align='left'></span>",
+            $el_pin_item = null,
+            $el_remove_item = null;
 
         $el_tool_section.html("");        
         if( self.getActiveFilter() === "all" ) {
@@ -393,12 +455,26 @@ var SearchItems = Backbone.View.extend({
             $el_tool_section.append( item.template );
         });
 
-        $el_search_result.find( "a.tool-search-link" ).click(function( e ) {
-            // Stop the default behaviour of anchor click
+        self.registerToolLinkClick( self, $el_search_result );
+
+        $el_pin_item = $el_search_result.find( "a>i.pin-item" );
+        $el_remove_item = $el_search_result.find( "a>i.remove-item" );
+
+        $el_pin_item.css( "margin-left", "2px" );
+        $el_pin_item.click(function( e ) {
             e.preventDefault();
-            self.searchedToolLink( self, e );
-            self.resetCurrentDatasetSearch();
-        }); 
+            e.stopPropagation();
+            self.pinLink( self, $( this ).parent() );
+            $( this ).parent().remove();
+        });
+
+        $el_remove_item.css( "margin-left", "2px" );
+        $el_remove_item.click(function( e ) {
+            e.preventDefault();
+            e.stopPropagation();
+            $( this ).parent().remove();
+        });
+
         // jQuery slow fadeIn effect
         $el_search_result.fadeIn( 'slow' );
     },
@@ -518,7 +594,9 @@ var SearchItems = Backbone.View.extend({
                     "' minsizehint='" + min_width +
                     "' data-formstyle='" + form_style + "' data-toolid='" + id;
             }
-            template = template + "' >" + name + "</a>";
+            template = template + "' >" + name + "<i class='fa fa-paperclip pin-item' aria-hidden='true' title='Pin it to top'></i>" +
+                       "<i class='fa fa-times remove-item' aria-hidden='true' title='Remove it from search result'></i>" +
+                       "</a>";
         return template
     },
 
