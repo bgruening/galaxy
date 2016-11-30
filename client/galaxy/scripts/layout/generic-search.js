@@ -69,8 +69,7 @@ var SearchOverlay = Backbone.View.extend({
 
         if( e ) {
             e.stopPropagation();
-            query = ( $el_search_txtbx.val() ).trim();
-            query = query.toLowerCase();
+            query = (( $el_search_txtbx.val() ).trim()).toLowerCase();
             if( query.length < self.search_query_minimum_length ) {
                 $el_search_result.html("");
             }
@@ -109,7 +108,7 @@ var SearchOverlay = Backbone.View.extend({
     /** Search with the selected filter */
     searchWithFilter: function( type, _this, self ) {
         if( !$( _this ).hasClass( 'filter-active' ) ) {
-             var query = ( $( '.txtbx-search-data' ).val() ).trim();
+             var query = (( $( '.txtbx-search-data' ).val() ).trim()).toLowerCase();
              if( query.length >= self.search_query_minimum_length ) {
                  self.applyDomOperations( _this );
                  self.active_filter = type;
@@ -312,6 +311,26 @@ var SearchItems = Backbone.View.extend({
         }
     },
 
+    /** Check if item is present in the pinned list */
+    checkItemPinned: function( item_id ) {
+        var key = window.Galaxy.user.id + "_search_pref",
+            present = false,
+            localStorageObject = null;
+        if ( window.Galaxy.user.id ) {
+            if( localStorage.getItem( key ) ) {
+                localStorageObject = JSON.parse( localStorage.getItem( key ) );
+                if( localStorageObject.pinned_results ) {
+                    _.each( localStorageObject.pinned_results, function ( item, item_key ) {
+                        if( item_key === item_id ) {
+                            present = true;
+                        }
+                    });
+                    return present;
+                }
+            }
+        }
+    },
+
     /** Create collection of templates of all sections and links for tools */
     makeToolSection: function( search_result ) {
         var template_dict = [], 
@@ -331,9 +350,11 @@ var SearchItems = Backbone.View.extend({
 
                     _.each( all_tools, function( tool ) {
                         if( tool.id === item ) {
-                            is_present = true;
                             var attrs = tool.attributes;
-                            tools_template = tools_template + self._buildLinkTemplate( attrs.id, attrs.link, attrs.name, attrs.description, attrs.target, 'tool-search-link', attrs.version, attrs.min_width, attrs.form_style );
+                            if( !self.checkItemPinned( attrs.id ) ) {
+                                 is_present = true;
+                                 tools_template = tools_template + self._buildLinkTemplate( attrs.id, attrs.link, attrs.name, attrs.description, attrs.target, 'tool-search-link', attrs.version, attrs.min_width, attrs.form_style );
+                            }
                         }
                     });
                     if( is_present ) {
@@ -345,7 +366,9 @@ var SearchItems = Backbone.View.extend({
                 else if( section.attributes.model_class === "Tool" || section.attributes.model_class === "DataSourceTool" ) {
                     var attributes = section.attributes;
                     if( item === attributes.id ) {
-                        tool_template = tool_template + self._buildLinkTemplate( attributes.id, attributes.link, attributes.name, attributes.description, attributes.target, 'tool-search-link', attributes.version, attributes.min_width, attributes.form_style );
+                        if( !self.checkItemPinned( attributes.id ) ) {
+                            tool_template = tool_template + self._buildLinkTemplate( attributes.id, attributes.link, attributes.name, attributes.description, attributes.target, 'tool-search-link', attributes.version, attributes.min_width, attributes.form_style );
+                        }
                     }
                 }
             });
@@ -377,14 +400,21 @@ var SearchItems = Backbone.View.extend({
 
     /** Build pinned links if any when search overlay is invoked */ 
     buildPinnedLinks: function() {
-        var self = this;
+        var self = this,
+            pinned_results = {},
+            pinned_html = "",
+            key = window.Galaxy.user.id + "_search_pref";
         // Build the pinned result if any
         if ( window.Galaxy.user.id ) {
-            if( localStorage.getItem( window.Galaxy.user.id + "_search_pref" ) ) {
-                var items = localStorage.getItem( window.Galaxy.user.id + "_search_pref" ),
+            if( localStorage.getItem( key ) ) {
+                var items = localStorage.getItem( key ),
                     $el_pinned_result = $(".pinned-results");
+                pinned_results = JSON.parse( items ).pinned_results;
+                for( item in pinned_results ) {
+                    pinned_html = pinned_html + pinned_results[item];
+                }
                 $el_pinned_result.html("");
-                $el_pinned_result.html( JSON.parse( items ).pinned_results );
+                $el_pinned_result.html( pinned_html );
                 self.registerToolLinkClick( self, $el_pinned_result );
             }
         }
@@ -394,27 +424,34 @@ var SearchItems = Backbone.View.extend({
     setDataStorage: function( self, elem ) {
         var key = "",
             localStorageObject = {},
-            $el_pinned_result = $( ".pinned-results" );
+            $el_pinned_result = $( ".pinned-results" ),
+            link_id = "";
+
+        link_id = $( elem ).attr('class').split(" ")[3];
         if ( window.Galaxy.user.id ) {
             key = window.Galaxy.user.id + "_search_pref";
             if( localStorage.getItem( key ) ) {
                 localStorageObject = JSON.parse( localStorage.getItem( key ) );
                 if( localStorageObject.pinned_results ) {
-                    localStorageObject.pinned_results = localStorageObject.pinned_results + " " + elem;
+                    localStorageObject.pinned_results[link_id] = elem;
                 }
                 else {
-                    localStorageObject.pinned_results = elem;
+                    localStorageObject.pinned_results = {};
+                    localStorageObject.pinned_results[link_id] = elem;
                 }
             }
             else {
-                localStorageObject.pinned_results = elem;
+                localStorageObject.pinned_results = {};
+                localStorageObject.pinned_results[link_id] = elem;
             }
             localStorage.setItem( key, JSON.stringify( localStorageObject ) );
-            $el_pinned_result.html("");
-            $el_pinned_result.html( localStorageObject.pinned_results );
+            $el_pinned_result.append( elem );
+            $el_pinned_result.find('.pin-item').remove();
             self.registerToolLinkClick( self, $el_pinned_result );
         }
         else {
+            // TODO: Show pinned results even when user id not 
+            // logged and store them in sessionStorage (not in localStorage)
             key = "search_pref";
         }
     },
@@ -430,6 +467,11 @@ var SearchItems = Backbone.View.extend({
             e.preventDefault();
             self.searchedToolLink( self, e );
             self.resetCurrentDatasetSearch();
+        });
+        $el.find( "a>i.remove-item" ).click(function( e ) {
+            e.preventDefault();
+            e.stopPropagation();
+            $( this ).parent().remove();
         });
     },
 
@@ -586,7 +628,7 @@ var SearchItems = Backbone.View.extend({
     /** Return links template */
     _buildLinkTemplate: function( id, link, name, description, target, cls, version, min_width, form_style ) {
         var template = "";
-            template = "<a class='" + cls + " btn btn-primary " + id + " ' href='" + link +
+            template = "<a class='" + cls + " btn btn-primary " + id + "' href='" + link +
                "' role='button' title='" + name + " " + (description ? description : "") +
                "' target='" + target;
             if( cls.indexOf('tool') > -1 ) {
@@ -626,7 +668,6 @@ var SearchItems = Backbone.View.extend({
         $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
         $el.blur();
     }
-
 });
 
 return {
