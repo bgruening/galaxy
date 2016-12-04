@@ -1,12 +1,11 @@
 define([
     "mvc/list/list-item",
     "ui/loading-indicator",
-    "layout/generic-search",
     "mvc/base-mvc",
     "utils/localization",
     "ui/search-input"
     
-], function( LIST_ITEM, LoadingIndicator, Search, BASE_MVC, _l ){
+], function( LIST_ITEM, LoadingIndicator, BASE_MVC, _l ){
 
 'use strict';
 
@@ -359,8 +358,7 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
      */
     renderItems : function( $whereTo ){
         $whereTo = $whereTo || this.$el;
-        var panel = this,
-            historySearch = null;
+        var panel = this;
         panel.log( this + '.renderItems', $whereTo );
 
         var $list = panel.$list( $whereTo );
@@ -382,11 +380,6 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
             panel._renderEmptyMessage( $whereTo ).show();
         }
         panel.trigger( 'views:ready', panel.views );
-
-        /** Return current dataset search items object for the search overlay */
-        if( this.searchFor.length > 0 ) {
-            historySearch = new Search.SearchItems({ 'current_dataset': panel._filterCollection() });
-        }
         
         return panel.views;
     },

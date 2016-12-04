@@ -32,7 +32,6 @@ var SearchOverlay = Backbone.View.extend({
 	    // Remove the overlay and hides the search screen on clicking escape key
 	    else if ( evt.which === 27 || evt.keyCode === 27 ) {
 	        this.removeOverlay();
-                this.resetCurrentDatasetSearch();
 	    }
         }
     },
@@ -40,7 +39,7 @@ var SearchOverlay = Backbone.View.extend({
     /** Register the events */
     render: function() {
         var self = this, 
-            $el_search_textbox = $('.txtbx-search-data');
+            $el_search_textbox = $( '.txtbx-search-data' );
         this.removeOverlay();
         // Register the keyup event in the search textbox
         $el_search_textbox.on('keyup', function( e ) { 
@@ -83,19 +82,15 @@ var SearchOverlay = Backbone.View.extend({
 
     /** Register filter click events */
     registerFilterClicks: function( self ) {
-        self.clickEvents( '.all-filter', "all", self );
-        self.clickEvents( '.tool-filter', "tools", self );
-        self.clickEvents( '.currdataset-filter', "current_dataset", self );
-        self.clickEvents( '.datalibrary-filter', "data_library", self );
-    },
+        var filter_classes = {};
+            filter_classes.all = '.all-filter';
+            filter_classes.tools = '.tool-filter';
+            filter_classes.history = '.history-filter';
+            filter_classes.data_library = '.datalibrary-filter';
 
-    /** Reset the original current dataset search */
-    resetCurrentDatasetSearch: function() {
-        var $el = $( '.search-input .search-query' );
-        $el.focus();
-        // Trigger the escape key press
-        $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
-        $el.blur();
+        for( item in filter_classes ) {
+            self.clickEvents( filter_classes[ item ], item, self );
+        }
     },
 
     /** Click events for the search categories */
@@ -121,33 +116,32 @@ var SearchOverlay = Backbone.View.extend({
     applyDomOperations: function( self ) {
         var $el_filter = $('.overlay-filters a');
         $( '.search-results' ).html( "" );
-        $el_filter.css('text-decoration', 'underline').removeClass( 'filter-active' );
+        $el_filter.css( 'text-decoration', 'underline' ).removeClass( 'filter-active' );
         $( self ).css( 'text-decoration', 'none' ).addClass( 'filter-active' );
     },
 
     /** Call with one filter */
     searchOne: function( self, type, query ) {
-        var url = Galaxy.root + 'api/tools';
         switch( type ) {
             case "all":
-                self.searchAll( self, url, query );
+                self.searchAll( self, query );
                 break;
             case "tools":
-                self.triggerToolSearch( url, query, self );
+                self.searchTools( query );
                 break;
-            case "current_dataset":
-                self.triggerCurrentDatasetSearch( query );
+            case "history":
+                self.searchHistory( query );
                 break;
             case "data_library":
-                self.triggerDataLibrarySearch( query );
+                self.searchDataLibrary( query );
                 break;
             default:
-                self.searchAll( self, url, query );
+                self.searchAll( self, query );
         }
     },
 
     /** Search in all categories */
-    searchAll: function( self, url_root, query ) {
+    searchAll: function( self, query ) {
         var $el_search_result = $( '.search-results' ),
             $el_overlay_filters = $( '.overlay-filters' ),
             $el_all_filter = $( '.all-filter' );
@@ -157,43 +151,57 @@ var SearchOverlay = Backbone.View.extend({
         $el_all_filter.css( 'text-decoration', 'none' );
         if( !$el_all_filter.hasClass( 'filter-active' ) ) {
             $el_all_filter.addClass( 'filter-active' );
-        }  
-        // Search for current datasets
-        self.triggerCurrentDatasetSearch( query );
+        }
+        // Search for history
+        self.searchHistory( query );
         // Search for tools
-        self.triggerToolSearch( url_root, query, self );
+        self.searchTools( query );
         // Search for data libraries
-        self.triggerDataLibrarySearch( query );
+        self.searchDataLibrary( query );
     },
 
-    /** Asynchronous get call for fetching tools */ 
-    triggerToolSearch: function( url_root, query, self ) {
-        $.get( url_root, { q: query }, function ( search_result ) {
-            toolSearch = new SearchItems({ 'tools': search_result });
+    /** Search in tools */ 
+    searchTools: function( query ) {
+        var url = Galaxy.root + 'api/tools';
+        $.get( url, { q: query }, function ( search_result ) {
+            toolSearch = new SearchItems( { 'tools': search_result } );
         }, "json" );
     },
 
-    /** Trigger current dataset search in the original current dataset search */
-    triggerCurrentDatasetSearch: function( query ) {
-        var $el = $( '.search-input .search-query' );
-        $el.val( query );
-        $el.trigger( $.Event("keyup", { keyCode: 13, which: 13 }) );
-        $el.trigger( $.Event("keyup", { keyCode: 13, which: 13 }) );
+    /** Search in history */
+    searchHistory: function( query ) {
+        var history_url = Galaxy.root + 'api/histories';
+        $.get( history_url, function ( histories ) {
+            var history_list = [];
+            // Get the content of each history
+            _.each( histories, function( item ) {
+                var history_item_url = history_url + '/' + item.id + '/contents';
+                $.get( history_item_url, function( history_content ) {
+                    _.each( history_content, function( item ) {
+                        var item_name = item.name.toLowerCase();
+                        if ( item_name.indexOf( query ) > -1 ) {
+                            history_list.push( item );
+                        }
+                    });
+                    historySearch = new SearchItems({ 'history': history_list });
+                }, 'json');
+            });
+        }, "json" );
     },
 
-    /** Trigger data library search */
-    triggerDataLibrarySearch: function( query ) {
+    /** Search in data library */
+    searchDataLibrary: function( query ) {
         var url = Galaxy.root + 'api/libraries?deleted=false';
         $.get( url, function ( library_data ) {
-            present_list = [];
+            data_lib_list = [];
             // Filter the result based on query
             _.each( library_data, function( item ) {
                 var name = item.name.toLowerCase();
                 if ( name.indexOf( query ) > -1 ) {
-                    present_list.push( item );
+                    data_lib_list.push( item );
                 }
             });
-            libSearch = new SearchItems({ 'data_library': present_list });
+            libSearch = new SearchItems({ 'data_library': data_lib_list });
         }, "json" );
     },
  
@@ -206,7 +214,7 @@ var SearchOverlay = Backbone.View.extend({
                            'placeholder="Give at least 3 letters to search" />' + 
                        '<div class="overlay-filters">' + 
                            '<a class="all-filter"> All </a>' +
-                           '<a class="currdataset-filter"> Current Datasets </a>' +
+                           '<a class="history-filter"> History </a>' +
                            '<a class="tool-filter"> Tools </a>' +
                            '<a class="workflow-filter"> Workflow </a>' +
                            '<a class="datalibrary-filter"> Data Library </a>' +
@@ -220,7 +228,7 @@ var SearchOverlay = Backbone.View.extend({
    
 });
 
-/** Display search items from Tools, Current datasets */
+/** Display search items from Tools, History and so on */
 var SearchItems = Backbone.View.extend({
     self : this,
     data : {},
@@ -232,8 +240,8 @@ var SearchItems = Backbone.View.extend({
                 case "tools": 
                     this.data.tools = item[ type ];
                     break;
-                case "current_dataset":
-                    this.data.current_dataset = item[ type ];
+                case "history":
+                    this.data.history = item[ type ];
                     break;
                 case "data_library":
                     this.data.data_library = item[ type ];
@@ -247,7 +255,7 @@ var SearchItems = Backbone.View.extend({
     getActiveFilter: function() {
         var active_filter = "all";
         active_filter = ( $( '.tool-filter' ).hasClass( 'filter-active') ? "tools" : active_filter );
-        active_filter = ( $( '.currdataset-filter' ).hasClass( 'filter-active' ) ? "current_dataset" : active_filter );
+        active_filter = ( $( '.history-filter' ).hasClass( 'filter-active' ) ? "history" : active_filter );
         active_filter = ( $( '.datalibrary-filter' ).hasClass( 'filter-active' ) ? "data_library" : active_filter );
         return active_filter;
     },
@@ -267,23 +275,12 @@ var SearchItems = Backbone.View.extend({
         else {
             // If the selected filter has no data
             data = items[ filter ];
-            if ( !data || data.length == 0 ) {
+            if ( !data || data.length === 0 ) {
                 this.showEmptySection( $el_search_result );
                 return;
             }
-            switch( filter ) {
-                case "current_dataset":
-                    this.makeCurrentDatasetSection( data );
-                    break;
-                case "tools":
-                    this.makeToolSection( data );
-                    break;
-                case "data_library":
-                    this.makeDataLibrarySection( data );
-                    break;
-                default:
-                    this.makeAllSection();
-            }
+            // Make individual section
+            this.makeSection( filter, data );
         }
     },
 
@@ -293,21 +290,53 @@ var SearchItems = Backbone.View.extend({
         $el.append( this._templateNoResults() );
     },
 
+    /** Make section based on filter and data */
+    makeSection: function( filter, data ) {
+        switch( filter ) {
+            case "tools":
+                this.makeToolSection( data );
+                break;
+            case "history":
+                this.makeCustomSearchSection( { 'name': 'History',
+                                   'id': 'history',
+                                   'class_name': 'search-section search-history',
+                                   'link_class_name': 'history-search-link',
+                                   'data': data } );
+                break;
+            case "data_library":
+                this.makeCustomSearchSection( { 'name': 'Data Library',
+                                   'id': 'datalibrary',
+                                   'class_name': 'search-section search-datalib',
+                                   'link_class_name': 'datalib-search-link',
+                                   'data': data } );
+                break;
+        }
+    },
+
     /** Create templates for all the categories in the search result */
     makeAllSection: function() {
         var has_result = false,
-            $el_search_result = $( '.search-results' );
+            $el_search_result = $( '.search-results' ),
+            self = this;
 
-        for( type in this.data ) {
-            if( this.data[ type ] && this.data[ type ].length > 0 ) {
+        for( type in self.data ) {
+            if( self.data[ type ] ) {
                 has_result = true;
-                type === "current_dataset" && this.makeCurrentDatasetSection( this.data[ type ] );
-                type === "tools" && this.makeToolSection( this.data[ type ] );
-                type === "data_library" && this.makeDataLibrarySection( this.data[ type ] );
+                type === "tools" && self.makeToolSection( self.data[ type ] );
+                type === "history" && self.data[ "history" ].length > 0 && self.makeCustomSearchSection( { 'name': 'History',
+                                       'id': 'history',
+                                       'class_name': 'search-section search-history',
+                                       'link_class_name': 'history-search-link',
+                                       'data': self.data[ type ] } );
+                type === "data_library" && self.data[ "data_library" ].length > 0 && self.makeCustomSearchSection( { 'name': 'Data Library',
+                                       'id': 'datalibrary',
+                                       'class_name': 'search-section search-datalib',
+                                       'link_class_name': 'datalib-search-link',
+                                       'data': self.data[ type ] } );
             }
         }
         if( !has_result ) {
-            this.showEmptySection( $el_search_result );
+            self.showEmptySection( $el_search_result );
         }
     },
 
@@ -375,9 +404,7 @@ var SearchItems = Backbone.View.extend({
         });
 
         // Remove the tool search result section if already present
-        $el_search_result.find('.search-tool-main-section').remove();
-        // Make a new tool search result section
-        $el_search_result.append("<div class='search-tool-main-section'></div>");
+        $el_search_result.find('.search-tools').remove();
         // Make template for sections and tools
         self.makeToolSearchResultTemplate( template_dict, tool_template );        
     },
@@ -398,77 +425,49 @@ var SearchItems = Backbone.View.extend({
         return collection;
     },
 
-    /** Build pinned links if any when search overlay is invoked */ 
-    buildPinnedLinks: function() {
-        var self = this,
-            pinned_results = {},
-            pinned_html = "",
-            key = window.Galaxy.user.id + "_search_pref";
-        // Build the pinned result if any
-        if ( window.Galaxy.user.id ) {
-            if( localStorage.getItem( key ) ) {
-                var items = localStorage.getItem( key ),
-                    $el_pinned_result = $(".pinned-results");
-                pinned_results = JSON.parse( items ).pinned_results;
-                for( item in pinned_results ) {
-                    pinned_html = pinned_html + pinned_results[item];
-                }
-                $el_pinned_result.html("");
-                $el_pinned_result.html( pinned_html );
-                self.registerToolLinkClick( self, $el_pinned_result );
-            }
-        }
-    },
-
-    /** Set local/session storage for pinned/removed search results */
-    setDataStorage: function( self, elem ) {
-        var key = "",
-            localStorageObject = {},
-            $el_pinned_result = $( ".pinned-results" ),
-            link_id = "";
-
-        link_id = $( elem ).attr('class').split(" ")[3];
-        if ( window.Galaxy.user.id ) {
-            key = window.Galaxy.user.id + "_search_pref";
-            if( localStorage.getItem( key ) ) {
-                localStorageObject = JSON.parse( localStorage.getItem( key ) );
-                if( localStorageObject.pinned_results ) {
-                    localStorageObject.pinned_results[link_id] = elem;
-                }
-                else {
-                    localStorageObject.pinned_results = {};
-                    localStorageObject.pinned_results[link_id] = elem;
-                }
-            }
-            else {
-                localStorageObject.pinned_results = {};
-                localStorageObject.pinned_results[link_id] = elem;
-            }
-            localStorage.setItem( key, JSON.stringify( localStorageObject ) );
-            $el_pinned_result.append( elem );
-            $el_pinned_result.find('.pin-item').remove();
-            self.registerToolLinkClick( self, $el_pinned_result );
-        }
-        else {
-            // TODO: Show pinned results even when user id not 
-            // logged and store them in sessionStorage (not in localStorage)
-            key = "search_pref";
-        }
-    },
-
-    /** Pin link to the top */
-    pinLink: function( self, $el ) {
-        self.setDataStorage( self, $el[0].outerHTML );
-    },
-
     /** Register tool search link click */
     registerToolLinkClick: function( self, $el ) {
         $el.find( "a.tool-search-link" ).click(function( e ) {
             e.preventDefault();
             self.searchedToolLink( self, e );
-            self.resetCurrentDatasetSearch();
         });
         $el.find( "a>i.remove-item" ).click(function( e ) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.removeFromDataStorage( self, $( this ).parent() );
+            $( this ).parent().remove();
+        });
+    },
+
+    /** Register clicks for pinned links from custom section */
+    registerCustomPinnedLinkClicks: function( self, $el) {
+        
+        $el.find( "a>i.remove-item" ).click(function( e ) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.removeFromDataStorage( self, $( this ).parent() );
+            $( this ).parent().remove();
+        });
+
+        $el.find( ".btn" ).click(function( e ) {
+            self.removeOverlay();
+        })
+    },
+ 
+    /** Click events for pin and remove search items */
+    makePinRemoveItems: function( $el_pin_item, $el_remove_item, self ) {
+
+        $el_pin_item.css( "margin-left", "2px" );
+        $el_remove_item.css( "margin-left", "2px" );
+        $el_pin_item.click(function( e ) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.pinLink( self, $( this ).parent() );
+            $( this ).parent().remove();
+        });
+
+        
+        $el_remove_item.click(function( e ) {
             e.preventDefault();
             e.stopPropagation();
             $( this ).parent().remove();
@@ -479,43 +478,25 @@ var SearchItems = Backbone.View.extend({
     makeToolSearchResultTemplate: function( collection, tool_template ) {
         var header_template = "",
             self = this,
-            $el_tool_section = $('.search-tool-main-section'),
             $el_search_result = $( '.search-results' ),
-            tool_section_header_template = "<span class='section-header-all'>Tools <hr class='section-hr' align='left'></span>",
             $el_pin_item = null,
             $el_remove_item = null;
 
-        $el_tool_section.html("");        
+        $el_search_result.find('.tool-search-link').remove();
         if( self.getActiveFilter() === "all" ) {
-            // Add tool header in the tool search result section if the search category is 'All'
-            $el_tool_section.append( tool_section_header_template );
+            $el_search_result.append( self._buildHeaderTemplate( "tools", "Tools", "search-section search-tools" ) );
         }
-        
         _.each( collection, function( item ) {
-            header_template = self._buildHeaderTemplate( item.id, item.name, 'search-tool-section-name' );
-            $el_tool_section.append( header_template );
-            $el_tool_section.append( item.template );
+            $el_search_result.append( item.template );
         });
 
+        $el_search_result.append(tool_template);
         self.registerToolLinkClick( self, $el_search_result );
 
-        $el_pin_item = $el_search_result.find( "a>i.pin-item" );
-        $el_remove_item = $el_search_result.find( "a>i.remove-item" );
+        $el_pin_item = $( '.tool-search-link' ).find( "i.pin-item" );
+        $el_remove_item = $( '.tool-search-link' ).find( "i.remove-item" );
 
-        $el_pin_item.css( "margin-left", "2px" );
-        $el_pin_item.click(function( e ) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.pinLink( self, $( this ).parent() );
-            $( this ).parent().remove();
-        });
-
-        $el_remove_item.css( "margin-left", "2px" );
-        $el_remove_item.click(function( e ) {
-            e.preventDefault();
-            e.stopPropagation();
-            $( this ).parent().remove();
-        });
+        self.makePinRemoveItems( $el_pin_item, $el_remove_item, self );
 
         // jQuery slow fadeIn effect
         $el_search_result.fadeIn( 'slow' );
@@ -558,71 +539,138 @@ var SearchItems = Backbone.View.extend({
         }
     },
 
-    /** Make a template of the current dataset items returned by search routine */
-    makeCurrentDatasetSection: function( currdataset_items ) {
+    /** Make custom search section */
+    makeCustomSearchSection: function( section_object ) {
         var template_string = "",
             $el_search_result = $( '.search-results' ),
-            $el_currdataset_link = $( ".currdataset-search-link" ),
+            $el_section_link = $( "." + section_object.link_class_name ),
             self = this,
             link = "",
-            class_name = 'search-tool-section-name search-currdataset section-header-all';
+            target = 'galaxy_main',
+            data_type = "";
+        if( section_object.link_class_name.indexOf( 'history' ) > -1 ) {
+            data_type = "history";
+        }
+        else if( section_object.link_class_name.indexOf( 'datalib' ) > -1 ) {
+            data_type = "data library";
+        }
 
-        // Remove the current dataset search result section if already present
-        $el_search_result.find('.search-currdataset').remove();
-        $el_currdataset_link.remove();
-      
-        _.each( currdataset_items.reverse(), function( item ) {
-            var attr = item.attributes;
-            link = "/datasets/" + attr.dataset_id + "/display/?preview=True";
-            template_string = template_string + self._buildLinkTemplate( attr.dataset_id, link, attr.name, attr.description, 'galaxy_main', 'currdataset-search-link' );
+        $el_search_result.find( '.' + section_object.class_name.split(" ")[1] ).remove();
+        $el_search_result.find( '.' + section_object.link_class_name ).remove();
+
+        _.each( section_object.data, function( item ) {
+            if( !self.checkItemPinned( item.id ) ) {
+                if( data_type === "history" ) {
+                    link = "/datasets/" + item.id + "/display/?preview=True";
+                }
+                else if( data_type === "data library" ) {
+                    link = Galaxy.root + "library/list#folders/" + item.root_folder_id;
+                }
+            template_string = template_string + self._buildLinkTemplate( item.id, link, item.name, item.description, target, section_object.link_class_name );
+            }
         });
 
+        // Append section header if filter is "all"
         if( self.getActiveFilter() === "all" ) {
-            $el_search_result.append( self._buildHeaderTemplate( 'currdataset', 'Current Datasets', class_name ) );
-            $el_search_result.append("<hr class='search-currdataset section-hr' align='left'>")
+            $el_search_result.append( self._buildHeaderTemplate( section_object.id, section_object.name, section_object.class_name ) );
         }
 
         $el_search_result.append( template_string );
-        $el_search_result.find( ".currdataset-search-link" ).css( 'margin-top', '1%' );
-        // Reset the current dataset search when overlay is removed
-        $el_search_result.find( ".currdataset-search-link" ).click(function( e ) {
+        $el_search_result.find( "." + section_object.link_class_name ).css( 'margin-top', '0.5%' );
+        $el_search_result.find( "." + section_object.link_class_name ).click(function( e ) {
             self.removeOverlay();
-            self.resetCurrentDatasetSearch();
-        });
+        })
+
+        $el_pin_item = $( '.' + section_object.link_class_name ).find( "i.pin-item" );
+        $el_remove_item = $( '.' + section_object.link_class_name ).find( "i.remove-item" );
+        self.makePinRemoveItems( $el_pin_item, $el_remove_item, self );
     },
 
-    /** Make a template for Data library search results */
-    makeDataLibrarySection: function( datalib_items ) {
-        // TODO: merge with makeCurrentDatasetSection method if display
-        // remains the same with Current dataset section
-        var template_string = "",
-            $el_search_result = $( '.search-results' ),
-            $el_datalib_link = $( ".datalib-search-link" ),
-            self = this,
-            link = "",
-            class_name = 'search-tool-section-name search-datalib section-header-all';
-
-        // Remove the data lib search result section if already present
-        $el_search_result.find('.search-datalib').remove();
-        $el_datalib_link.remove();
-      
-        _.each( datalib_items, function( item ) {
-            link = Galaxy.root + "library/list#folders/" + item.root_folder_id;
-            template_string = template_string + self._buildLinkTemplate( item.id, link, item.name, item.description, 'galaxy_main', 'datalib-search-link' );
-        });
-
-        if( self.getActiveFilter() === "all" ) {
-            $el_search_result.append( self._buildHeaderTemplate( 'datalibrary', 'Data Libraries', class_name ) );
-            $el_search_result.append("<hr class='search-datalib section-hr' align='left'>")
+    /** Build pinned links if any when search overlay is invoked */ 
+    buildPinnedLinks: function() {
+        var self = this,
+            pinned_results = {},
+            pinned_html = "",
+            key = window.Galaxy.user.id + "_search_pref";
+        // Build the pinned result if any
+        if ( window.Galaxy.user.id ) {
+            if( localStorage.getItem( key ) ) {
+                var items = localStorage.getItem( key ),
+                    $el_pinned_result = $( ".pinned-results" );
+                pinned_results = JSON.parse( items ).pinned_results;
+                for( item in pinned_results ) {
+                    pinned_html = pinned_html + pinned_results[item];
+                }
+                $el_pinned_result.html( "" );
+                $el_pinned_result.html( pinned_html );
+                $el_pinned_result.find( '.pin-item' ).remove();
+                self.registerToolLinkClick( self, $el_pinned_result );
+                self.registerCustomPinnedLinkClicks( self, $el_pinned_result );
+            }
         }
+    },
 
-        $el_search_result.append( template_string );
-        $el_search_result.find( ".datalib-search-link" ).css( 'margin-top', '1%' );
-        // Reset the current dataset search when overlay is removed
-        $el_search_result.find( ".datalib-search-link" ).click(function( e ) {
-            self.removeOverlay();
-            self.resetCurrentDatasetSearch();
-        });
+    /** Remove the delete item from localstorage */
+    removeFromDataStorage: function( self, $el ) {
+        var key = "",
+            localStorageObject = {},
+            $el_pinned_result = $( ".pinned-results" ),
+            link_id = "",
+            elem = $el[0].outerHTML;
+        
+        link_id = $( elem ).attr( 'class' ).split(" ")[3];
+        if ( window.Galaxy.user.id ) {
+            key = window.Galaxy.user.id + "_search_pref";
+            if( localStorage.getItem( key ) ) {
+                localStorageObject = JSON.parse( localStorage.getItem( key ) );
+                if( localStorageObject.pinned_results ) {
+                    delete localStorageObject.pinned_results[ link_id ];
+                    localStorage.setItem( key, JSON.stringify( localStorageObject ) );
+                }
+            }
+        }
+    },
+
+    /** Set local/session storage for pinned/removed search results */
+    setDataStorage: function( self, elem ) {
+        var key = "",
+            localStorageObject = {},
+            $el_pinned_result = $( ".pinned-results" ),
+            link_id = "";
+
+        link_id = $( elem ).attr( 'class' ).split(" ")[3];
+        if ( window.Galaxy.user.id ) {
+            key = window.Galaxy.user.id + "_search_pref";
+            if( localStorage.getItem( key ) ) {
+                localStorageObject = JSON.parse( localStorage.getItem( key ) );
+                if( localStorageObject.pinned_results ) {
+                    localStorageObject.pinned_results[link_id] = elem;
+                }
+                else {
+                    localStorageObject.pinned_results = {};
+                    localStorageObject.pinned_results[link_id] = elem;
+                }
+            }
+            else {
+                localStorageObject.pinned_results = {};
+                localStorageObject.pinned_results[link_id] = elem;
+            }
+            localStorage.setItem( key, JSON.stringify( localStorageObject ) );
+            $el_pinned_result.append( elem );
+            $el_pinned_result.find( '.pin-item' ).remove();
+            self.registerToolLinkClick( self, $el_pinned_result );
+            self.registerCustomPinnedLinkClicks( self, $el_pinned_result );
+        }
+        else {
+            // TODO: Show pinned results even when user id not 
+            // logged and store them in sessionStorage (not in localStorage)
+            key = "search_pref";
+        }
+    },
+
+    /** Pin link to the top */
+    pinLink: function( self, $el ) {
+        self.setDataStorage( self, $el[0].outerHTML );
     },
 
     /** Return links template */
@@ -658,15 +706,6 @@ var SearchItems = Backbone.View.extend({
             $el_search_screen_overlay = $( '.search-screen-overlay' );
         $el_search_screen_overlay.css( 'display', 'none' );
         $el_search_screen.css( 'display', 'none' );
-    },
-   
-    /** Reset the original current dataset search */
-    resetCurrentDatasetSearch: function() {
-        var $el = $( '.search-input .search-query' );
-        $el.focus();
-        // Trigger the escape key press
-        $el.trigger( $.Event( "keyup", { keyCode: 27, which: 27 } ) );
-        $el.blur();
     }
 });
 
