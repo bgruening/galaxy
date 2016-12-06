@@ -1,10 +1,11 @@
-from base import api_asserts
+import json
+import time
 from operator import itemgetter
 
-import time
-import json
-import StringIO
 from pkg_resources import resource_string
+from six import StringIO
+
+from base import api_asserts
 
 # Simple workflow that takes an input and call cat wrapper on it.
 workflow_str = resource_string( __name__, "test_workflow_1.ga" )
@@ -27,7 +28,7 @@ def skip_without_tool( tool_id ):
             index = api_test_case.galaxy_interactor.get( "tools", data=dict(in_panel=False) )
             tools = index.json()
             # In panels by default, so flatten out sections...
-            tool_ids = map( itemgetter( "id" ), tools )
+            tool_ids = [itemgetter( "id" )(_) for _ in tools]
             return tool_ids
 
         def wrapped_method( api_test_case, *args, **kwargs ):
@@ -110,7 +111,7 @@ class BaseDatasetPopulator( object ):
             'dbkey': dbkey,
             'file_type': file_type,
         }
-        if isinstance( content, file ):
+        if hasattr(content, 'read'):
             upload_params[ "files_0|file_data"] = content
         else:
             upload_params[ 'files_0|url_paste' ] = content
@@ -329,7 +330,7 @@ class LibraryPopulator( object ):
             "db_key": kwds.get( "db_key", "?" ),
         }
         files = {
-            "files_0|file_data": kwds.get( "file", StringIO.StringIO( kwds.get( "contents", "TestData" ) ) ),
+            "files_0|file_data": kwds.get( "file", StringIO( kwds.get( "contents", "TestData" ) ) ),
         }
         return create_data, files
 
@@ -438,7 +439,7 @@ class BaseDatasetCollectionPopulator( object ):
 
     def __datasets( self, history_id, count, contents=None ):
         datasets = []
-        for i in xrange( count ):
+        for i in range( count ):
             new_kwds = {}
             if contents:
                 new_kwds[ "content" ] = contents[ i ]
