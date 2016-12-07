@@ -1,0 +1,86 @@
+.overlay-wrapper {
+    margin-top: -5%; 
+}
+
+.search-screen { 
+    position: fixed; 
+    z-index: 202;
+    width:100%; 
+    height:100%;
+    display:none;
+}
+
+.search-screen-overlay { 
+    position: fixed; 
+    top:0; 
+    left:0; 
+    background:rgba(0,0,0,0.9); 
+    z-index: 201; 
+    width:100%; 
+    height:100%; 
+    display:none;
+    opacity: 2;
+}
+
+.txtbx-search-data {
+    margin-left: 35%;
+    margin-top: 10%;
+    height: 30px;
+    width: 25%;
+    padding:2px;
+    font-size: 14px;
+}
+
+.pinned-results {
+    margin: 1% 2% 1% 2%;
+}
+
+.search-results {
+    margin: -1% 2% 2% 2%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 75%;
+    width: 96%
+    display: none;
+
+}
+
+.tool-search-link {
+    text-decoration: none; 
+    text-align:center;
+    margin-top: 0.5%;
+}
+
+.overlay-filters {
+    margin: 1% 2% 1% 35.5%;
+    display: none;
+}
+
+.overlay-filters a {
+    color: white;
+    margin-right: 1%;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.text-underline {
+    text-decoration: underline;
+}
+
+.search-section {
+    color: white;
+    margin-top: 1%;
+    font-weight: bold;
+}
+
+.section-hr {
+    color: white;
+    width: 80%;
+    margin: 0px;
+    padding: 0px;
+}
+
+.no-results {
+    color: white;
+    margin-top: 0.8%;
+}

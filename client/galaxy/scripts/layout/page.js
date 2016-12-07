@@ -1,11 +1,11 @@
 define([
     'layout/masthead',
     'layout/panel',
-    'layout/generic-search',
     'mvc/ui/ui-modal',
     'mvc/base-mvc',
-    "mvc/tool/tool-form"
-], function( Masthead, Panel, Search, Modal, BaseMVC, ToolForm ) {
+    "mvc/tool/tool-form",
+    'mvc/webhooks'
+], function( Masthead, Panel, Modal, BaseMVC, ToolForm, Webhooks ) {
 
 // ============================================================================
 var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
@@ -13,9 +13,6 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
 
     el : 'body',
     className : 'full-content',
-    events: {
-        'keydown': "invokeSearchOverlay",
-    },
     _panelIds : [
         'left', 'center', 'right'
     ],
@@ -42,7 +39,9 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
         this.$el.append( this.modal.$el );
         this.$messagebox = this.$( '#messagebox' );
         this.$inactivebox = this.$( '#inactivebox' );
-        this.searchoverlay = new Search.SearchOverlay();
+        var WebhookApp = new Webhooks.WebhookView({
+            urlRoot: Galaxy.root + 'api/webhooks/tool'
+        });
     },
 
     render : function() {
@@ -53,10 +52,6 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
         this.renderMessageBox();
         this.renderInactivityBox();
         this.renderPanels();
-        // renders search overlay markup
-        this.searchoverlay.render();
-        // registers the search overlay 
-        this.invokeSearchOverlay();
         this._checkCommunicationServerOnline();
         return this;
     },
@@ -115,12 +110,6 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
         return this;
     },
 
-    /** invokes overlay of the search screen */ 
-    invokeSearchOverlay: function( e ) { 
-        this.searchoverlay.invokeOverlay( e );
-    },
-
-
     /** body template */
     _template: function() {
         return [
@@ -164,7 +153,7 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
                     // enable communication only when a user is logged in
                     if( window.Galaxy.user.id !== null ) {
                         if( $chat_icon_element.css( "visibility")  === "hidden" ) {
-                            $chat_icon_element.css( "visibility", "visible" ); 
+                            $chat_icon_element.css( "visibility", "visible" );
                         }
                     }
             })
