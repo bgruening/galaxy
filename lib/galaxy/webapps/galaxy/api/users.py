@@ -16,6 +16,7 @@ from galaxy.managers import users
 from galaxy.security.validate_user_input import validate_email
 from galaxy.security.validate_user_input import validate_password
 from galaxy.security.validate_user_input import validate_publicname
+from galaxy.security.passwords import hash_password
 from galaxy.web import _future_expose_api as expose_api
 from galaxy.web import _future_expose_api_anonymous as expose_api_anonymous
 from galaxy.web.base.controller import BaseAPIController
@@ -28,6 +29,7 @@ from galaxy.web.form_builder import AddressField
 from galaxy.tools.toolbox.filters import FilterFactory
 from galaxy.util import docstring_trim, listify
 from galaxy.util.odict import odict
+from galaxy.util.hash_util import new_secure_hash
 
 
 log = logging.getLogger( __name__ )
@@ -244,8 +246,7 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
 
     def _get_extra_user_preferences(self, trans):
         """
-        Reads the file user_preferences_extra_conf.xml to display
-        admin defined user informations
+        Reads xml config file to display additional user preferences
         """
         path = trans.app.config.user_preferences_extra_config_file
         try:
@@ -259,16 +260,21 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
 
     def _build_extra_user_pref_inputs(self, trans, preferences, user):
         """
-        Build extra user preferences inputs list.
-        Add values to the fields if present
+        Build extra user preferences inputs list and add values to the fields if present
         """
         if not preferences:
            return []
+
         data = []
+        set_password_text = "Your password is set. To change, please remove all the characters and enter new password"
+        unset_password_text = "Your password is not set"
+        password_set_key = '***keyisset***'
         # Get data if present
         data_key = "extra_user_preferences"
+
         if data_key in user.preferences:
             data = json.loads(user.preferences[data_key])
+        print data
         extra_pref_inputs = list()
         # Build sections for different categories of inputs
         for item, value in preferences.items():
@@ -278,8 +284,15 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
                     field = item + '|' + input['name']
                     for data_item in data:
                        if field in data_item:
+                           # For all password inputs
                            if( input['type'] == 'password' ):
-                               input['value'] = trans.security.decode_guid( data[data_item] )
+                               if( data[data_item] != "" ):
+                                   # Set a default key and helptext if field is already set otherwise leave it empty
+                                   input['value'] = password_set_key
+                                   input['help'] = input['help'] + '. ' + set_password_text if input['help'] != "" else set_password_text
+                               else:
+                                  input['value'] = ""
+                                  input['help'] = input['help'] + '. ' + unset_password_text if input['help'] != "" else unset_password_text
                            else:
                                input['value'] = data[data_item]
                 extra_pref_inputs.append({'type': 'section', 'title': value['description'], 'name': item, 'expanded': True, 'inputs': value['inputs']})
@@ -296,6 +309,43 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
             if( input['name'] == keys[1] and input['required'] ):
                 return True
         return False
+
+    def _set_extra_user_preferences( self, trans, user, payload ):
+        """
+        Save the values of additional user preferences to database
+        """
+        # Database key for storing additional fields
+        data_key = "extra_user_preferences"
+        # Default key for set password
+        password_set_key = '***keyisset***'
+        required_field_err_msg = "Please fill the required field"
+        if data_key in user.preferences:
+            data = json.loads(user.preferences[data_key])
+        extra_user_pref_data = dict()
+        get_extra_pref_keys = self._get_extra_user_preferences( trans )
+        if get_extra_pref_keys is not None:
+            for key in get_extra_pref_keys:
+                key_prefix = key + '|'
+                for item in payload:
+                    if item.startswith( key_prefix ):
+                        # Show error message if the required field is empty
+                        if( payload[item] == "" ):
+                            if( self._check_if_field_required( trans, item ) ): 
+                                raise MessageException( required_field_err_msg )
+                        # Hashing for all password field
+                        if item.endswith( 'password' ):
+                            if( payload[ item ] != "" ):
+                                # Password field is changed from an already set value
+                                if( payload[ item ] != password_set_key ):
+                                    extra_user_pref_data[ item ] = hash_password( payload[ item ] )  
+                                else:
+                                    # Password remains unchanged as previous value
+                                    extra_user_pref_data[ item ] = data[ item ] if data[ item ] else ""
+                            else:
+                                extra_user_pref_data[ item ] = ""
+                        else:
+                            extra_user_pref_data[ item ] = payload[ item ]
+            user.preferences[ data_key ] = json.dumps( extra_user_pref_data )
 
     @expose_api
     def get_information(self, trans, id, **kwd):
@@ -423,22 +473,7 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
             user.values = form_values
 
         # Update values for extra user preference items
-        extra_user_pref_data = dict()
-        get_extra_pref_keys = self._get_extra_user_preferences( trans )
-        if get_extra_pref_keys is not None:
-            for key in get_extra_pref_keys:
-                key_prefix = key + '|'
-                for item in payload:
-                    if item.startswith( key_prefix ):
-                        # Show error message if the required field is empty
-                        if( payload[item] == "" ):
-                            if( self._check_if_field_required( trans, item ) ): 
-                                raise MessageException("Please fill the required field")
-                        if item.endswith( 'password' ):
-                            extra_user_pref_data[ item ] = trans.security.encode_guid( payload[ item ] )
-                        else:
-                            extra_user_pref_data[ item ] = payload[ item ]
-            user.preferences[ "extra_user_preferences" ] = json.dumps( extra_user_pref_data )
+        self._set_extra_user_preferences( trans, user, payload )
 
         # Update user addresses
         address_dicts = {}
