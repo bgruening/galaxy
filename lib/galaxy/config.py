@@ -554,6 +554,7 @@ class Configuration( object ):
             shed_tool_data_table_config=[ 'shed_tool_data_table_conf.xml', 'config/shed_tool_data_table_conf.xml' ],
             tool_sheds_config_file=[ 'config/tool_sheds_conf.xml', 'tool_sheds_conf.xml', 'config/tool_sheds_conf.xml.sample' ],
             workflow_schedulers_config_file=['config/workflow_schedulers_conf.xml', 'config/workflow_schedulers_conf.xml.sample'],
+            user_preferences_extra_config_file=[ 'config/user_preferences_extra_conf.xml', 'config/user_preferences_extra_conf.xml.sample' ],
         )
 
         listify_defaults = dict(
