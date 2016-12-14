@@ -270,31 +270,29 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
         unset_password_text = "Your password is not set"
         password_set_key = '***keyisset***'
         # Get data if present
-        data_key = "extra_user_preferences"
-
+        data_key = "additional_user_preferences"
         if data_key in user.preferences:
-            data = json.loads(user.preferences[data_key])
-        print data
+            data = json.loads( user.preferences[ data_key ] )
         extra_pref_inputs = list()
         # Build sections for different categories of inputs
         for item, value in preferences.items():
             if value is not None:
                 for input in value["inputs"]:
                     input['help'] = 'Required' if input['required'] else ''
-                    field = item + '|' + input['name']
-                    for data_item in data:
-                       if field in data_item:
-                           # For all password inputs
-                           if( input['type'] == 'password' ):
-                               if( data[data_item] != "" ):
-                                   # Set a default key and helptext if field is already set otherwise leave it empty
-                                   input['value'] = password_set_key
-                                   input['help'] = input['help'] + '. ' + set_password_text if input['help'] != "" else set_password_text
-                               else:
-                                  input['value'] = ""
-                                  input['help'] = input['help'] + '. ' + unset_password_text if input['help'] != "" else unset_password_text
-                           else:
-                               input['value'] = data[data_item]
+                    # If the key has a value associated
+                    if( item in data ):
+                        if( input['type'] == 'password' ):
+                            if( data[ item ][ input[ "name" ] ] != "" ):
+                                # Set a default key and helptext if field is already set otherwise leave it empty
+                                input['value'] = password_set_key
+                                input['help'] = input['help'] + '. ' + set_password_text if input['help'] != "" else set_password_text
+                            else:
+                                input['value'] = ""
+                                input['help'] = input['help'] + '. ' + unset_password_text if input['help'] != "" else unset_password_text
+                        else:
+                            input['value'] = data[item][input["name"]]
+                    else:
+                        input['value'] = ""
                 extra_pref_inputs.append({'type': 'section', 'title': value['description'], 'name': item, 'expanded': True, 'inputs': value['inputs']})
         return extra_pref_inputs
 
@@ -312,10 +310,11 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
 
     def _set_extra_user_preferences( self, trans, user, payload ):
         """
-        Save the values of additional user preferences to database
+        Save the values of additional user preferences to database.
+        Map the preferences with its data dictionary
         """
         # Database key for storing additional fields
-        data_key = "extra_user_preferences"
+        data_key = "additional_user_preferences"
         # Default key for set password
         password_set_key = '***keyisset***'
         required_field_err_msg = "Please fill the required field"
@@ -324,10 +323,13 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
         extra_user_pref_data = dict()
         get_extra_pref_keys = self._get_extra_user_preferences( trans )
         if get_extra_pref_keys is not None:
+            # Build a dictionary with key and their values
             for key in get_extra_pref_keys:
+                extra_user_pref_data[key] = dict()
                 key_prefix = key + '|'
                 for item in payload:
                     if item.startswith( key_prefix ):
+                        field = item.split('|')[1]
                         # Show error message if the required field is empty
                         if( payload[item] == "" ):
                             if( self._check_if_field_required( trans, item ) ): 
@@ -337,14 +339,14 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
                             if( payload[ item ] != "" ):
                                 # Password field is changed from an already set value
                                 if( payload[ item ] != password_set_key ):
-                                    extra_user_pref_data[ item ] = hash_password( payload[ item ] )  
+                                    extra_user_pref_data[key][field] = hash_password( payload[ item ] )
                                 else:
                                     # Password remains unchanged as previous value
-                                    extra_user_pref_data[ item ] = data[ item ] if data[ item ] else ""
+                                    extra_user_pref_data[key][field] = data[ key ][ field ] if data[ key ][ field ] else ""
                             else:
-                                extra_user_pref_data[ item ] = ""
+                                extra_user_pref_data[key][field] = ""
                         else:
-                            extra_user_pref_data[ item ] = payload[ item ]
+                            extra_user_pref_data[key][field] = payload[ item ]
             user.preferences[ data_key ] = json.dumps( extra_user_pref_data )
 
     @expose_api
