@@ -98,8 +98,9 @@ class Configuration( object ):
         self.tool_section_filters = listify( kwargs.get( "tool_section_filters", [] ), do_strip=True )
 
         self.user_tool_filters = listify( kwargs.get( "user_tool_filters", [] ), do_strip=True )
-        self.user_label_filters = listify( kwargs.get( "user_tool_label_filters", [] ), do_strip=True )
-        self.user_section_filters = listify( kwargs.get( "user_tool_section_filters", [] ), do_strip=True )
+        self.user_tool_label_filters = listify( kwargs.get( "user_tool_label_filters", [] ), do_strip=True )
+        self.user_tool_section_filters = listify( kwargs.get( "user_tool_section_filters", [] ), do_strip=True )
+        self.has_user_tool_filters = bool( self.user_tool_filters or self.user_tool_label_filters or self.user_tool_section_filters )
 
         self.tour_config_dir = resolve_path( kwargs.get("tour_config_dir", "config/plugins/tours"), self.root)
         self.webhooks_dirs = resolve_path( kwargs.get("webhooks_dir", "config/plugins/webhooks"), self.root)
@@ -167,7 +168,7 @@ class Configuration( object ):
         self.job_queue_cleanup_interval = int( kwargs.get("job_queue_cleanup_interval", "5") )
         self.cluster_files_directory = os.path.abspath( kwargs.get( "cluster_files_directory", "database/pbs" ) )
 
-        # Fall back to to legacy job_working_directory config variable if set.
+        # Fall back to legacy job_working_directory config variable if set.
         default_jobs_directory = kwargs.get( "job_working_directory", "database/jobs_directory" )
         self.jobs_directory = resolve_path( kwargs.get( "jobs_directory", default_jobs_directory ), self.root )
         self.default_job_shell = kwargs.get( "default_job_shell", "/bin/bash" )
@@ -220,6 +221,8 @@ class Configuration( object ):
         self.communication_server_host = kwargs.get( 'communication_server_host', 'http://localhost' )
         self.communication_server_port = int( kwargs.get( 'communication_server_port', '7070' ) )
         self.persistent_communication_rooms = listify( kwargs.get( "persistent_communication_rooms", [] ), do_strip=True )
+        self.enable_openid = string_as_bool( kwargs.get( 'enable_openid', 'False' ) )
+        self.enable_quotas = string_as_bool( kwargs.get( 'enable_quotas', 'False' ) )
         # External Service types used in sample tracking
         self.external_service_type_path = resolve_path( kwargs.get( 'external_service_type_path', 'external_service_types' ), self.root )
         # Tasked job runner.
@@ -279,7 +282,7 @@ class Configuration( object ):
         self.welcome_url = kwargs.get( 'welcome_url', '/static/welcome.html' )
         self.show_welcome_with_login = string_as_bool( kwargs.get( "show_welcome_with_login", "False" ) )
         # Configuration for the message box directly below the masthead.
-        self.message_box_visible = kwargs.get( 'message_box_visible', False )
+        self.message_box_visible = string_as_bool( kwargs.get( 'message_box_visible', False ) )
         self.message_box_content = kwargs.get( 'message_box_content', None )
         self.message_box_class = kwargs.get( 'message_box_class', 'info' )
         self.support_url = kwargs.get( 'support_url', 'https://wiki.galaxyproject.org/Support' )
@@ -325,6 +328,8 @@ class Configuration( object ):
         else:
             self.tool_dependency_dir = None
             self.use_tool_dependencies = os.path.exists(self.dependency_resolvers_config_file)
+        self.use_cached_dependency_manager = string_as_bool(kwargs.get("use_cached_dependency_manager", 'False'))
+        self.tool_dependency_cache_dir = kwargs.get( 'tool_dependency_cache_dir', os.path.join(self.tool_dependency_dir, '_cache'))
 
         self.enable_beta_mulled_containers = string_as_bool( kwargs.get( 'enable_beta_mulled_containers', 'False' ) )
         containers_resolvers_config_file = kwargs.get( 'containers_resolvers_config_file', None )
@@ -665,9 +670,6 @@ class Configuration( object ):
                 except Exception as e:
                     raise ConfigurationError( "Unable to create missing directory: %s\n%s" % ( path, e ) )
         # Create the directories that it makes sense to create
-        if self.object_store_config_file is None:
-            for path in (self.file_path, self.job_working_directory):
-                self._ensure_directory( path )
         for path in (self.new_file_path, self.template_cache, self.ftp_upload_dir,
                      self.library_import_dir, self.user_library_import_dir,
                      self.nginx_upload_store, self.whoosh_index_dir,
