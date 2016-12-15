@@ -24,6 +24,7 @@ $(document).ready(function() {
                 filter_classes.tools = '.tool-filter';
                 filter_classes.history = '.history-filter';
                 filter_classes.data_library = '.datalibrary-filter';
+                filter_classes.workflow = '.workflow-filter';
             
             // Register event for invoking overlay
             this.parentElement.on( 'keydown', function( e ) {
@@ -33,7 +34,6 @@ $(document).ready(function() {
             // Register events for search textbox
             $( '.txtbx-search-data' ).on( 'keyup', function( e ) { 
                 self.triggerSearch( e, self );
-                console.log("search box text keyup");
             });
           
             // Register events for fliter clicks
@@ -105,16 +105,19 @@ $(document).ready(function() {
 	    switch( type ) {
 	        case "all":
 	            self.searchAllFilters( self, query );
-	        break;
+	            break;
 	        case "tools":
 	            self.searchTools( query );
-	        break;
+	            break;
 	        case "history":
 	            self.searchHistory( query );
-	        break;
+	            break;
 	        case "data_library":
 	            self.searchDataLibrary( query );
-	        break;
+	            break;
+                case "workflow":
+                    self.searchWorkflow( query );
+                    break;
 	        default:
 	            self.searchAllFilters( self, query );
 	    }
@@ -132,6 +135,8 @@ $(document).ready(function() {
 	    self.searchTools( query );
 	    // Search for data libraries
 	    self.searchDataLibrary( query );
+            // Search for workflows
+            self.searchWorkflow( query );
         },
 
         /** Search in tools */ 
@@ -177,6 +182,23 @@ $(document).ready(function() {
 	        });
 	        libSearch = new SearchItemsView({ 'data_library': data_lib_list });
 	    }, "json" );
+        },
+
+        /** Search in workflow */
+        searchWorkflow: function( query ) {
+            var url = Galaxy.root + 'api/workflows';
+	    $.get( url, function ( workflow_data ) {
+	        workflow_list = [];
+	        // Filter the result based on query
+	        _.each( workflow_data, function( item ) {
+	            var name = item.name.toLowerCase();
+	            if ( name.indexOf( query ) > -1 ) {
+	                workflow_list.push( item );
+	            }
+	        });
+	        workflowSearch = new SearchItemsView({ 'workflow': workflow_list });
+	    }, "json" );
+
         },
 
         /** Show overlay */
@@ -244,7 +266,6 @@ $(document).ready(function() {
 
         /** Initialize the variables */
         initialize: function( item ) {
-
             var type = ( item ? Object.keys( item )[0] : "" );	    
 	    if ( this.data ) {
 	        switch( type ) {
@@ -257,6 +278,8 @@ $(document).ready(function() {
 		    case "data_library":
 		        this.data.data_library = item[ type ];
 		        break;
+                    case "workflow":
+                        this.data.workflow = item[ type ]
 	         }
 	        this.refreshView( this.data );
 	    }
@@ -268,6 +291,7 @@ $(document).ready(function() {
 	        active_filter = ( $( '.tool-filter' ).hasClass( 'filter-active') ? "tools" : active_filter );
 	        active_filter = ( $( '.history-filter' ).hasClass( 'filter-active' ) ? "history" : active_filter );
 	        active_filter = ( $( '.datalibrary-filter' ).hasClass( 'filter-active' ) ? "data_library" : active_filter );
+                active_filter = ( $( '.workflow-filter' ).hasClass( 'filter-active' ) ? "workflow" : active_filter );
 	    return active_filter;
         },
 
@@ -321,6 +345,13 @@ $(document).ready(function() {
 		                   'link_class_name': 'datalib-search-link',
 		                   'data': data } );
 		    break;
+                case "workflow":
+                    this.makeCustomSearchSection( { 'name': 'Workflow',
+		                   'id': 'workflow',
+		                   'class_name': 'search-section search-workflow',
+		                   'link_class_name': 'workflow-search-link',
+		                   'data': data } );
+                    break;
 	    }
         },
 
@@ -329,7 +360,6 @@ $(document).ready(function() {
 	    var has_result = false,
 	        $el_search_result = $( '.search-results' ),
 	        self = this;
-
 	    for( type in self.data ) {
 	        if( self.data[ type ] ) {
 		    has_result = true;
@@ -343,6 +373,11 @@ $(document).ready(function() {
 		                       'id': 'datalibrary',
 		                       'class_name': 'search-section search-datalib',
 		                       'link_class_name': 'datalib-search-link',
+		                       'data': self.data[ type ] } );
+                    type === "workflow" && self.data[ "workflow" ].length > 0 && self.makeCustomSearchSection( { 'name': 'Workflow',
+		                       'id': 'workflow',
+		                       'class_name': 'search-section search-workflow',
+		                       'link_class_name': 'workflow-search-link',
 		                       'data': self.data[ type ] } );
 	        }
 	    }
@@ -377,7 +412,6 @@ $(document).ready(function() {
 	        tool_template = "",
 	        self = this,
 	        $el_search_result = $( '.search-results' );
-
 	    _.each( search_result, function( item ) {
 	        var all_sections = Galaxy.toolPanel.attributes.layout.models;
 	        _.each( all_sections, function( section ) {
@@ -413,7 +447,6 @@ $(document).ready(function() {
 		    }
 	        });
 	    });
-
 	    // Remove the tool search result section if already present
 	    $el_search_result.find('.search-tools').remove();
 	    // Make template for sections and tools
@@ -452,7 +485,6 @@ $(document).ready(function() {
 
         /** Register clicks for pinned links from custom section */
         registerCustomPinnedLinkClicks: function( self, $el) {
-
 	    $el.find( "a>i.remove-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
@@ -562,18 +594,26 @@ $(document).ready(function() {
 	    else if( section_object.link_class_name.indexOf( 'datalib' ) > -1 ) {
 	        data_type = "data library";
 	    }
+            else if( section_object.link_class_name.indexOf( 'workflow' ) > -1 ) {
+	        data_type = "workflow";
+	    }
 
 	    $el_search_result.find( '.' + section_object.class_name.split(" ")[1] ).remove();
 	    $el_search_result.find( '.' + section_object.link_class_name ).remove();
 
 	    _.each( section_object.data, function( item ) {
 	        if( !self.checkItemPinned( item.id ) ) {
-		    if( data_type === "history" ) {
-		        link = "/datasets/" + item.id + "/display/?preview=True";
-		    }
-		    else if( data_type === "data library" ) {
-		        link = Galaxy.root + "library/list#folders/" + item.root_folder_id;
-		    }
+                    switch( data_type ) {
+                        case "history":
+                            link = "/datasets/" + item.id + "/display/?preview=True";
+                            break;
+                        case "data library":
+                            link = Galaxy.root + "library/list#folders/" + item.root_folder_id;
+                            break;
+                        case "workflow":
+                            link = Galaxy.root + "workflow/display_by_id?id=" + item.id;
+                            break;
+                    }
 	        template_string = template_string + self._buildLinkTemplate( item.id, link, item.name, item.description, target, section_object.link_class_name );
 	        }
 	    });
