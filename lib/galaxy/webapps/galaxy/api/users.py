@@ -29,7 +29,6 @@ from galaxy.web.form_builder import AddressField
 from galaxy.tools.toolbox.filters import FilterFactory
 from galaxy.util import docstring_trim, listify
 from galaxy.util.odict import odict
-from galaxy.util.hash_util import new_secure_hash
 
 
 log = logging.getLogger( __name__ )
@@ -244,6 +243,10 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
                 'nice_total_disk_usage': util.nice_size( usage ),
                 'quota_percent': percent}
 
+    def _get_hash_value( self, key ):
+        ''' Return hash of the key '''
+        return hash_password( key )
+
     def _get_extra_user_preferences(self, trans):
         """
         Reads xml config file to display additional user preferences
@@ -255,8 +258,13 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
         except:
             log.warn('Config file (%s) could not be found or is malformed.' % path)
             return {}
-
         return config['preferences'] if config else {}
+
+    def _deserialize( self, string ):
+        return json.loads( string )
+ 
+    def _serialize(self, obj ):
+        return json.dumps( obj )
 
     def _build_extra_user_pref_inputs(self, trans, preferences, user):
         """
@@ -264,15 +272,16 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
         """
         if not preferences:
            return []
-
         data = []
+        # Password field messages
         set_password_text = "Your password is set. To change, please remove all the characters and enter new password"
         unset_password_text = "Your password is not set"
-        password_set_key = '***keyisset***'
+        # Default key to display to user for set password
+        password_set_key = '*Au@#$!%^&&*O(%cg'
         # Get data if present
         data_key = "additional_user_preferences"
         if data_key in user.preferences:
-            data = json.loads( user.preferences[ data_key ] )
+            data = self._deserialize( user.preferences[ data_key ]  )
         extra_pref_inputs = list()
         # Build sections for different categories of inputs
         for item, value in preferences.items():
@@ -315,11 +324,11 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
         """
         # Database key for storing additional fields
         data_key = "additional_user_preferences"
-        # Default key for set password
-        password_set_key = '***keyisset***'
+        # Default key to display to user for set password
+        password_set_key = '*Au@#$!%^&&*O(%cg'
         required_field_err_msg = "Please fill the required field"
         if data_key in user.preferences:
-            data = json.loads(user.preferences[data_key])
+            data = json.loads( user.preferences[ data_key ] )
         extra_user_pref_data = dict()
         get_extra_pref_keys = self._get_extra_user_preferences( trans )
         if get_extra_pref_keys is not None:
@@ -339,7 +348,7 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
                             if( payload[ item ] != "" ):
                                 # Password field is changed from an already set value
                                 if( payload[ item ] != password_set_key ):
-                                    extra_user_pref_data[key][field] = hash_password( payload[ item ] )
+                                    extra_user_pref_data[key][field] = self._get_hash_value( payload[ item ] )
                                 else:
                                     # Password remains unchanged as previous value
                                     extra_user_pref_data[key][field] = data[ key ][ field ] if data[ key ][ field ] else ""
@@ -347,7 +356,7 @@ class UserAPIController( BaseAPIController, UsesTagsMixin, CreatesUsersMixin, Cr
                                 extra_user_pref_data[key][field] = ""
                         else:
                             extra_user_pref_data[key][field] = payload[ item ]
-            user.preferences[ data_key ] = json.dumps( extra_user_pref_data )
+            user.preferences[ data_key ] = self._serialize( extra_user_pref_data )
 
     @expose_api
     def get_information(self, trans, id, **kwd):
