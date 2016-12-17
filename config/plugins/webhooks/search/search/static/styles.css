@@ -31,18 +31,21 @@
     font-size: 14px;
 }
 
-.pinned-results {
-    margin: 1% 2% 1% 2%;
-}
-
-.search-results {
+.search-results, .removed-items {
     margin: -1% 2% 2% 2%;
     overflow-x: hidden;
     overflow-y: auto;
     height: 75%;
     width: 96%
     display: none;
+}
 
+.remove-item {
+    margin-left: 2px;
+}
+
+.pinned-results {
+    margin: 1% 2% 1% 2%;
 }
 
 .tool-search-link {
@@ -61,6 +64,14 @@
     margin-right: 1%;
     cursor: pointer;
     font-weight: bold;
+}
+
+.filter-active {
+    text-decoration: none;
+}
+
+.filter-inactive {
+    text-decoration: underline;
 }
 
 .text-underline {
@@ -83,4 +94,8 @@
 .no-results {
     color: white;
     margin-top: 0.8%;
+}
+
+.btn-primary {
+    margin-top: 0.5%
 }
