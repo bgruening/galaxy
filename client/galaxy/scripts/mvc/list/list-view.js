@@ -4,7 +4,6 @@ define([
     "mvc/base-mvc",
     "utils/localization",
     "ui/search-input"
-    
 ], function( LIST_ITEM, LoadingIndicator, BASE_MVC, _l ){
 
 'use strict';
@@ -103,9 +102,7 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
         /** @type {String} generic subtitle */
         this.subtitle = attributes.subtitle || '';
 
-        this._setUpListeners();
-
-        
+        this._setUpListeners();        
     },
 
     // ------------------------------------------------------------------------ listeners
@@ -376,6 +373,7 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
         }
         panel._renderEmptyMessage( $whereTo ).toggle( !panel.views.length );
         panel.trigger( 'views:ready', panel.views );
+
         // console.log( '------------------------------------------- rendering items' );
         return panel.views;
     },
@@ -393,7 +391,7 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
     _filterItem : function( model ){
         // override this
         var panel = this;
-        return ( _.every( panel.filters.map( function( fn ) { return fn.call( model ); }) ) )
+        return ( _.every( panel.filters.map( function( fn ){ return fn.call( model ); }) ) )
             && ( !panel.searchFor || model.matchesAll( panel.searchFor ) );
     },
 

@@ -11,6 +11,7 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
 
     el : 'body',
     className : 'full-content',
+
     _panelIds : [
         'left', 'center', 'right'
     ],
@@ -149,7 +150,7 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
                     // enable communication only when a user is logged in
                     if( window.Galaxy.user.id !== null ) {
                         if( $chat_icon_element.css( "visibility")  === "hidden" ) {
-                            $chat_icon_element.css( "visibility", "visible" );
+                            $chat_icon_element.css( "visibility", "visible" ); 
                         }
                     }
             })
