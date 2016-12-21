@@ -102,7 +102,7 @@ var ListPanel = Backbone.View.extend( BASE_MVC.LoggableMixin ).extend(/** @lends
         /** @type {String} generic subtitle */
         this.subtitle = attributes.subtitle || '';
 
-        this._setUpListeners();        
+        this._setUpListeners();
     },
 
     // ------------------------------------------------------------------------ listeners
