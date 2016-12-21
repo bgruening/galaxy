@@ -31,18 +31,20 @@
     font-size: 14px;
 }
 
-.search-results, .removed-items {
+.search-results,
+.removed-items,
+.pinned-items {
     margin: -1% 2% 2% 2%;
     overflow-x: hidden;
     overflow-y: auto;
     height: 75%;
-    width: 96%
+    width: 96%;
     display: none;
 }
 
 .link-tile {
     width: 200px;
-    height: 70px;
+    height: 75px;
 }
 
 .link-tile .actions {
@@ -64,16 +66,15 @@
     padding-left: 5px;
 }
 
-.pinned-results {
-    margin: 1% 2% 1% 2%;
-}
-
-.tool-search-link {
+.tool-search-link,
+.history-search-link,
+.datalib-search-link,
+.workflow-search-link {
     margin: 0.2%;
 }
 
 .overlay-filters {
-    margin: 1% 2% 1% 35.5%;
+    margin: 1% 2% 1% 31%;
     display: none;
 }
 

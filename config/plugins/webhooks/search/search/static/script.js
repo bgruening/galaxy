@@ -28,6 +28,7 @@ $(document).ready(function() {
                 filter_classes.data_library = '.datalibrary-filter';
                 filter_classes.workflow = '.workflow-filter';
                 filter_classes.removeditems = '.removeditems-filter';
+                filter_classes.pinnedfilter = '.pinned-filter';
             
             // Register event for invoking overlay
             this.parentElement.on( 'keydown', function( e ) {
@@ -53,6 +54,8 @@ $(document).ready(function() {
 	        if ( ( e.which === 81 || e.keyCode === 81 ) && e.ctrlKey && e.altKey ) {
 	            self.clearSearchResults();
                     self.showOverlay();
+                    self.setActiveFilter( '.pinned-filter' );
+                    self.showPinnedItemsByDefault();
 	        }
 	        // Remove the overlay and hides the search screen on clicking escape key
 	        else if ( e.which === 27 || e.keyCode === 27 ) {
@@ -88,12 +91,25 @@ $(document).ready(function() {
                     removedLink.showRemovedLinks();
                     $('.removed-items').show();
                     $('.search-results').hide();
+                    $('.pinned-items').hide();
+                    self.applyTextDecorations( this );
+                }
+                else if( type.indexOf('pinned') > -1 ) {
+                    self.showPinnedItemsByDefault( self );
                     self.applyTextDecorations( this );
                 }
                 else {
                     self.search( type, this, self );
                 }
             });
+        },
+
+        showPinnedItemsByDefault: function( self, _self ) {
+             pinnedLink = new SearchItemsView({});
+             pinnedLink.showPinnedItems();
+             $('.removed-items').hide();
+             $('.search-results').hide();
+             $('.pinned-items').show();
         },
    
         /** Search with a filter */
@@ -133,7 +149,7 @@ $(document).ready(function() {
         /** Search in all categories */
         searchAllFilters: function( self, query ) {
 	    self.clearSearchResults();
-            self.setActiveFilter();
+            self.setActiveFilter( '.all-filter' );
             self.showSearchResult();
 	    // Search for history
 	    self.searchHistory( query );
@@ -230,14 +246,16 @@ $(document).ready(function() {
         /** Show search result section and hide removed items */
         showSearchResult: function() {
             $( '.removed-items' ).hide();
+            $( '.pinned-items' ).hide();
             $( '.search-results' ).show();
         },
 
         /** Set the active filter */
-        setActiveFilter: function() {
-            var $el_all_filter = $( '.all-filter' );
-	    if( !$el_all_filter.hasClass( 'filter-active' ) ) {
-	        $el_all_filter.addClass( 'filter-active' ).removeClass( 'filter-inactive' );
+        setActiveFilter: function( filter_class ) {
+            var $el_filter = $( filter_class );
+	    if( !$el_filter.hasClass( 'filter-active' ) ) {
+                $( '.overlay-filters a' ).addClass( 'filter-inactive' ).removeClass( 'filter-active' );
+	        $el_filter.addClass( 'filter-active' ).removeClass( 'filter-inactive' );
 	    }
             $( '.overlay-filters' ).show();
         },
@@ -256,14 +274,14 @@ $(document).ready(function() {
 	           '<div id="search_screen" class="search-screen">' +
 	               '<input class="txtbx-search-data form-control" type="text" value="" ' + 
                            'placeholder="Give at least 3 letters to search" />' + 
-                       '<div class="overlay-filters">' + 
+                       '<div class="overlay-filters">' +
+                           '<a class="pinned-filter" title="Bookmarked search items"> Favourites </a>' +
                            '<a class="all-filter" title="Search result from all categories"> All </a>' +
                            '<a class="history-filter"> History </a>' +
                            '<a class="tool-filter"> Tools </a>' +
                            '<a class="workflow-filter"> Workflow </a>' +
                            '<a class="datalibrary-filter"> Data Library </a>' +
                            '<a class="removeditems-filter" title="Items which do not appear in search result"> Removed items </a>' +
-                           '<a class="pinned-filter" title="Bookmarked search items"> Favourites </a>' +
                        '</div>' +
                        '<div class="removed-items"></div>' +
                        '<div class="pinned-items"></div>' +
@@ -301,12 +319,14 @@ $(document).ready(function() {
 
         /** Return the active filter */
         getActiveFilter: function() {
-	    var active_filter = "all";
+	    var active_filter = "pinneditems";
+                active_filter = ( $( '.all-filter' ).hasClass( 'filter-active') ? "all" : active_filter );
 	        active_filter = ( $( '.tool-filter' ).hasClass( 'filter-active') ? "tools" : active_filter );
 	        active_filter = ( $( '.history-filter' ).hasClass( 'filter-active' ) ? "history" : active_filter );
 	        active_filter = ( $( '.datalibrary-filter' ).hasClass( 'filter-active' ) ? "data_library" : active_filter );
                 active_filter = ( $( '.workflow-filter' ).hasClass( 'filter-active' ) ? "workflow" : active_filter );
                 active_filter = ( $( '.removeditems-filter' ).hasClass( 'filter-active' ) ? "removeditems" : active_filter );
+                active_filter = ( $( '.pinned-filter' ).hasClass( 'filter-active' ) ? "pinneditems" : active_filter );
 	    return active_filter;
         },
 
@@ -488,7 +508,7 @@ $(document).ready(function() {
         },
 
         /** Register tool search link click */
-        registerToolLinkClick: function( self, $el ) {
+        registerToolLinkClick: function( self ) {
 	    $( "a.tool-search-link" ).click(function( e ) {
 	        e.stopPropagation();
                 e.preventDefault();
@@ -497,11 +517,17 @@ $(document).ready(function() {
         },
 
         /** Register clicks for removed links from custom section */
-        registerCustomRemovedLinkClicks: function( self, $el) {
-            $( ".restore-item" ).click(function( e ) {
+        registerRemoveLinkClicks: function( self ) {
+            $( '.restore-item' ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
-	        self.removeFromDataStorage( self, $( this ).parent() );
+	        self.removeFromDataStorage( self, $( this ).parent(), '.removed-items', '_removed_items' );
+	        $( this ).parent().remove();
+	    });
+            $( '.remove-item' ).click(function( e ) {
+	        e.preventDefault();
+	        e.stopPropagation();
+	        self.removeFromDataStorage( self, $( this ).parent(), '.pinned-items', '_pinned_items' );
 	        $( this ).parent().remove();
 	    });
         },
@@ -518,7 +544,75 @@ $(document).ready(function() {
             $( "a .pin-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
+                self.setPinnedItemsStorage( self, $( this ).parent() );
+                $( this ).parent().remove();
 	    });
+        },
+
+        /**Set localstorage for pinned items */
+        setPinnedItemsStorage: function( self, $el ) {
+            var elem = $el[0].outerHTML,
+                key = "",
+	        localStorageObject = {},
+	        link_id = "";
+	    link_id = $( elem ).attr( 'data-id' );
+	    if ( window.Galaxy.user.id ) {
+	        key = window.Galaxy.user.id + "_pinned_items";
+	        if( localStorage.getItem( key ) ) {
+		    localStorageObject = JSON.parse( localStorage.getItem( key ) );
+		    if( localStorageObject.removed_results ) {
+		        localStorageObject.removed_results[ link_id ] = elem;
+		    }
+		    else {
+		        localStorageObject.removed_results = {};
+		        localStorageObject.removed_results[ link_id ] = elem;
+		    }
+	        }
+	        else {
+		    localStorageObject.removed_results = {};
+		    localStorageObject.removed_results[ link_id ] = elem;
+	        }
+                
+	        localStorage.setItem( key, JSON.stringify( localStorageObject ) );
+	    }
+	    else {
+	        // TODO: Show removed results even when user id not 
+	        // logged and store them in sessionStorage (not in localStorage)
+	        key = "search_pref";
+	    }
+        },
+
+        /** Display pinned items */
+        showPinnedItems: function() {
+            var self = this,
+	        pinned_results = {},
+	        html_text = "",
+	        key = window.Galaxy.user.id + "_pinned_items";
+	    if ( window.Galaxy.user.id ) {
+	        if( localStorage.getItem( key ) ) {
+		    var items = localStorage.getItem( key ),
+		        $el_pinned_result = $( ".pinned-items" );
+                    $el_pinned_result.html( "" );
+		    pinned_results = JSON.parse( items ).removed_results;
+                    // Build html text from localstorage
+		    for( item in pinned_results ) {
+		        html_text = html_text + pinned_results[ item ];
+		    }
+		    $el_pinned_result.show();
+		    $el_pinned_result.html( html_text );
+
+                    // Update items in html text
+                    $el_pinned_result.find( '.pin-item' ).remove();
+                    $el_pinned_result.find( '.remove-item' ).attr( 'title', 'Delete from favourites' );
+
+		    // Register events
+                    self.registerRemoveLinkClicks( self );
+                    self.registerToolLinkClick( self );
+                    $el_pinned_result.find( '.history-search-link' ).click(function( e ) {
+                        self.removeOverlay();
+                    });
+	        }
+	    }
         },
 
         /** Build the fetched items template using the template dictionary */ 
@@ -538,7 +632,7 @@ $(document).ready(function() {
 	    });
 
 	    $el_search_result.append(tool_template);
-	    self.registerToolLinkClick( self, $el_search_result );
+	    self.registerToolLinkClick( self );
 
 	    $el_remove_item = $( '.tool-search-link' ).find( "a .remove-item" );
             $el_pin_item = $( '.tool-search-link' ).find( "a .pin-item" );
@@ -651,34 +745,36 @@ $(document).ready(function() {
 	    var self = this,
 	        removed_results = {},
 	        html_text = "",
-	        key = window.Galaxy.user.id + "_removed_items";
+                key_suffix = "_removed_items",
+                item_class_name = '.restore-item',
+                class_name = '.removed-items',
+	        key = window.Galaxy.user.id + key_suffix;
 	    // Build the removed result if any
 	    if ( window.Galaxy.user.id ) {
 	        if( localStorage.getItem( key ) ) {
 		    var items = localStorage.getItem( key ),
-		        $el_removed_result = $( ".removed-items" );
+		        $el_removed_result = $( class_name );
 		    removed_results = JSON.parse( items ).removed_results;
                     $el_removed_result.html( "" );
 		    for( item in removed_results ) {
 		        html_text = html_text + self._templateRemovedItem( item, removed_results[item] );
 		    }
-		    
 		    $el_removed_result.html( html_text );
-		    self.registerCustomRemovedLinkClicks( self, $el_removed_result );
+		    self.registerRemoveLinkClicks( self );
 	        }
 	    }
         },
 
         /** Remove the delete item from localstorage */
-        removeFromDataStorage: function( self, $el ) {
+        removeFromDataStorage: function( self, $el, class_name, key_name ) {
 	    var key = "",
 	        localStorageObject = {},
-	        $el_removed_result = $( ".removed-items" ),
+	        $el_removed_result = $( class_name ),
 	        link_id = "",
 	        elem = $el[0].outerHTML;
-	    link_id = $( elem ).attr( 'id' );
+	    link_id = ( $( elem ).attr( 'id' ) ? $( elem ).attr( 'id' ) : $( elem ).attr( 'data-id' ) );
 	    if ( window.Galaxy.user.id ) {
-	        key = window.Galaxy.user.id + "_removed_items";
+	        key = window.Galaxy.user.id + key_name;
 	        if( localStorage.getItem( key ) ) {
 		    localStorageObject = JSON.parse( localStorage.getItem( key ) );
 		    if( localStorageObject.removed_results ) {
