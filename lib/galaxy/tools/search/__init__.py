@@ -5,7 +5,6 @@ installed within this Galaxy.
 import logging
 import re
 import tempfile
-import operator
 
 from galaxy.web.framework.helpers import to_unicode
 from datetime import datetime
@@ -109,6 +108,7 @@ class ToolBoxSearch( object ):
         # Perform the search
         hits = searcher.search( parser.parse( '*' + q + '*' ), limit=float( tool_search_limit ) )
         return [ hit[ 'id' ] for hit in hits ]
+
 
 def _temp_storage(self, name=None):
     path = tempfile.mkdtemp()
