@@ -2,10 +2,8 @@ define([
     'layout/masthead',
     'layout/panel',
     'mvc/ui/ui-modal',
-    'mvc/base-mvc',
-    "mvc/tool/tool-form",
-    'mvc/webhooks'
-], function( Masthead, Panel, Modal, BaseMVC, ToolForm, Webhooks ) {
+    'mvc/base-mvc'
+], function( Masthead, Panel, Modal, BaseMVC ) {
 
 // ============================================================================
 var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
@@ -39,9 +37,6 @@ var PageLayoutView = Backbone.View.extend( BaseMVC.LoggableMixin ).extend({
         this.$el.append( this.modal.$el );
         this.$messagebox = this.$( '#messagebox' );
         this.$inactivebox = this.$( '#inactivebox' );
-        var WebhookApp = new Webhooks.WebhookView({
-            urlRoot: Galaxy.root + 'api/webhooks/tool'
-        });
     },
 
     render : function() {

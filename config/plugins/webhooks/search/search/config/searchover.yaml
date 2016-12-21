@@ -1,5 +1,17 @@
 name: searchover
 type:
-  - tool
-  - workflow
+  - masthead
 activate: true
+
+icon: fa-search
+tooltip: Activate overlay search
+
+function: >
+  $.getJSON("/api/webhooks/masthead", function( data ) {
+      if( data.script ) {
+          $('<script/>', {type: 'text/javascript'}).text(data.script).appendTo('head');
+      }
+      if( data.script ) {
+          $('<style/>', {type: 'text/css'}).text(data.styles).appendTo('head');
+      }
+  });

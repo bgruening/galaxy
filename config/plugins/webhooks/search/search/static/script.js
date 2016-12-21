@@ -51,9 +51,6 @@ $(document).ready(function() {
                 e.stopPropagation();
                 // Click of ctrl + alt + q shows search overlay
 	        if ( ( e.which === 81 || e.keyCode === 81 ) && e.ctrlKey && e.altKey ) {
-                    var $el_search_textbox = $( '.txtbx-search-data' );
-	            $el_search_textbox.val( "" );
-                    $el_search_textbox.focus();
 	            self.clearSearchResults();
                     self.showOverlay();
 	        }
@@ -212,8 +209,11 @@ $(document).ready(function() {
 
         /** Show overlay */
         showOverlay: function() {
+            var $el_search_textbox = $( '.txtbx-search-data' );
             $( '.search-screen-overlay' ).show();
 	    $( '.search-screen' ).show();
+            $el_search_textbox.val( "" );
+            $el_search_textbox.focus();
         },
 
         /** Remove the search overlay */ 
@@ -263,8 +263,10 @@ $(document).ready(function() {
                            '<a class="workflow-filter"> Workflow </a>' +
                            '<a class="datalibrary-filter"> Data Library </a>' +
                            '<a class="removeditems-filter" title="Items which do not appear in search result"> Removed items </a>' +
+                           '<a class="pinned-filter" title="Bookmarked search items"> Favourites </a>' +
                        '</div>' +
-                       '<div class="removed-items"></div>' + 
+                       '<div class="removed-items"></div>' +
+                       '<div class="pinned-items"></div>' +
                        '<div class="search-results"></div>' +
 	       '</div>' +
            '</div>';
@@ -487,38 +489,35 @@ $(document).ready(function() {
 
         /** Register tool search link click */
         registerToolLinkClick: function( self, $el ) {
-	    $el.find( "a.tool-search-link" ).click(function( e ) {
-	        e.preventDefault();
-	        self.searchedToolLink( self, e );
-	    });
-	    $el.find( "a>i.remove-item" ).click(function( e ) {
-	        e.preventDefault();
+	    $( "a.tool-search-link" ).click(function( e ) {
 	        e.stopPropagation();
-	        self.removeFromDataStorage( self, $( this ).parent() );
-	        $( this ).parent().remove();
+                e.preventDefault();
+	        self.searchedToolLink( self, e );
 	    });
         },
 
         /** Register clicks for removed links from custom section */
         registerCustomRemovedLinkClicks: function( self, $el) {
-	    $el.find( "a>i.remove-item" ).click(function( e ) {
+            $( ".restore-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
 	        self.removeFromDataStorage( self, $( this ).parent() );
 	        $( this ).parent().remove();
 	    });
-	    $el.find( ".btn" ).click(function( e ) {
-	        self.removeOverlay();
-	    });
         },
  
-        /** Click event for remove items */
-        registerClickEvent: function( $el_remove_item, self ) {
-	    $el_remove_item.click(function( e ) {
+        /** Register remove and pin action clicks */
+        registerLinkActionClickEvent: function( self ) {
+	    $( "a .remove-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
 	        self.setStorage( self, $( this ).parent() );
 	        $( this ).parent().remove();
+	    });
+
+            $( "a .pin-item" ).click(function( e ) {
+	        e.preventDefault();
+	        e.stopPropagation();
 	    });
         },
 
@@ -541,8 +540,9 @@ $(document).ready(function() {
 	    $el_search_result.append(tool_template);
 	    self.registerToolLinkClick( self, $el_search_result );
 
-	    $el_remove_item = $( '.tool-search-link' ).find( "i.remove-item" );
-	    self.registerClickEvent( $el_remove_item, self );
+	    $el_remove_item = $( '.tool-search-link' ).find( "a .remove-item" );
+            $el_pin_item = $( '.tool-search-link' ).find( "a .pin-item" );
+	    self.registerLinkActionClickEvent( self );
 
 	    // jQuery slow fadeIn effect
 	    $el_search_result.fadeIn( 'slow' );
@@ -564,7 +564,7 @@ $(document).ready(function() {
 		    $target_element = $( e.target );
 	        }
 	        // Fetch the properties
-	        id = $target_element.attr( 'data-toolid' );
+	        id = $target_element.attr( 'data-id' );
 	        form_style = $target_element.attr( 'data-formstyle' );
 	        version = $target_element.attr( 'data-version' );
 	        // Load as modal popup
@@ -592,7 +592,7 @@ $(document).ready(function() {
 	        $el_section_link = $( "." + section_object.link_class_name ),
 	        self = this,
 	        link = "",
-	        target = 'galaxy_main',
+	        target = '_top',
 	        data_type = "";
 	    if( section_object.link_class_name.indexOf( 'history' ) > -1 ) {
 	        data_type = "history";
@@ -612,37 +612,45 @@ $(document).ready(function() {
                     switch( data_type ) {
                         case "history":
                             link = "/datasets/" + item.id + "/display/?preview=True";
+                            target = 'galaxy_main';
                             break;
                         case "data library":
                             link = Galaxy.root + "library/list#folders/" + item.root_folder_id;
                             break;
                         case "workflow":
-                            link = Galaxy.root + "workflow/display_by_id?id=" + item.id;
+                            link = Galaxy.root + "workflow/editor?id=" + item.id;
                             break;
                     }
-	        template_string = template_string + self._buildLinkTemplate( item.id, link, item.name, item.description, target, section_object.link_class_name );
+	        template_string = template_string + self._buildLinkTemplate( item.id,
+                                                                             link,
+                                                                             item.name,
+                                                                             item.description,
+                                                                             target,
+                                                                             section_object.link_class_name );
 	        }
 	    });
 
 	    // Append section header if filter is "all"
 	    if( self.getActiveFilter() === "all" ) {
-	        $el_search_result.append( self._buildHeaderTemplate( section_object.id, section_object.name, section_object.class_name ) );
+	        $el_search_result.append( self._buildHeaderTemplate( section_object.id,
+                                                                     section_object.name,
+                                                                     section_object.class_name ) );
 	    }
 	    $el_search_result.append( template_string );
-	    //$el_search_result.find( "." + section_object.link_class_name ).css( 'margin-top', '0.5%' );
 	    $el_search_result.find( "." + section_object.link_class_name ).click(function( e ) {
 	        self.removeOverlay();
 	    });
 
-	    $el_remove_item = $( '.' + section_object.link_class_name ).find( "i.remove-item" );
-	    self.registerClickEvent( $el_remove_item, self );
+	    $el_remove_item = $( '.' + section_object.link_class_name ).find( "a .remove-item" );
+            $el_pin_item = $( '.' + section_object.link_class_name ).find( "a .pin-item" );
+	    self.registerLinkActionClickEvent( self );
         },
 
         /** Build removed links */ 
         showRemovedLinks: function() {
 	    var self = this,
 	        removed_results = {},
-	        removed_html = "",
+	        html_text = "",
 	        key = window.Galaxy.user.id + "_removed_items";
 	    // Build the removed result if any
 	    if ( window.Galaxy.user.id ) {
@@ -650,14 +658,13 @@ $(document).ready(function() {
 		    var items = localStorage.getItem( key ),
 		        $el_removed_result = $( ".removed-items" );
 		    removed_results = JSON.parse( items ).removed_results;
+                    $el_removed_result.html( "" );
 		    for( item in removed_results ) {
-		        removed_html = removed_html + removed_results[item];
+		        html_text = html_text + self._templateRemovedItem( item, removed_results[item] );
 		    }
-		    $el_removed_result.html( "" );
-		    $el_removed_result.html( removed_html );
-		    self.registerToolLinkClick( self, $el_removed_result );
+		    
+		    $el_removed_result.html( html_text );
 		    self.registerCustomRemovedLinkClicks( self, $el_removed_result );
-                    $el_removed_result.find( '.remove-item' ).attr('title', 'Delete item from removed list');
 	        }
 	    }
         },
@@ -669,7 +676,7 @@ $(document).ready(function() {
 	        $el_removed_result = $( ".removed-items" ),
 	        link_id = "",
 	        elem = $el[0].outerHTML;
-	    link_id = $( elem ).attr( 'class' ).split(" ")[3];
+	    link_id = $( elem ).attr( 'id' );
 	    if ( window.Galaxy.user.id ) {
 	        key = window.Galaxy.user.id + "_removed_items";
 	        if( localStorage.getItem( key ) ) {
@@ -687,29 +694,30 @@ $(document).ready(function() {
 	    var key = "",
 	        localStorageObject = {},
 	        $el_removed_result = $( ".removed-items" ),
-	        link_id = "";
+	        link_id = "",
+                name = "",
+                removed_item_template = "";
 
-	    link_id = $( elem ).attr( 'class' ).split(" ")[3];
+	    link_id = $( elem ).attr( 'data-id' );
+            name = $( elem ).attr( 'title' );
 	    if ( window.Galaxy.user.id ) {
 	        key = window.Galaxy.user.id + "_removed_items";
 	        if( localStorage.getItem( key ) ) {
 		    localStorageObject = JSON.parse( localStorage.getItem( key ) );
 		    if( localStorageObject.removed_results ) {
-		        localStorageObject.removed_results[link_id] = elem;
+		        localStorageObject.removed_results[link_id] = name;
 		    }
 		    else {
 		        localStorageObject.removed_results = {};
-		        localStorageObject.removed_results[link_id] = elem;
+		        localStorageObject.removed_results[link_id] = name;
 		    }
 	        }
 	        else {
 		    localStorageObject.removed_results = {};
-		    localStorageObject.removed_results[link_id] = elem;
+		    localStorageObject.removed_results[link_id] = name;
 	        }
+                
 	        localStorage.setItem( key, JSON.stringify( localStorageObject ) );
-	        $el_removed_result.append( elem );
-	        self.registerToolLinkClick( self, $el_removed_result );
-	        self.registerCustomRemovedLinkClicks( self, $el_removed_result );
 	    }
 	    else {
 	        // TODO: Show removed results even when user id not 
@@ -726,15 +734,18 @@ $(document).ready(function() {
         /** Return links template */
         _buildLinkTemplate: function( id, link, name, description, target, cls, version, min_width, form_style ) {
 	    var template = "";
-	        template = "<a class='" + cls + " btn btn-primary " + id + "' href='" + link +
-	                   "' role='button' title='" + name + " " + (description ? description : "") +
-	                   "' target='" + target;
+	        template = "<a class='" + cls + " btn btn-primary link-tile' href='" + link +
+	                   "' role='button' title='" + name +
+	                   "' target='" + target + 
+                           "' data-id='" + id;
 	        if( cls.indexOf('tool') > -1 ) {
 		    template = template + "' data-version='" + version +
 		               "' minsizehint='" + min_width +
-		               "' data-formstyle='" + form_style + "' data-toolid='" + id;
+		               "' data-formstyle='" + form_style;
 	        }
-	        template = template + "' >" + name + "<i class='fa fa-times remove-item' aria-hidden='true' title='Move it removed items'></i></a>";
+                template = template + "' ><span class='fa fa-thumb-tack pin-item actions' aria-hidden='true'" +
+                           "title='Bookmark to favourites'></span><span class='fa fa-trash-o remove-item actions' aria-hidden='true'" +   
+                           "title='Move to removed items'></span><b>" + name + " </b>" + (description ? description : "") + "</a>";
 	    return template;
         },
 
@@ -748,14 +759,18 @@ $(document).ready(function() {
 	    return '<div class="no-results">No results for this query</div>';
         },
 
+        /** Template for removed itmes */
+        _templateRemovedItem: function( id, name ) {
+            return "<span class='btn btn-primary exclude' id='"+ id +"'>" + name + "<span class='fa fa-undo restore-item'" +   
+                   "title='Delete from removed list'></span></span>";
+        },
+
         /** Remove the search overlay */ 
         removeOverlay: function() {
 	    $( '.search-screen-overlay' ).hide();
 	    $( '.search-screen' ).hide();
         }
     });
-
-    var OverlaySearchApp = new OverlaySearchView;
-    var SearchItemsApp = new SearchItemsView;
-  
+    searchOverlay = new OverlaySearchView();
+    searchItems = new SearchItemsView();
 });

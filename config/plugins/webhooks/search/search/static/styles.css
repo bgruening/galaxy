@@ -40,8 +40,28 @@
     display: none;
 }
 
-.remove-item {
-    margin-left: 2px;
+.link-tile {
+    width: 200px;
+    height: 70px;
+}
+
+.link-tile .actions {
+    float: right;
+}
+
+.pin-item, .remove-item {
+    padding: 0 2px 0 2px;
+}
+
+.exclude {
+    color: white;
+    cursor: default;
+    margin: 2px;
+}
+
+.exclude span {
+    cursor: pointer;
+    padding-left: 5px;
 }
 
 .pinned-results {
@@ -49,9 +69,7 @@
 }
 
 .tool-search-link {
-    text-decoration: none; 
-    text-align:center;
-    margin-top: 0.5%;
+    margin: 0.2%;
 }
 
 .overlay-filters {
