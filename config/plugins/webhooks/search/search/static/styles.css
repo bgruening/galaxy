@@ -92,7 +92,8 @@
     color: gold;
 }
 
-.filter-active {
+.filter-active,
+.pinned-item {
     color: gold;
 }
 

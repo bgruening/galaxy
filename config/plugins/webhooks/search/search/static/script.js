@@ -544,8 +544,16 @@ $(document).ready(function() {
             $( "a .pin-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
-                self.setPinnedItemsStorage( self, $( this ).parent() );
-                $( this ).parent().remove();
+                if( $( this ).hasClass( 'pinned-item' ) ) {
+                    self.removeFromDataStorage( self, $( this ).parent(), '.pinned-items', '_pinned_items' );
+                    $( this ).removeClass( 'pinned-item' );
+                    $( this ).attr( 'title', 'Bookmark to favourites' );
+                }
+                else {
+                    self.setPinnedItemsStorage( self, $( this ).parent() );
+                    $( this ).addClass( 'pinned-item' );
+                    $( this ).attr( 'title', 'Bookmarked' );
+                }
 	    });
         },
 
