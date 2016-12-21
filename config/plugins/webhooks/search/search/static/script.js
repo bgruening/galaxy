@@ -158,7 +158,10 @@ $(document).ready(function() {
 	    // Search for data libraries
 	    self.searchDataLibrary( query );
             // Search for workflows
-            self.searchWorkflow( query );
+            // This api call needs authentication
+            if( window.Galaxy.user.id ) {
+                self.searchWorkflow( query );
+            }
         },
 
         /** Search in tools */ 
@@ -426,8 +429,8 @@ $(document).ready(function() {
         },
 
         /** Check if item is present in the removed list */
-        checkItemRemoved: function( item_id ) {
-	    var key = window.Galaxy.user.id + "_removed_items",
+        checkItemPresent: function( item_id, key_suffix ) {
+	    var key = window.Galaxy.user.id + key_suffix,
 	        present = false,
 	        localStorageObject = null;
 	    if ( window.Galaxy.user.id ) {
@@ -464,9 +467,13 @@ $(document).ready(function() {
 		        _.each( all_tools, function( tool ) {
 		            if( tool.id === item ) {
 		                var attrs = tool.attributes;
-		                if( !self.checkItemRemoved( attrs.id ) ) {
+		                if( !self.checkItemPresent( attrs.id, "_removed_items" ) ) {
 		                     is_present = true;
-		                     tools_template = tools_template + self._buildLinkTemplate( attrs.id, attrs.link, attrs.name, attrs.description, attrs.target, 'tool-search-link', attrs.version, attrs.min_width, attrs.form_style );
+		                     tools_template = tools_template + self._buildLinkTemplate( attrs.id, attrs.link,
+                                                                       attrs.name, attrs.description, attrs.target,
+                                                                       'tool-search-link',
+                                                                       self.checkItemPresent( attrs.id, "_pinned_items" ),
+                                                                       attrs.version, attrs.min_width, attrs.form_style );
 		                }
 		            }
 		        });
@@ -479,8 +486,11 @@ $(document).ready(function() {
 		    else if( section.attributes.model_class === "Tool" || section.attributes.model_class === "DataSourceTool" ) {
 		        var attributes = section.attributes;
 		        if( item === attributes.id ) {
-		            if( !self.checkItemRemoved( attributes.id ) ) {
-		                tool_template = tool_template + self._buildLinkTemplate( attributes.id, attributes.link, attributes.name, attributes.description, attributes.target, 'tool-search-link', attributes.version, attributes.min_width, attributes.form_style );
+		            if( !self.checkItemPresent( attributes.id, "_removed_items" ) ) {
+		                tool_template = tool_template + self._buildLinkTemplate( attributes.id, attributes.link,
+                                                attributes.name, attributes.description, attributes.target,
+                                                'tool-search-link', self.checkItemPresent( attributes.id, "_pinned_items" ),
+                                                attributes.version, attributes.min_width, attributes.form_style );
 		            }
 		        }
 		    }
@@ -534,14 +544,14 @@ $(document).ready(function() {
  
         /** Register remove and pin action clicks */
         registerLinkActionClickEvent: function( self ) {
-	    $( "a .remove-item" ).click(function( e ) {
+	    $( ".remove-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
 	        self.setStorage( self, $( this ).parent() );
 	        $( this ).parent().remove();
 	    });
 
-            $( "a .pin-item" ).click(function( e ) {
+            $( ".pin-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
                 if( $( this ).hasClass( 'pinned-item' ) ) {
@@ -557,37 +567,40 @@ $(document).ready(function() {
 	    });
         },
 
-        /**Set localstorage for pinned items */
+        /** Set localstorage for pinned items */
         setPinnedItemsStorage: function( self, $el ) {
             var elem = $el[0].outerHTML,
                 key = "",
-	        localStorageObject = {},
+	        storageType = {},
+                storageObject = {},
 	        link_id = "";
+
 	    link_id = $( elem ).attr( 'data-id' );
-	    if ( window.Galaxy.user.id ) {
-	        key = window.Galaxy.user.id + "_pinned_items";
-	        if( localStorage.getItem( key ) ) {
-		    localStorageObject = JSON.parse( localStorage.getItem( key ) );
-		    if( localStorageObject.removed_results ) {
-		        localStorageObject.removed_results[ link_id ] = elem;
-		    }
-		    else {
-		        localStorageObject.removed_results = {};
-		        localStorageObject.removed_results[ link_id ] = elem;
-		    }
-	        }
-	        else {
-		    localStorageObject.removed_results = {};
-		    localStorageObject.removed_results[ link_id ] = elem;
-	        }
-                
-	        localStorage.setItem( key, JSON.stringify( localStorageObject ) );
+            // Decide whether to use localStorage or sessionStorage
+            if ( window.Galaxy.user.id ) {
+                storageType = localStorage;
+                key = window.Galaxy.user.id + "_pinned_items";
+            }
+            else {
+                storageType = sessionStorage;
+                key = "session_search_pinned_items";
+            }
+
+            if( storageType.getItem( key ) ) {
+		storageObject = JSON.parse( storageType.getItem( key ) );
+		if( storageObject.removed_results ) {
+		    storageObject.removed_results[ link_id ] = elem;
+		}
+		else {
+		    storageObject.removed_results = {};
+		    storageObject.removed_results[ link_id ] = elem;
+		}
 	    }
 	    else {
-	        // TODO: Show removed results even when user id not 
-	        // logged and store them in sessionStorage (not in localStorage)
-	        key = "search_pref";
-	    }
+	        storageObject.removed_results = {};
+		storageObject.removed_results[ link_id ] = elem;
+	    }    
+	    storageType.setItem( key, JSON.stringify( storageObject ) );
         },
 
         /** Display pinned items */
@@ -595,31 +608,37 @@ $(document).ready(function() {
             var self = this,
 	        pinned_results = {},
 	        html_text = "",
-	        key = window.Galaxy.user.id + "_pinned_items";
+                storageType = {},
+	        key = "";
 	    if ( window.Galaxy.user.id ) {
-	        if( localStorage.getItem( key ) ) {
-		    var items = localStorage.getItem( key ),
-		        $el_pinned_result = $( ".pinned-items" );
-                    $el_pinned_result.html( "" );
-		    pinned_results = JSON.parse( items ).removed_results;
-                    // Build html text from localstorage
-		    for( item in pinned_results ) {
-		        html_text = html_text + pinned_results[ item ];
-		    }
-		    $el_pinned_result.show();
-		    $el_pinned_result.html( html_text );
+                storageType = localStorage;
+                key = window.Galaxy.user.id + "_pinned_items";
+            }
+            else {
+                storageType = sessionStorage;
+                key = 'session_search_pinned_items';
+            }
+	    if( storageType.getItem( key ) ) {
+	        var items = storageType.getItem( key ),
+		    $el_pinned_result = $( ".pinned-items" );
+                $el_pinned_result.html( "" );
+		pinned_results = JSON.parse( items ).removed_results;
+                // Build html text from localstorage
+		for( item in pinned_results ) {
+		    html_text = html_text + pinned_results[ item ];
+		}
+		$el_pinned_result.show();
+		$el_pinned_result.html( html_text );
 
-                    // Update items in html text
-                    $el_pinned_result.find( '.pin-item' ).remove();
-                    $el_pinned_result.find( '.remove-item' ).attr( 'title', 'Delete from favourites' );
-
-		    // Register events
-                    self.registerRemoveLinkClicks( self );
-                    self.registerToolLinkClick( self );
-                    $el_pinned_result.find( '.history-search-link' ).click(function( e ) {
-                        self.removeOverlay();
-                    });
-	        }
+                // Update items in html text
+                $el_pinned_result.find( '.pin-item' ).remove();
+                $el_pinned_result.find( '.remove-item' ).attr( 'title', 'Delete from favourites' );
+		// Register events
+                self.registerRemoveLinkClicks( self );
+                self.registerToolLinkClick( self );
+                $el_pinned_result.find( '.history-search-link' ).click(function( e ) {
+                    self.removeOverlay();
+                });
 	    }
         },
 
@@ -641,9 +660,6 @@ $(document).ready(function() {
 
 	    $el_search_result.append(tool_template);
 	    self.registerToolLinkClick( self );
-
-	    $el_remove_item = $( '.tool-search-link' ).find( "a .remove-item" );
-            $el_pin_item = $( '.tool-search-link' ).find( "a .pin-item" );
 	    self.registerLinkActionClickEvent( self );
 
 	    // jQuery slow fadeIn effect
@@ -710,7 +726,7 @@ $(document).ready(function() {
 	    $el_search_result.find( '.' + section_object.link_class_name ).remove();
 
 	    _.each( section_object.data, function( item ) {
-	        if( !self.checkItemRemoved( item.id ) ) {
+	        if( !self.checkItemPresent( item.id, "_removed_items" ) ) {
                     switch( data_type ) {
                         case "history":
                             link = "/datasets/" + item.id + "/display/?preview=True";
@@ -723,12 +739,13 @@ $(document).ready(function() {
                             link = Galaxy.root + "workflow/editor?id=" + item.id;
                             break;
                     }
-	        template_string = template_string + self._buildLinkTemplate( item.id,
+	            template_string = template_string + self._buildLinkTemplate( item.id,
                                                                              link,
                                                                              item.name,
                                                                              item.description,
                                                                              target,
-                                                                             section_object.link_class_name );
+                                                                             section_object.link_class_name,
+                                                                             self.checkItemPresent( item.id, "_pinned_items" ) );
 	        }
 	    });
 
@@ -742,9 +759,6 @@ $(document).ready(function() {
 	    $el_search_result.find( "." + section_object.link_class_name ).click(function( e ) {
 	        self.removeOverlay();
 	    });
-
-	    $el_remove_item = $( '.' + section_object.link_class_name ).find( "a .remove-item" );
-            $el_pin_item = $( '.' + section_object.link_class_name ).find( "a .pin-item" );
 	    self.registerLinkActionClickEvent( self );
         },
 
@@ -753,23 +767,32 @@ $(document).ready(function() {
 	    var self = this,
 	        removed_results = {},
 	        html_text = "",
+                storageType = {},
                 key_suffix = "_removed_items",
                 item_class_name = '.restore-item',
                 class_name = '.removed-items',
-	        key = window.Galaxy.user.id + key_suffix;
+	        key = "";
+
+            if ( window.Galaxy.user.id ) {
+                storageType = localStorage;
+                key = window.Galaxy.user.id + key_suffix;
+            }
+            else {
+                storageType = sessionStorage;
+                key = 'session_search' + key_suffix;
+            }
+
 	    // Build the removed result if any
-	    if ( window.Galaxy.user.id ) {
-	        if( localStorage.getItem( key ) ) {
-		    var items = localStorage.getItem( key ),
-		        $el_removed_result = $( class_name );
-		    removed_results = JSON.parse( items ).removed_results;
-                    $el_removed_result.html( "" );
-		    for( item in removed_results ) {
-		        html_text = html_text + self._templateRemovedItem( item, removed_results[item] );
-		    }
-		    $el_removed_result.html( html_text );
-		    self.registerRemoveLinkClicks( self );
-	        }
+	    if( storageType.getItem( key ) ) {
+		var items = storageType.getItem( key ),
+		    $el_removed_result = $( class_name );
+		removed_results = JSON.parse( items ).removed_results;
+                $el_removed_result.html( "" );
+		for( item in removed_results ) {
+		    html_text = html_text + self._templateRemovedItem( item, removed_results[item] );
+		}
+		$el_removed_result.html( html_text );
+		self.registerRemoveLinkClicks( self );
 	    }
         },
 
@@ -796,7 +819,8 @@ $(document).ready(function() {
         /** Set local/session storage for removed results */
         setLocalStorageForRemovedLinks: function( self, elem ) {
 	    var key = "",
-	        localStorageObject = {},
+	        storageType = {},
+                storageObject = {},
 	        $el_removed_result = $( ".removed-items" ),
 	        link_id = "",
                 name = "",
@@ -804,30 +828,31 @@ $(document).ready(function() {
 
 	    link_id = $( elem ).attr( 'data-id' );
             name = $( elem ).attr( 'title' );
-	    if ( window.Galaxy.user.id ) {
-	        key = window.Galaxy.user.id + "_removed_items";
-	        if( localStorage.getItem( key ) ) {
-		    localStorageObject = JSON.parse( localStorage.getItem( key ) );
-		    if( localStorageObject.removed_results ) {
-		        localStorageObject.removed_results[link_id] = name;
-		    }
-		    else {
-		        localStorageObject.removed_results = {};
-		        localStorageObject.removed_results[link_id] = name;
-		    }
-	        }
-	        else {
-		    localStorageObject.removed_results = {};
-		    localStorageObject.removed_results[link_id] = name;
-	        }
-                
-	        localStorage.setItem( key, JSON.stringify( localStorageObject ) );
+
+            // Decide whether to use localStorage or sessionStorage
+            if ( window.Galaxy.user.id ) {
+                storageType = localStorage;
+                key = window.Galaxy.user.id + "_removed_items";
+            }
+            else {
+                storageType = sessionStorage;
+                key = "session_search_removed_items";
+            }
+            if( storageType.getItem( key ) ) {
+		storageObject = JSON.parse( storageType.getItem( key ) );
+		if( storageObject.removed_results ) {
+		    storageObject.removed_results[link_id] = name;
+		}
+		else {
+		    storageObject.removed_results = {};
+		    storageObject.removed_results[link_id] = name;
+		}
 	    }
 	    else {
-	        // TODO: Show removed results even when user id not 
-	        // logged and store them in sessionStorage (not in localStorage)
-	        key = "search_pref";
-	    }
+	        storageObject.removed_results = {};
+		storageObject.removed_results[link_id] = name;
+	    }    
+	    storageType.setItem( key, JSON.stringify( storageObject ) );
         },
 
         /** Set localstorage for the removed links */
@@ -836,7 +861,7 @@ $(document).ready(function() {
         },
 
         /** Return links template */
-        _buildLinkTemplate: function( id, link, name, description, target, cls, version, min_width, form_style ) {
+        _buildLinkTemplate: function( id, link, name, description, target, cls, isBookmarked, version, min_width, form_style ) {
 	    var template = "";
 	        template = "<a class='" + cls + " btn btn-primary link-tile' href='" + link +
 	                   "' role='button' title='" + name +
@@ -847,8 +872,8 @@ $(document).ready(function() {
 		               "' minsizehint='" + min_width +
 		               "' data-formstyle='" + form_style;
 	        }
-                template = template + "' ><span class='fa fa-thumb-tack pin-item actions' aria-hidden='true'" +
-                           "title='Bookmark to favourites'></span><span class='fa fa-trash-o remove-item actions' aria-hidden='true'" +   
+                template = template + "' ><span class='fa fa-thumb-tack pin-item actions " + (isBookmarked ? "pinned-item" : "") + "'" +
+                           "title='Bookmark to favourites'></span><span class='fa fa-trash-o remove-item actions '" +   
                            "title='Move to removed items'></span><b>" + name + " </b>" + (description ? description : "") + "</a>";
 	    return template;
         },
