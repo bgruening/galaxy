@@ -74,40 +74,50 @@
 }
 
 .overlay-filters {
-    margin: 1% 2% 1% 31%;
+    margin: 1% 2% 1% 38%;
     display: none;
+    width: 20%;
+    text-align: center;
+    background-color: 
 }
 
 .overlay-filters a {
     color: white;
-    margin-right: 1%;
+    margin-right: 5%;
     cursor: pointer;
     font-weight: bold;
 }
 
+.overlay-filters a:hover i {
+    color: gold;
+}
+
 .filter-active {
-    text-decoration: none;
+    color: gold;
+}
+
+.filter-active i {
+    font-size: 30px;
+    color: gold;
 }
 
 .filter-inactive {
-    text-decoration: underline;
+    color: white;
 }
 
-.text-underline {
-    text-decoration: underline;
+.filter-inactive i {
+    font-size: 14px;
+    color: white;
+}
+
+.rotate {
+    transform: rotate(180deg);
 }
 
 .search-section {
     color: white;
     margin-top: 1%;
     font-weight: bold;
-}
-
-.section-hr {
-    color: white;
-    width: 80%;
-    margin: 0px;
-    padding: 0px;
 }
 
 .no-results {

@@ -275,13 +275,13 @@ $(document).ready(function() {
 	               '<input class="txtbx-search-data form-control" type="text" value="" ' + 
                            'placeholder="Give at least 3 letters to search" />' + 
                        '<div class="overlay-filters">' +
-                           '<a class="pinned-filter" title="Bookmarked search items"> Favourites </a>' +
-                           '<a class="all-filter" title="Search result from all categories"> All </a>' +
-                           '<a class="history-filter"> History </a>' +
-                           '<a class="tool-filter"> Tools </a>' +
-                           '<a class="workflow-filter"> Workflow </a>' +
-                           '<a class="datalibrary-filter"> Data Library </a>' +
-                           '<a class="removeditems-filter" title="Items which do not appear in search result"> Removed items </a>' +
+                           '<a class="pinned-filter" title="Bookmarked items"><i class="fa fa-bookmark-o"></i></a>' +
+                           '<a class="all-filter" title="All search results"><i class="fa fa-home"></i></a>' +
+                           '<a class="history-filter" title="History"><i class="fa fa-history"></i></a>' +
+                           '<a class="tool-filter" title="Tools"><i class="fa fa-wrench"></i></a>' +
+                           '<a class="workflow-filter" title="Workflow"><i class="fa fa-code-fork rotate"></i></a>' +
+                           '<a class="datalibrary-filter" title="Data Library"><i class="fa fa-folder-open-o"></i></a>' +
+                           '<a class="removeditems-filter" title="Removed from search"><i class="fa fa-recycle"></i></a>' +
                        '</div>' +
                        '<div class="removed-items"></div>' +
                        '<div class="pinned-items"></div>' +
