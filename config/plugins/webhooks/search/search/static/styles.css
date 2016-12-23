@@ -55,7 +55,7 @@
     padding: 0 2px 0 2px;
 }
 
-.exclude {
+.exclude, .most-used-tools {
     color: white;
     cursor: default;
     margin: 2px;

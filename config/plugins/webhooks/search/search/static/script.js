@@ -285,8 +285,8 @@ $(document).ready(function() {
                            '<a class="tool-filter" title="Tools"><i class="fa fa-wrench"></i></a>' +
                            '<a class="workflow-filter" title="Workflow"><i class="fa fa-code-fork rotate"></i></a>' +
                            '<a class="datalibrary-filter" title="Data Library"><i class="fa fa-folder-open-o"></i></a>' +
-                           '<a class="pinned-filter" title="Favourites"><i class="fa fa-bookmark-o"></i></a>' +
-                           '<a class="removeditems-filter" title="Excluded from search"><i class="fa fa-recycle"></i></a>' +
+                           '<a class="pinned-filter" title="Favourites"><i class="fa fa-star"></i></a>' +
+                           '<a class="removeditems-filter" title="Excluded from search"><i class="fa fa-trash"></i></a>' +
                        '</div>' +
                        '<div class="removed-items"></div>' +
                        '<div class="pinned-items"></div>' +
@@ -549,15 +549,15 @@ $(document).ready(function() {
         },
  
         /** Register remove and pin action clicks */
-        registerLinkActionClickEvent: function( self ) {
-	    $( ".remove-item" ).click(function( e ) {
+        registerLinkActionClickEvent: function( self, $el ) {
+	    $el.find( ".remove-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
 	        self.setStorage( self, $( this ).parent() );
 	        $( this ).parent().remove();
 	    });
 
-            $( ".pin-item" ).click(function( e ) {
+            $el.find( ".pin-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
                 if( $( this ).hasClass( 'pinned-item' ) ) {
@@ -699,7 +699,7 @@ $(document).ready(function() {
 
 	    $el_search_result.append( tool_template );
 	    self.registerToolLinkClick( self );
-	    self.registerLinkActionClickEvent( self );
+	    self.registerLinkActionClickEvent( self, $('.tool-search-link') );
         },
 
         /** Open the respective link as the modal pop up or in the center of the main screen */
@@ -747,7 +747,8 @@ $(document).ready(function() {
 	        self = this,
 	        link = "",
 	        target = '_top',
-	        data_type = "";
+	        data_type = "",
+                $el = null;
 	    if( section_object.link_class_name.indexOf( 'history' ) > -1 ) {
 	        data_type = "history";
 	    }
@@ -795,7 +796,8 @@ $(document).ready(function() {
 	    $el_search_result.find( "." + section_object.link_class_name ).click(function( e ) {
 	        self.removeOverlay();
 	    });
-	    self.registerLinkActionClickEvent( self );
+            $el = $( '.' + section_object.link_class_name );
+	    self.registerLinkActionClickEvent( self, $el );
         },
 
         /** Remove the delete item from localstorage */
