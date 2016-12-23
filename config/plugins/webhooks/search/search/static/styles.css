@@ -92,8 +92,7 @@
     color: gold;
 }
 
-.filter-active,
-.pinned-item {
+.filter-active {
     color: gold;
 }
 
@@ -113,6 +112,11 @@
 
 .rotate {
     transform: rotate(180deg);
+}
+
+.pinned-item {
+    color: gold;
+    transform: rotate(60deg);
 }
 
 .search-section {

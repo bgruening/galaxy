@@ -284,8 +284,8 @@ $(document).ready(function() {
                            '<a class="history-filter" title="History"><i class="fa fa-history"></i></a>' +
                            '<a class="tool-filter" title="Tools"><i class="fa fa-wrench"></i></a>' +
                            '<a class="workflow-filter" title="Workflow"><i class="fa fa-code-fork rotate"></i></a>' +
-                           '<a class="datalibrary-filter" title="Data Library"><i class="fa fa-folder-open-o"></i></a>' +
-                           '<a class="pinned-filter" title="Favourites"><i class="fa fa-star"></i></a>' +
+                           '<a class="datalibrary-filter" title="Data Library"><i class="fa fa-folder-open"></i></a>' +
+                           '<a class="pinned-filter" title="Favourites"><i class="fa fa-thumb-tack"></i></a>' +
                            '<a class="removeditems-filter" title="Excluded from search"><i class="fa fa-trash"></i></a>' +
                        '</div>' +
                        '<div class="removed-items"></div>' +
