@@ -255,10 +255,12 @@ $(document).ready(function() {
 
         /** Set the active filter */
         setActiveFilter: function( filter_class ) {
-            var $el_filter = $( filter_class );
-	    if( !$el_filter.hasClass( 'filter-active' ) ) {
-                $( '.overlay-filters a' ).addClass( 'filter-inactive' ).removeClass( 'filter-active' );
-	        $el_filter.addClass( 'filter-active' ).removeClass( 'filter-inactive' );
+            var $el_filter = $( filter_class ),
+                active = 'filter-active',
+                inactive = 'filter-inactive';
+	    if( !$el_filter.hasClass( active ) ) {
+                $( '.overlay-filters a' ).addClass( inactive ).removeClass( active );
+	        $el_filter.addClass( active ).removeClass( inactive );
 	    }
             $( '.overlay-filters' ).show();
         },
@@ -278,13 +280,13 @@ $(document).ready(function() {
 	               '<input class="txtbx-search-data form-control" type="text" value="" ' + 
                            'placeholder="Give at least 3 letters to search" />' + 
                        '<div class="overlay-filters">' +
-                           '<a class="pinned-filter" title="Bookmarked items"><i class="fa fa-bookmark-o"></i></a>' +
-                           '<a class="all-filter" title="All search results"><i class="fa fa-home"></i></a>' +
+                           '<a class="all-filter" title="All"><i class="fa fa-home"></i></a>' +
                            '<a class="history-filter" title="History"><i class="fa fa-history"></i></a>' +
                            '<a class="tool-filter" title="Tools"><i class="fa fa-wrench"></i></a>' +
                            '<a class="workflow-filter" title="Workflow"><i class="fa fa-code-fork rotate"></i></a>' +
                            '<a class="datalibrary-filter" title="Data Library"><i class="fa fa-folder-open-o"></i></a>' +
-                           '<a class="removeditems-filter" title="Removed from search"><i class="fa fa-recycle"></i></a>' +
+                           '<a class="pinned-filter" title="Favourites"><i class="fa fa-bookmark-o"></i></a>' +
+                           '<a class="removeditems-filter" title="Excluded from search"><i class="fa fa-recycle"></i></a>' +
                        '</div>' +
                        '<div class="removed-items"></div>' +
                        '<div class="pinned-items"></div>' +
@@ -299,6 +301,7 @@ $(document).ready(function() {
     var SearchItemsView = Backbone.View.extend({
         self : this,
         data : {},
+        web_storage_keys : [ "_localstorage_search_items", "sessionstorage_search_items" ],
         /** Initialize the variables */
         initialize: function( item ) {
             var type = ( item ? Object.keys( item )[0] : "" );	    
@@ -429,22 +432,17 @@ $(document).ready(function() {
         },
 
         /** Check if item is present in the removed list */
-        checkItemPresent: function( item_id, key_suffix ) {
-	    var key = window.Galaxy.user.id + key_suffix,
-	        present = false,
+        checkItemPresent: function( item_id, type, self ) {
+	    var present = false,
 	        localStorageObject = null;
-	    if ( window.Galaxy.user.id ) {
-	        if( localStorage.getItem( key ) ) {
-		    localStorageObject = JSON.parse( localStorage.getItem( key ) );
-		    if( localStorageObject.removed_results ) {
-		        _.each( localStorageObject.removed_results, function ( item, item_key ) {
-		            if( item_key === item_id ) {
-		               present = true;
-		            }
-		        });
-		        return present;
-		    }
-	        }
+            localStorageObject = self.getStorageObject( self, window.Galaxy.user.id, type );
+            if( localStorageObject ) {
+	        _.each( localStorageObject, function ( item, item_key ) {
+	            if( item_key === item_id ) {
+	               present = true;
+	            }
+	        });
+	        return present;
 	    }
         },
 
@@ -467,12 +465,12 @@ $(document).ready(function() {
 		        _.each( all_tools, function( tool ) {
 		            if( tool.id === item ) {
 		                var attrs = tool.attributes;
-		                if( !self.checkItemPresent( attrs.id, "_removed_items" ) ) {
+		                if( !self.checkItemPresent( attrs.id, "removed_results", self ) ) {
 		                     is_present = true;
 		                     tools_template = tools_template + self._buildLinkTemplate( attrs.id, attrs.link,
                                                                        attrs.name, attrs.description, attrs.target,
                                                                        'tool-search-link',
-                                                                       self.checkItemPresent( attrs.id, "_pinned_items" ),
+                                                                       self.checkItemPresent( attrs.id, "pinned_results", self ),
                                                                        attrs.version, attrs.min_width, attrs.form_style );
 		                }
 		            }
@@ -486,10 +484,10 @@ $(document).ready(function() {
 		    else if( section.attributes.model_class === "Tool" || section.attributes.model_class === "DataSourceTool" ) {
 		        var attributes = section.attributes;
 		        if( item === attributes.id ) {
-		            if( !self.checkItemPresent( attributes.id, "_removed_items" ) ) {
+		            if( !self.checkItemPresent( attributes.id, "removed_results", self ) ) {
 		                tool_template = tool_template + self._buildLinkTemplate( attributes.id, attributes.link,
                                                 attributes.name, attributes.description, attributes.target,
-                                                'tool-search-link', self.checkItemPresent( attributes.id, "_pinned_items" ),
+                                                'tool-search-link', self.checkItemPresent( attributes.id, "pinned_results", self ),
                                                 attributes.version, attributes.min_width, attributes.form_style );
 		            }
 		        }
@@ -522,8 +520,16 @@ $(document).ready(function() {
 	    $( "a.tool-search-link" ).click(function( e ) {
 	        e.stopPropagation();
                 e.preventDefault();
+                self.saveMostUsedToolsCount( this, self );
 	        self.searchedToolLink( self, e );
 	    });
+        },
+
+        /** Save count of the most used tools */
+        saveMostUsedToolsCount: function( el, self ) {
+            var item = {};
+            item = { 'id': $( el ).attr( 'data-id' ), 'desc': $( el )[0].innerText }
+            self.setStorageObject( self, window.Galaxy.user.id, 'most_used_tools', item, 1 );
         },
 
         /** Register clicks for removed links from custom section */
@@ -531,13 +537,13 @@ $(document).ready(function() {
             $( '.restore-item' ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
-	        self.removeFromDataStorage( self, $( this ).parent(), '.removed-items', '_removed_items' );
+	        self.removeFromDataStorage( self, $( this ).parent(), '.removed-items', 'removed_results' );
 	        $( this ).parent().remove();
 	    });
             $( '.remove-item' ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
-	        self.removeFromDataStorage( self, $( this ).parent(), '.pinned-items', '_pinned_items' );
+	        self.removeFromDataStorage( self, $( this ).parent(), '.pinned-items', 'pinned_results' );
 	        $( this ).parent().remove();
 	    });
         },
@@ -555,9 +561,9 @@ $(document).ready(function() {
 	        e.preventDefault();
 	        e.stopPropagation();
                 if( $( this ).hasClass( 'pinned-item' ) ) {
-                    self.removeFromDataStorage( self, $( this ).parent(), '.pinned-items', '_pinned_items' );
+                    self.removeFromDataStorage( self, $( this ).parent(), '.pinned-items', 'pinned_results' );
                     $( this ).removeClass( 'pinned-item' );
-                    $( this ).attr( 'title', 'Bookmark to favourites' );
+                    $( this ).attr( 'title', 'Add to favourites' );
                 }
                 else {
                     self.setPinnedItemsStorage( self, $( this ).parent() );
@@ -569,38 +575,34 @@ $(document).ready(function() {
 
         /** Set localstorage for pinned items */
         setPinnedItemsStorage: function( self, $el ) {
-            var elem = $el[0].outerHTML,
-                key = "",
-	        storageType = {},
-                storageObject = {},
-	        link_id = "";
+            var elem = $el[0].outerHTML;
+            self.setStorageObject( self, window.Galaxy.user.id, 'pinned_results', $( elem ).attr( 'data-id' ), elem );
+        },
 
-	    link_id = $( elem ).attr( 'data-id' );
-            // Decide whether to use localStorage or sessionStorage
-            if ( window.Galaxy.user.id ) {
-                storageType = localStorage;
-                key = window.Galaxy.user.id + "_pinned_items";
-            }
-            else {
-                storageType = sessionStorage;
-                key = "session_search_pinned_items";
-            }
+        /** Build removed links */ 
+        showRemovedLinks: function() {
+	    var self = this,
+                $el_removed_result = $( '.removed-items' ),
+                html_text = "",
+                $el_span = null,
+                removed_results_html = null;
 
-            if( storageType.getItem( key ) ) {
-		storageObject = JSON.parse( storageType.getItem( key ) );
-		if( storageObject.removed_results ) {
-		    storageObject.removed_results[ link_id ] = elem;
-		}
-		else {
-		    storageObject.removed_results = {};
-		    storageObject.removed_results[ link_id ] = elem;
-		}
-	    }
-	    else {
-	        storageObject.removed_results = {};
-		storageObject.removed_results[ link_id ] = elem;
-	    }    
-	    storageType.setItem( key, JSON.stringify( storageObject ) );
+            $el_removed_result.html( "" );
+	    // Build the removed result from web storage
+            removed_results_html = self.getStorageObject( self, window.Galaxy.user.id, 'removed_results' );
+            
+            for( item in removed_results_html ) {
+		html_text = html_text + removed_results_html[ item ];
+            }
+	    $el_removed_result.html( html_text );
+            // Remove the link attribute and pin icon from anchor
+            $el_removed_result.find( 'a.link-tile' ).removeAttr( 'href' );
+            $el_removed_result.find( '.pin-item' ).remove();
+            $el_span = $el_removed_result.find( 'span' );
+            $el_span.removeClass( 'remove-item' ).addClass( 'restore-item' );
+            // Update the title of the delete icon
+            $el_span.attr( 'title', 'Restore to search results' );
+	    self.registerRemoveLinkClicks( self );
         },
 
         /** Display pinned items */
@@ -608,38 +610,72 @@ $(document).ready(function() {
             var self = this,
 	        pinned_results = {},
 	        html_text = "",
-                storageType = {},
-	        key = "";
-	    if ( window.Galaxy.user.id ) {
-                storageType = localStorage;
-                key = window.Galaxy.user.id + "_pinned_items";
-            }
-            else {
-                storageType = sessionStorage;
-                key = 'session_search_pinned_items';
-            }
-	    if( storageType.getItem( key ) ) {
-	        var items = storageType.getItem( key ),
-		    $el_pinned_result = $( ".pinned-items" );
-                $el_pinned_result.html( "" );
-		pinned_results = JSON.parse( items ).removed_results;
-                // Build html text from localstorage
-		for( item in pinned_results ) {
-		    html_text = html_text + pinned_results[ item ];
-		}
-		$el_pinned_result.show();
-		$el_pinned_result.html( html_text );
+                $el_pinned_result = $( ".pinned-items" ),
+                fav_header = "",
+                title = 'Remove from favourites';
+
+            $el_pinned_result.html( "" );
+            pinned_results = self.getStorageObject( self, window.Galaxy.user.id, 'pinned_results' );
+            // Build html text from web storage
+            for( item in pinned_results ) {
+		html_text = html_text + pinned_results[ item ];
+	    }
+            // Build section only if there is at least an item
+            if( html_text.length > 0 ) {
+                $el_pinned_result.show();
+                fav_header = self._buildHeaderTemplate( 'fav_header', 'Favourites', 'search-section fav-header' );
+                $el_pinned_result.append( fav_header );
+	        $el_pinned_result.append( html_text );
 
                 // Update items in html text
                 $el_pinned_result.find( '.pin-item' ).remove();
-                $el_pinned_result.find( '.remove-item' ).attr( 'title', 'Delete from favourites' );
-		// Register events
+                $el_pinned_result.find( '.remove-item' ).attr( 'title', title );
+
+	        // Register events
                 self.registerRemoveLinkClicks( self );
                 self.registerToolLinkClick( self );
                 $el_pinned_result.find( '.history-search-link' ).click(function( e ) {
                     self.removeOverlay();
                 });
-	    }
+            }
+            self.buildMostUsedTools( self );
+        },
+
+        /** Build template for most used tools */
+        buildMostUsedTools: function( self ) {
+            var most_used_tools = {},
+                tools = [],
+                id = "",
+                item_obj = {},
+                html_text = "",
+                used_tools_header = "",
+                $el_pinned_result = $( ".pinned-items" ),
+                class_name = 'search-section used-tools-header',
+                title = 'Most Used Tools';
+
+            most_used_tools = self.getStorageObject( self, window.Galaxy.user.id, 'most_used_tools' )
+            // Transfer the object to an array for sorting on count property
+            for( item in most_used_tools ) {
+                tools.push([ item, most_used_tools[ item ] ]);
+            }
+            // Sort the list in the decreasing order of count
+            tools.sort(function(item_one, item_two){
+                return item_two[ 1 ][ 'count' ] - item_one[ 1 ][ 'count' ];
+            });
+            // Build the template for most used tools, the most used being shown in the front
+            for( item in tools ) {
+                var id = tools[ item ][ 0 ],
+                    item_obj = tools[ item ][ 1 ],
+                    class_names = "most-used-tools btn btn-primary link-tile " + id;
+                    html_text = html_text + "<a class='" + class_names + "' " +
+                                    "title= '"+ item_obj.desc +"' data-id= '" + id + "'>" + "<b>" + item_obj.desc + "</b></a>";
+            }
+            // Build section only if there is at least an item
+            if( html_text.length > 0 ) {
+                used_tools_header = self._buildHeaderTemplate( 'used_tools_header', title, class_name );
+                $el_pinned_result.append( used_tools_header );
+                $el_pinned_result.append( html_text );
+            }
         },
 
         /** Build the fetched items template using the template dictionary */ 
@@ -648,22 +684,22 @@ $(document).ready(function() {
 	        self = this,
 	        $el_search_result = $( '.search-results' ),
 	        $el_pin_item = null,
-	        $el_remove_item = null;
+	        $el_remove_item = null,
+                title = "Tools",
+                class_name = "search-section search-tools";
 
+            // Delete the previous results
 	    $el_search_result.find('.tool-search-link').remove();
 	    if( self.getActiveFilter() === "all" ) {
-	        $el_search_result.append( self._buildHeaderTemplate( "tools", "Tools", "search-section search-tools" ) );
+	        $el_search_result.append( self._buildHeaderTemplate( "tools", title, class_name ) );
 	    }
 	    _.each( collection, function( item ) {
 	        $el_search_result.append( item.template );
 	    });
 
-	    $el_search_result.append(tool_template);
+	    $el_search_result.append( tool_template );
 	    self.registerToolLinkClick( self );
 	    self.registerLinkActionClickEvent( self );
-
-	    // jQuery slow fadeIn effect
-	    $el_search_result.fadeIn( 'slow' );
         },
 
         /** Open the respective link as the modal pop up or in the center of the main screen */
@@ -726,7 +762,7 @@ $(document).ready(function() {
 	    $el_search_result.find( '.' + section_object.link_class_name ).remove();
 
 	    _.each( section_object.data, function( item ) {
-	        if( !self.checkItemPresent( item.id, "_removed_items" ) ) {
+	        if( !self.checkItemPresent( item.id, "removed_results", self ) ) {
                     switch( data_type ) {
                         case "history":
                             link = "/datasets/" + item.id + "/display/?preview=True";
@@ -745,7 +781,7 @@ $(document).ready(function() {
                                                                              item.description,
                                                                              target,
                                                                              section_object.link_class_name,
-                                                                             self.checkItemPresent( item.id, "_pinned_items" ) );
+                                                                             self.checkItemPresent( item.id, "pinned_results", self ) );
 	        }
 	    });
 
@@ -762,97 +798,17 @@ $(document).ready(function() {
 	    self.registerLinkActionClickEvent( self );
         },
 
-        /** Build removed links */ 
-        showRemovedLinks: function() {
-	    var self = this,
-	        removed_results = {},
-	        html_text = "",
-                storageType = {},
-                key_suffix = "_removed_items",
-                item_class_name = '.restore-item',
-                class_name = '.removed-items',
-	        key = "";
-
-            if ( window.Galaxy.user.id ) {
-                storageType = localStorage;
-                key = window.Galaxy.user.id + key_suffix;
-            }
-            else {
-                storageType = sessionStorage;
-                key = 'session_search' + key_suffix;
-            }
-
-	    // Build the removed result if any
-	    if( storageType.getItem( key ) ) {
-		var items = storageType.getItem( key ),
-		    $el_removed_result = $( class_name );
-		removed_results = JSON.parse( items ).removed_results;
-                $el_removed_result.html( "" );
-		for( item in removed_results ) {
-		    html_text = html_text + self._templateRemovedItem( item, removed_results[item] );
-		}
-		$el_removed_result.html( html_text );
-		self.registerRemoveLinkClicks( self );
-	    }
-        },
-
         /** Remove the delete item from localstorage */
-        removeFromDataStorage: function( self, $el, class_name, key_name ) {
-	    var key = "",
-	        localStorageObject = {},
-	        $el_removed_result = $( class_name ),
-	        link_id = "",
+        removeFromDataStorage: function( self, $el, class_name, type ) {
+	    var link_id = "",
 	        elem = $el[0].outerHTML;
 	    link_id = ( $( elem ).attr( 'id' ) ? $( elem ).attr( 'id' ) : $( elem ).attr( 'data-id' ) );
-	    if ( window.Galaxy.user.id ) {
-	        key = window.Galaxy.user.id + key_name;
-	        if( localStorage.getItem( key ) ) {
-		    localStorageObject = JSON.parse( localStorage.getItem( key ) );
-		    if( localStorageObject.removed_results ) {
-		        delete localStorageObject.removed_results[ link_id ];
-		        localStorage.setItem( key, JSON.stringify( localStorageObject ) );
-		    }
-	        }
-	    }
+            self.deleteFromStorage( self, window.Galaxy.user.id, type, link_id );
         },
 
         /** Set local/session storage for removed results */
         setLocalStorageForRemovedLinks: function( self, elem ) {
-	    var key = "",
-	        storageType = {},
-                storageObject = {},
-	        $el_removed_result = $( ".removed-items" ),
-	        link_id = "",
-                name = "",
-                removed_item_template = "";
-
-	    link_id = $( elem ).attr( 'data-id' );
-            name = $( elem ).attr( 'title' );
-
-            // Decide whether to use localStorage or sessionStorage
-            if ( window.Galaxy.user.id ) {
-                storageType = localStorage;
-                key = window.Galaxy.user.id + "_removed_items";
-            }
-            else {
-                storageType = sessionStorage;
-                key = "session_search_removed_items";
-            }
-            if( storageType.getItem( key ) ) {
-		storageObject = JSON.parse( storageType.getItem( key ) );
-		if( storageObject.removed_results ) {
-		    storageObject.removed_results[link_id] = name;
-		}
-		else {
-		    storageObject.removed_results = {};
-		    storageObject.removed_results[link_id] = name;
-		}
-	    }
-	    else {
-	        storageObject.removed_results = {};
-		storageObject.removed_results[link_id] = name;
-	    }    
-	    storageType.setItem( key, JSON.stringify( storageObject ) );
+            self.setStorageObject( self, window.Galaxy.user.id, 'removed_results', $( elem ).attr( 'data-id' ), elem );
         },
 
         /** Set localstorage for the removed links */
@@ -860,9 +816,76 @@ $(document).ready(function() {
 	    self.setLocalStorageForRemovedLinks( self, $el[0].outerHTML );
         },
 
+        /** Build web storage object based on whether user is logged in */
+        setStorageObject: function( self, user_id, type, id, elem ) {
+            var storageType = {},
+                key = "",
+                storageObject = {},
+                elem_obj = {};
+            storageType = ( user_id ? window.localStorage : window.sessionStorage );
+            key = ( user_id ? ( user_id + self.web_storage_keys[0] ) : self.web_storage_keys[1] );
+            if( storageType.getItem( key ) ) {
+                storageObject = JSON.parse( storageType.getItem( key ) );
+                if( !storageObject[ type ] ) {
+                    storageObject[ type ] = {};
+                }
+	    }
+	    else {
+	        storageObject[ type ] = {};
+	    }
+
+            // Check for html strings
+            if( isNaN( elem ) ) {
+                storageObject[ type ][ id ] = elem;
+            }
+            else { // check for most used tools
+                elem_obj = id;
+                if ( storageObject[ type ][ elem_obj.id ] ) {
+                    // Increment the counter
+                    storageObject[ type ][ elem_obj.id ][ 'count' ] = parseInt( storageObject[ type ][ elem_obj.id ][ 'count' ] ) + 1;
+                }
+                else {
+                    storageObject[ type ][ elem_obj.id ] = { 'count': 1, 'desc': elem_obj.desc };
+                }
+            }
+	    storageType.setItem( key, JSON.stringify( storageObject ) );
+        },
+
+        /** Return the web storage object */
+        getStorageObject: function( self, user_id, type ) {
+            var storageType = null,
+                key = "";
+
+            storageType = ( user_id ? window.localStorage : window.sessionStorage );
+            key = ( user_id ? ( user_id + self.web_storage_keys[0] ) : self.web_storage_keys[1] );
+            if ( storageType.getItem( key ) ) {
+                return JSON.parse( storageType.getItem( key ) )[ type ];
+            }
+            else {
+                return {};
+            }
+        },
+
+        /** Remove item from web storage */
+        deleteFromStorage: function( self, user_id, type, id ) {
+            var storageType = null,
+                key = "",
+                localStorageObject = null;
+
+            storageType = ( user_id ? window.localStorage : window.sessionStorage );
+            key = ( user_id ? ( user_id + self.web_storage_keys[0] ) : self.web_storage_keys[1] );
+            localStorageObject = JSON.parse(storageType.getItem( key ));
+            if( localStorageObject[ type ] ) {
+                delete localStorageObject[ type ][ id ];
+                storageType.setItem( key, JSON.stringify( localStorageObject ) );
+            }
+        },
+
         /** Return links template */
         _buildLinkTemplate: function( id, link, name, description, target, cls, isBookmarked, version, min_width, form_style ) {
-	    var template = "";
+	    var template = "",
+                bookmark_class = (isBookmarked ? "pinned-item" : ""),
+                bookmark_title = (isBookmarked ? "Bookmarked" : "Add to favourites") ;
 	        template = "<a class='" + cls + " btn btn-primary link-tile' href='" + link +
 	                   "' role='button' title='" + name +
 	                   "' target='" + target + 
@@ -872,8 +895,8 @@ $(document).ready(function() {
 		               "' minsizehint='" + min_width +
 		               "' data-formstyle='" + form_style;
 	        }
-                template = template + "' ><span class='fa fa-thumb-tack pin-item actions " + (isBookmarked ? "pinned-item" : "") + "'" +
-                           "title='Bookmark to favourites'></span><span class='fa fa-trash-o remove-item actions '" +   
+                template = template + "' ><span class='fa fa-thumb-tack pin-item actions " + bookmark_class + "'" +
+                           "title='"+ bookmark_title +"'></span><span class='fa fa-trash-o remove-item actions '" +   
                            "title='Move to removed items'></span><b>" + name + " </b>" + (description ? description : "") + "</a>";
 	    return template;
         },
@@ -886,12 +909,6 @@ $(document).ready(function() {
         /** Template for no results for any query */
         _templateNoResults: function() {
 	    return '<div class="no-results">No results for this query</div>';
-        },
-
-        /** Template for removed itmes */
-        _templateRemovedItem: function( id, name ) {
-            return "<span class='btn btn-primary exclude' id='"+ id +"'>" + name + "<span class='fa fa-undo restore-item'" +   
-                   "title='Delete from removed list'></span></span>";
         },
 
         /** Remove the search overlay */ 
