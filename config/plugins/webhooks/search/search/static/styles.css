@@ -42,30 +42,6 @@
     display: none;
 }
 
-.link-tile {
-    width: 200px;
-    height: 75px;
-}
-
-.link-tile .actions {
-    float: right;
-}
-
-.pin-item, .remove-item {
-    padding: 0 2px 0 2px;
-}
-
-.exclude, .most-used-tools {
-    color: white;
-    cursor: default;
-    margin: 2px;
-}
-
-.exclude span {
-    cursor: pointer;
-    padding-left: 5px;
-}
-
 .tool-search-link,
 .history-search-link,
 .datalib-search-link,
@@ -90,6 +66,33 @@
 
 .overlay-filters a:hover i {
     color: gold;
+}
+
+.link-tile {
+    width: 200px;
+    height: 75px;
+}
+
+.link-tile .actions {
+    float: right;
+}
+
+.pin-item, .remove-item {
+    padding: 0 2px 0 2px;
+}
+
+.exclude {
+    color: white;
+    cursor: default;
+}
+
+.most-used-tools {
+    margin: 2px;
+}
+
+.exclude span {
+    cursor: pointer;
+    padding-left: 5px;
 }
 
 .filter-active {
@@ -117,6 +120,14 @@
 .pinned-item {
     color: gold;
     transform: rotate(60deg);
+}
+
+.hide {
+    display: none;
+}
+
+.show {
+    display: block;
 }
 
 .search-section {

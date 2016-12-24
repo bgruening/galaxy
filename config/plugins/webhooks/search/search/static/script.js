@@ -496,6 +496,9 @@ $(document).ready(function() {
 	    });
 	    // Remove the tool search result section if already present
 	    $el_search_result.find('.search-tools').remove();
+            $el_search_result.find('.most-used-tools').remove();
+            $el_search_result.find('.used-tools-header').remove();
+            self.buildMostUsedTools( self );
 	    // Make template for sections and tools
 	    self.makeToolSearchResultTemplate( template_dict, tool_template );        
         },
@@ -523,12 +526,24 @@ $(document).ready(function() {
                 self.saveMostUsedToolsCount( this, self );
 	        self.searchedToolLink( self, e );
 	    });
+
+            $( "a.most-used-tools" ).click(function( e ) {
+	        e.stopPropagation();
+                e.preventDefault();
+                self.saveMostUsedToolsCount( this, self );
+	        self.searchedToolLink( self, e );
+	    });
         },
 
         /** Save count of the most used tools */
         saveMostUsedToolsCount: function( el, self ) {
             var item = {};
-            item = { 'id': $( el ).attr( 'data-id' ), 'desc': $( el )[0].innerText }
+            item = { 'id': $( el ).attr( 'data-id' ),
+                     'desc': $( el )[0].innerText,
+                     'link': $( el ).attr( 'href' ),
+                     'target': $( el ).attr( 'target' ),
+                     'formstyle': $( el ).attr( 'data-formstyle' ),
+                     'version': $( el ).attr( 'data-version' ) };
             self.setStorageObject( self, window.Galaxy.user.id, 'most_used_tools', item, 1 );
         },
 
@@ -560,15 +575,18 @@ $(document).ready(function() {
             $el.find( ".pin-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
-                if( $( this ).hasClass( 'pinned-item' ) ) {
-                    self.removeFromDataStorage( self, $( this ).parent(), '.pinned-items', 'pinned_results' );
-                    $( this ).removeClass( 'pinned-item' );
-                    $( this ).attr( 'title', 'Add to favourites' );
+                var $el_this = $( this );
+                if( $el_this.hasClass( 'pinned-item' ) ) {
+                    self.removeFromDataStorage( self, $el_this.parent(), '.pinned-items', 'pinned_results' );
+                    $el_this.removeClass( 'pinned-item' );
+                    $el_this.attr( 'title', 'Add to favourites' );
+                    $el_this.parent().find( '.remove-item' ).removeClass( 'hide' ).addClass( 'show' );
                 }
                 else {
-                    self.setPinnedItemsStorage( self, $( this ).parent() );
-                    $( this ).addClass( 'pinned-item' );
-                    $( this ).attr( 'title', 'Bookmarked' );
+                    self.setPinnedItemsStorage( self, $el_this.parent() );
+                    $el_this.addClass( 'pinned-item' );
+                    $el_this.attr( 'title', 'Bookmarked' );
+                    $el_this.parent().find( '.remove-item' ).removeClass( 'show' ).addClass( 'hide' );
                 }
 	    });
         },
@@ -638,7 +656,7 @@ $(document).ready(function() {
                     self.removeOverlay();
                 });
             }
-            self.buildMostUsedTools( self );
+            //self.buildMostUsedTools( self );
         },
 
         /** Build template for most used tools */
@@ -649,7 +667,7 @@ $(document).ready(function() {
                 item_obj = {},
                 html_text = "",
                 used_tools_header = "",
-                $el_pinned_result = $( ".pinned-items" ),
+                $el_pinned_result = $( ".search-results" ),
                 class_name = 'search-section used-tools-header',
                 title = 'Most Used Tools';
 
@@ -668,13 +686,16 @@ $(document).ready(function() {
                     item_obj = tools[ item ][ 1 ],
                     class_names = "most-used-tools btn btn-primary link-tile " + id;
                     html_text = html_text + "<a class='" + class_names + "' " +
-                                    "title= '"+ item_obj.desc +"' data-id= '" + id + "'>" + "<b>" + item_obj.desc + "</b></a>";
+                                    "title= '"+ item_obj.desc +"' target='"+ item_obj.target +"' href='"+ item_obj.link +"' " +
+                                    "data-id= '" + id + "' data-version='"+ item_obj.version +"' data-formstyle='"+ item_obj.formstyle + "'>" +
+                                    "<b>" + item_obj.desc + "</b></a>";
             }
             // Build section only if there is at least an item
             if( html_text.length > 0 ) {
                 used_tools_header = self._buildHeaderTemplate( 'used_tools_header', title, class_name );
                 $el_pinned_result.append( used_tools_header );
                 $el_pinned_result.append( html_text );
+                self.registerToolLinkClick( self );
             }
         },
 
@@ -696,7 +717,6 @@ $(document).ready(function() {
 	    _.each( collection, function( item ) {
 	        $el_search_result.append( item.template );
 	    });
-
 	    $el_search_result.append( tool_template );
 	    self.registerToolLinkClick( self );
 	    self.registerLinkActionClickEvent( self, $('.tool-search-link') );
@@ -847,7 +867,12 @@ $(document).ready(function() {
                     storageObject[ type ][ elem_obj.id ][ 'count' ] = parseInt( storageObject[ type ][ elem_obj.id ][ 'count' ] ) + 1;
                 }
                 else {
-                    storageObject[ type ][ elem_obj.id ] = { 'count': 1, 'desc': elem_obj.desc };
+                    storageObject[ type ][ elem_obj.id ] = { 'count': 1,
+                                                             'desc': elem_obj.desc,
+                                                             'link': elem_obj.link,
+                                                             'target': elem_obj.target,
+                                                             'formstyle': elem_obj.formstyle,
+                                                             'version': elem_obj.version };
                 }
             }
 	    storageType.setItem( key, JSON.stringify( storageObject ) );
@@ -898,8 +923,9 @@ $(document).ready(function() {
 		               "' data-formstyle='" + form_style;
 	        }
                 template = template + "' ><span class='fa fa-thumb-tack pin-item actions " + bookmark_class + "'" +
-                           "title='"+ bookmark_title +"'></span><span class='fa fa-trash-o remove-item actions '" +   
-                           "title='Move to removed items'></span><b>" + name + " </b>" + (description ? description : "") + "</a>";
+                           "title='"+ bookmark_title +"'></span>" + 
+                           (( isBookmarked ) ? "<span class='fa fa-trash remove-item actions hide' title='Move to removed items'></span>" : " <span class='fa fa-trash remove-item actions show' title='Move to removed items'></span>") + 
+                           "<b>" + name + " </b>" + (description ? description : "") + "</a>";
 	    return template;
         },
 
