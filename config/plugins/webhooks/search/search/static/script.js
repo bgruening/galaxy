@@ -656,7 +656,6 @@ $(document).ready(function() {
                     self.removeOverlay();
                 });
             }
-            //self.buildMostUsedTools( self );
         },
 
         /** Build template for most used tools */
@@ -667,7 +666,7 @@ $(document).ready(function() {
                 item_obj = {},
                 html_text = "",
                 used_tools_header = "",
-                $el_pinned_result = $( ".search-results" ),
+                $el_most_used_tools_result = $( ".search-results" ),
                 class_name = 'search-section used-tools-header',
                 title = 'Most Used Tools';
 
@@ -693,8 +692,8 @@ $(document).ready(function() {
             // Build section only if there is at least an item
             if( html_text.length > 0 ) {
                 used_tools_header = self._buildHeaderTemplate( 'used_tools_header', title, class_name );
-                $el_pinned_result.append( used_tools_header );
-                $el_pinned_result.append( html_text );
+                $el_most_used_tools_result.append( used_tools_header );
+                $el_most_used_tools_result.append( html_text );
                 self.registerToolLinkClick( self );
             }
         },
@@ -936,7 +935,7 @@ $(document).ready(function() {
 
         /** Template for no results for any query */
         _templateNoResults: function() {
-	    return '<div class="no-results">No results for this query</div>';
+	    return '<div class="no-results">No results. Please search with a different keywords</div>';
         },
 
         /** Remove the search overlay */ 
