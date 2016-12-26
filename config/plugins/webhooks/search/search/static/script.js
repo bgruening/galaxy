@@ -52,16 +52,24 @@ $(document).ready(function() {
                 e.stopPropagation();
                 // Click of ctrl + alt + q shows search overlay
 	        if ( ( e.which === 81 || e.keyCode === 81 ) && e.ctrlKey && e.altKey ) {
-	            self.clearSearchResults();
                     self.showOverlay();
-                    self.setActiveFilter( '.pinned-filter' );
-                    self.showPinnedItemsByDefault();
+                    self.clearSearchResults();
+                    self.setActiveFilter( '.all-filter' );
+                    self.showDefaultLinks();
 	        }
 	        // Remove the overlay and hides the search screen on clicking escape key
 	        else if ( e.which === 27 || e.keyCode === 27 ) {
+                    self.clearSearchResults();
 	            self.removeOverlay();
 	        }
             }
+        },
+
+        /** Display favourites and most used tools if present for home filter */
+        showDefaultLinks: function() {
+            defaultLinks = new SearchItemsView({});
+            defaultLinks.showPinnedItems( '.search-results' );
+            defaultLinks.buildMostUsedTools( '.search-results' );
         },
 
         /** Search with a query */ 
@@ -72,13 +80,20 @@ $(document).ready(function() {
             if( e ) {
                 e.stopPropagation();
                 query = (( $el_search_textbox.val() ).trim()).toLowerCase();
-                if( query.length < self.search_query_minimum_length ) {
-                    self.clearSearchResults();
-                }
                 // Perform search if enter is pressed or query has 3 or more characters
-                else if ( ( e.which === 13 || e.keyCode === 13 ) || query.length >= self.search_query_minimum_length ) {
+                if ( ( e.which === 13 || e.keyCode === 13 ) || query.length >= self.search_query_minimum_length ) {
                     // Search in all categories and defaults to 'All' search filter in the search overlay
                     self.searchWithAFilter( self, self.active_filter, query );
+                }
+                else if( query.length < self.search_query_minimum_length ) {
+                    $( '.tool-link' ).remove();
+                    $( '.search-tools' ).remove();
+                    $( '.history-search-link' ).remove();
+                    $( '.search-history' ).remove();
+                    $( '.workflow-search-link' ).remove();
+                    $( '.search-workflow' ).remove();
+                    $( '.datalib-search-link' ).remove();
+                    $( '.search-datalib' ).remove();
                 }
             }
         },
@@ -86,30 +101,32 @@ $(document).ready(function() {
         /** Click events for the search categories */
         clickEvents: function( selector, type, self ) {
             $( selector ).click(function( e ) {
-                if( type.indexOf('removed') > -1 ) {
+                var $el_removed_items = $( '.removed-items' ),
+                    $el_search_results = $( '.search-results' ),
+                    $el_pinned_items = $( '.pinned-items' ),
+                    class_pinned = '.pinned-items';
+ 
+                if( type.indexOf( 'removed' ) > -1 ) {
                     removedLink = new SearchItemsView({});
                     removedLink.showRemovedLinks();
-                    $('.removed-items').show();
-                    $('.search-results').hide();
-                    $('.pinned-items').hide();
+                    $el_removed_items.show();
+                    $el_search_results.hide();
+                    $el_pinned_items.hide();
                     self.applyTextDecorations( this );
                 }
-                else if( type.indexOf('pinned') > -1 ) {
-                    self.showPinnedItemsByDefault( self );
+                else if( type.indexOf( 'pinned' ) > -1 ) {
+                    $( class_pinned ).html( "" );
+                    pinnedLink = new SearchItemsView({});
+                    pinnedLink.showPinnedItems( class_pinned );
+                    $el_removed_items.hide();
+                    $el_search_results.hide();
+                    $el_pinned_items.show();
                     self.applyTextDecorations( this );
                 }
                 else {
                     self.search( type, this, self );
                 }
             });
-        },
-
-        showPinnedItemsByDefault: function( self, _self ) {
-             pinnedLink = new SearchItemsView({});
-             pinnedLink.showPinnedItems();
-             $('.removed-items').hide();
-             $('.search-results').hide();
-             $('.pinned-items').show();
         },
    
         /** Search with a filter */
@@ -151,6 +168,9 @@ $(document).ready(function() {
 	    self.clearSearchResults();
             self.setActiveFilter( '.all-filter' );
             self.showSearchResult();
+            defaultLinks = new SearchItemsView({});
+            defaultLinks.showPinnedItems( '.search-results' );
+            defaultLinks.buildMostUsedTools( '.search-results' );
 	    // Search for history
 	    self.searchHistory( query );
 	    // Search for tools
@@ -300,27 +320,28 @@ $(document).ready(function() {
     /** Display search items from Tools, History, Workflow and Data libraries */
     var SearchItemsView = Backbone.View.extend({
         self : this,
-        data : {},
         web_storage_keys : [ "_localstorage_search_items", "sessionstorage_search_items" ],
         /** Initialize the variables */
         initialize: function( item ) {
-            var type = ( item ? Object.keys( item )[0] : "" );	    
-	    if ( this.data ) {
-	        switch( type ) {
-		    case "tools": 
-		        this.data.tools = item[ type ];
-		        break;
-		    case "history":
-		        this.data.history = item[ type ];
-		        break;
-		    case "data_library":
-		        this.data.data_library = item[ type ];
-		        break;
-                    case "workflow":
-                        this.data.workflow = item[ type ];
-	         }
-	        this.refreshView( this.data );
+            var type = ( item ? Object.keys( item )[0] : "" ),
+                data = {};  
+	    switch( type ) {
+		case "tools": 
+		    data.tools = item[ type ];
+		    break;
+		case "history":
+		    data.history = item[ type ];
+		    break;
+		case "data_library":
+		    data.data_library = item[ type ];
+		    break;
+                case "workflow":
+                    data.workflow = item[ type ];
 	    }
+            
+            if( Object.keys( data ).length > 0 ) {
+                this.refreshView( data );
+            }
         },
 
         /** Return the active filter */
@@ -343,6 +364,7 @@ $(document).ready(function() {
 	        $el_no_result = $( '.no-results' ),
 	        filter = this.getActiveFilter(),
 	        data = null;
+
             $el_no_result.remove();
 	    if( filter === "all" ) {
 	        this.makeAllSection( items );
@@ -361,7 +383,6 @@ $(document).ready(function() {
 
         /** Show empty section if there is no search result */
         showEmptySection: function( $el ) {
-	    $el.html( "" );
 	    $el.append( this._templateNoResults() );
         },
 
@@ -412,7 +433,7 @@ $(document).ready(function() {
                             $( '.search-history' ).remove();
                             break;
                         case "tools":
-                            $( '.tool-search-link' ).remove();
+                            $( '.tool-link' ).remove();
                             $( '.search-tools' ).remove();
                             break;
                         case "workflow":
@@ -425,9 +446,6 @@ $(document).ready(function() {
                             break;
                     }
                 }
-	    }
-	    if( !has_result ) {
-	        self.showEmptySection( $el_search_result );
 	    }
         },
 
@@ -469,7 +487,7 @@ $(document).ready(function() {
 		                     is_present = true;
 		                     tools_template = tools_template + self._buildLinkTemplate( attrs.id, attrs.link,
                                                                        attrs.name, attrs.description, attrs.target,
-                                                                       'tool-search-link',
+                                                                       'tool-search-link tool-link',
                                                                        self.checkItemPresent( attrs.id, "pinned_results", self ),
                                                                        attrs.version, attrs.min_width, attrs.form_style );
 		                }
@@ -487,7 +505,7 @@ $(document).ready(function() {
 		            if( !self.checkItemPresent( attributes.id, "removed_results", self ) ) {
 		                tool_template = tool_template + self._buildLinkTemplate( attributes.id, attributes.link,
                                                 attributes.name, attributes.description, attributes.target,
-                                                'tool-search-link', self.checkItemPresent( attributes.id, "pinned_results", self ),
+                                                'tool-search-link tool-link', self.checkItemPresent( attributes.id, "pinned_results", self ),
                                                 attributes.version, attributes.min_width, attributes.form_style );
 		            }
 		        }
@@ -495,10 +513,8 @@ $(document).ready(function() {
 	        });
 	    });
 	    // Remove the tool search result section if already present
-	    $el_search_result.find('.search-tools').remove();
-            $el_search_result.find('.most-used-tools').remove();
-            $el_search_result.find('.used-tools-header').remove();
-            self.buildMostUsedTools( self );
+	    $el_search_result.find( '.search-tools' ).remove();
+            $el_search_result.find( '.tool-link' ).remove();
 	    // Make template for sections and tools
 	    self.makeToolSearchResultTemplate( template_dict, tool_template );        
         },
@@ -594,6 +610,7 @@ $(document).ready(function() {
         /** Set localstorage for pinned items */
         setPinnedItemsStorage: function( self, $el ) {
             var elem = $el[0].outerHTML;
+            elem = elem.replace( 'tool-link', '' );
             self.setStorageObject( self, window.Galaxy.user.id, 'pinned_results', $( elem ).attr( 'data-id' ), elem );
         },
 
@@ -624,15 +641,14 @@ $(document).ready(function() {
         },
 
         /** Display pinned items */
-        showPinnedItems: function() {
+        showPinnedItems: function( el ) {
             var self = this,
 	        pinned_results = {},
 	        html_text = "",
-                $el_pinned_result = $( ".pinned-items" ),
+                $el_pinned_result = $( el ),
                 fav_header = "",
                 title = 'Remove from favourites';
-
-            $el_pinned_result.html( "" );
+            
             pinned_results = self.getStorageObject( self, window.Galaxy.user.id, 'pinned_results' );
             // Build html text from web storage
             for( item in pinned_results ) {
@@ -659,18 +675,18 @@ $(document).ready(function() {
         },
 
         /** Build template for most used tools */
-        buildMostUsedTools: function( self ) {
-            var most_used_tools = {},
+        buildMostUsedTools: function( el ) {
+            var self = this,
+                most_used_tools = {},
                 tools = [],
                 id = "",
                 item_obj = {},
                 html_text = "",
                 used_tools_header = "",
-                $el_most_used_tools_result = $( ".search-results" ),
+                $el_most_used_tools_result = $( el ),
                 class_name = 'search-section used-tools-header',
                 title = 'Most Used Tools';
-
-            most_used_tools = self.getStorageObject( self, window.Galaxy.user.id, 'most_used_tools' )
+            most_used_tools = self.getStorageObject( self, window.Galaxy.user.id, 'most_used_tools' );
             // Transfer the object to an array for sorting on count property
             for( item in most_used_tools ) {
                 tools.push([ item, most_used_tools[ item ] ]);
@@ -709,7 +725,7 @@ $(document).ready(function() {
                 class_name = "search-section search-tools";
 
             // Delete the previous results
-	    $el_search_result.find('.tool-search-link').remove();
+	    $el_search_result.find('.tool-link').remove();
 	    if( self.getActiveFilter() === "all" ) {
 	        $el_search_result.append( self._buildHeaderTemplate( "tools", title, class_name ) );
 	    }
@@ -912,7 +928,7 @@ $(document).ready(function() {
 	    var template = "",
                 bookmark_class = (isBookmarked ? "pinned-item" : ""),
                 bookmark_title = (isBookmarked ? "Bookmarked" : "Add to favourites") ;
-	        template = "<a class='" + cls + " btn btn-primary link-tile' href='" + link +
+	        template = "<a class='" + cls + " btn btn-primary link-tile ' href='" + link +
 	                   "' role='button' title='" + name +
 	                   "' target='" + target + 
                            "' data-id='" + id;
