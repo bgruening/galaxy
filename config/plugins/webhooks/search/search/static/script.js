@@ -86,16 +86,17 @@ $(document).ready(function() {
                     self.searchWithAFilter( self, self.active_filter, query );
                 }
                 else if( query.length < self.search_query_minimum_length ) {
-                    $( '.tool-link' ).remove();
-                    $( '.search-tools' ).remove();
-                    $( '.history-search-link' ).remove();
-                    $( '.search-history' ).remove();
-                    $( '.workflow-search-link' ).remove();
-                    $( '.search-workflow' ).remove();
-                    $( '.datalib-search-link' ).remove();
-                    $( '.search-datalib' ).remove();
+                    self.removeOldEntries();
                 }
             }
+        },
+
+        /** Remove old entries if any */
+        removeOldEntries: function() {
+            $( '.search-tools' ).remove();
+            $( '.search-history' ).remove();
+            $( '.search-workflow' ).remove();
+            $( '.search-datalib' ).remove();
         },
 
         /** Click events for the search categories */
@@ -426,26 +427,6 @@ $(document).ready(function() {
                     has_result = true;
                     self.makeSection( type, data[type] );
                 }
-                else {
-                    switch( type ) {
-                        case "history":
-                            $( '.history-search-link' ).remove();
-                            $( '.search-history' ).remove();
-                            break;
-                        case "tools":
-                            $( '.tool-link' ).remove();
-                            $( '.search-tools' ).remove();
-                            break;
-                        case "workflow":
-                            $( '.workflow-search-link' ).remove();
-                            $( '.search-workflow' ).remove();
-                            break;
-                        case "data_library":
-                            $( '.datalib-search-link' ).remove();
-                            $( '.search-datalib' ).remove();
-                            break;
-                    }
-                }
 	    }
         },
 
@@ -479,24 +460,31 @@ $(document).ready(function() {
 		            tools_template = "",
 		            section_header_id = "",
 		            section_header_name = "";
-
 		        _.each( all_tools, function( tool ) {
 		            if( tool.id === item ) {
 		                var attrs = tool.attributes;
 		                if( !self.checkItemPresent( attrs.id, "removed_results", self ) ) {
 		                     is_present = true;
-		                     tools_template = tools_template + self._buildLinkTemplate( attrs.id, attrs.link,
-                                                                       attrs.name, attrs.description, attrs.target,
-                                                                       'tool-search-link tool-link',
-                                                                       self.checkItemPresent( attrs.id, "pinned_results", self ),
-                                                                       attrs.version, attrs.min_width, attrs.form_style );
+		                     tools_template = tools_template + self._buildLinkTemplate( attrs.id,
+                                                                                                attrs.link,
+                                                                                                attrs.name,
+                                                                                                attrs.description,
+                                                                                                attrs.target,
+                                                                                                'tool-search-link',
+                                                                                                 self.checkItemPresent( attrs.id, "pinned_results", self ),
+                                                                                                 attrs.version,
+                                                                                                 attrs.min_width,
+                                                                                                 attrs.form_style );
 		                }
 		            }
 		        });
 		        if( is_present ) {
 		            section_header_id = section.attributes.id;
 		            section_header_name = section.attributes.name;
-		            template_dict = self.appendTemplate( template_dict, section_header_id, section_header_name, tools_template );
+		            template_dict = self.appendTemplate( template_dict,
+                                                                 section_header_id,
+                                                                 section_header_name,
+                                                                 tools_template );
 		        }
 		    }
 		    else if( section.attributes.model_class === "Tool" || section.attributes.model_class === "DataSourceTool" ) {
@@ -505,7 +493,7 @@ $(document).ready(function() {
 		            if( !self.checkItemPresent( attributes.id, "removed_results", self ) ) {
 		                tool_template = tool_template + self._buildLinkTemplate( attributes.id, attributes.link,
                                                 attributes.name, attributes.description, attributes.target,
-                                                'tool-search-link tool-link', self.checkItemPresent( attributes.id, "pinned_results", self ),
+                                                'tool-search-link', self.checkItemPresent( attributes.id, "pinned_results", self ),
                                                 attributes.version, attributes.min_width, attributes.form_style );
 		            }
 		        }
@@ -514,7 +502,6 @@ $(document).ready(function() {
 	    });
 	    // Remove the tool search result section if already present
 	    $el_search_result.find( '.search-tools' ).remove();
-            $el_search_result.find( '.tool-link' ).remove();
 	    // Make template for sections and tools
 	    self.makeToolSearchResultTemplate( template_dict, tool_template );        
         },
@@ -722,19 +709,25 @@ $(document).ready(function() {
 	        $el_pin_item = null,
 	        $el_remove_item = null,
                 title = "Tools",
-                class_name = "search-section search-tools";
+                class_name = "search-section search-tools",
+                html = "";
 
             // Delete the previous results
-	    $el_search_result.find('.tool-link').remove();
 	    if( self.getActiveFilter() === "all" ) {
 	        $el_search_result.append( self._buildHeaderTemplate( "tools", title, class_name ) );
 	    }
+            else {
+                $el_search_result.append( self._buildHeaderTemplate( "tools", "", class_name ) );
+            }
+
 	    _.each( collection, function( item ) {
-	        $el_search_result.append( item.template );
+                html = html + item.template;
 	    });
-	    $el_search_result.append( tool_template );
+
+            html = html + tool_template;
+            $el_search_result.find( '.search-tools' ).append( "<div>" + html +  "</div>" );
 	    self.registerToolLinkClick( self );
-	    self.registerLinkActionClickEvent( self, $('.tool-search-link') );
+	    self.registerLinkActionClickEvent( self, $( '.tool-search-link' ) );
         },
 
         /** Open the respective link as the modal pop up or in the center of the main screen */
@@ -783,7 +776,8 @@ $(document).ready(function() {
 	        link = "",
 	        target = '_top',
 	        data_type = "",
-                $el = null;
+                $el = null,
+                section_class_name = section_object.class_name.split(" ")[1];
 	    if( section_object.link_class_name.indexOf( 'history' ) > -1 ) {
 	        data_type = "history";
 	    }
@@ -794,9 +788,7 @@ $(document).ready(function() {
 	        data_type = "workflow";
 	    }
 
-	    $el_search_result.find( '.' + section_object.class_name.split(" ")[1] ).remove();
-	    $el_search_result.find( '.' + section_object.link_class_name ).remove();
-
+	    $el_search_result.find( '.' + section_class_name ).remove();
 	    _.each( section_object.data, function( item ) {
 	        if( !self.checkItemPresent( item.id, "removed_results", self ) ) {
                     switch( data_type ) {
@@ -827,7 +819,12 @@ $(document).ready(function() {
                                                                      section_object.name,
                                                                      section_object.class_name ) );
 	    }
-	    $el_search_result.append( template_string );
+            else {
+                $el_search_result.append( self._buildHeaderTemplate( section_object.id,
+                                                                     "",
+                                                                     section_object.class_name ) );
+            }
+            $el_search_result.find( '.' + section_class_name ).append( "<div>" + template_string + "</div>" );
 	    $el_search_result.find( "." + section_object.link_class_name ).click(function( e ) {
 	        self.removeOverlay();
 	    });
