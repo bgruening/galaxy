@@ -37,7 +37,7 @@ $(document).ready(function() {
 
             // Register events for search textbox
             $( '.txtbx-search-data' ).on( 'keyup', function( e ) { 
-                self.triggerSearch( e, self );
+                self.triggerEvents( e, self );
             });
           
             // Register events for fliter clicks
@@ -52,14 +52,13 @@ $(document).ready(function() {
                 e.stopPropagation();
                 // Click of ctrl + alt + q shows search overlay
 	        if ( ( e.which === 81 || e.keyCode === 81 ) && e.ctrlKey && e.altKey ) {
-                    self.showOverlay();
                     self.clearSearchResults();
+                    self.showOverlay();
                     self.setActiveFilter( '.all-filter' );
                     self.showDefaultLinks();
 	        }
 	        // Remove the overlay and hides the search screen on clicking escape key
 	        else if ( e.which === 27 || e.keyCode === 27 ) {
-                    self.clearSearchResults();
 	            self.removeOverlay();
 	        }
             }
@@ -72,8 +71,8 @@ $(document).ready(function() {
             defaultLinks.buildMostUsedTools( '.search-results' );
         },
 
-        /** Search with a query */ 
-        triggerSearch: function( e, self ) {
+        /** Trigger events on search overlay */ 
+        triggerEvents: function( e, self ) {
             var $el_search_textbox = $( '.txtbx-search-data' ),
                 query = "";
             
@@ -86,6 +85,7 @@ $(document).ready(function() {
                     self.searchWithAFilter( self, self.active_filter, query );
                 }
                 else if( query.length < self.search_query_minimum_length ) {
+                    // Remove old entries when search query becomes less than the minimum length
                     self.removeOldEntries();
                 }
             }
@@ -106,7 +106,7 @@ $(document).ready(function() {
                     $el_search_results = $( '.search-results' ),
                     $el_pinned_items = $( '.pinned-items' ),
                     class_pinned = '.pinned-items';
- 
+                // Show removed items from search results
                 if( type.indexOf( 'removed' ) > -1 ) {
                     removedLink = new SearchItemsView({});
                     removedLink.showRemovedLinks();
@@ -114,7 +114,7 @@ $(document).ready(function() {
                     $el_search_results.hide();
                     $el_pinned_items.hide();
                     self.applyTextDecorations( this );
-                }
+                } // Show pinned items
                 else if( type.indexOf( 'pinned' ) > -1 ) {
                     $( class_pinned ).html( "" );
                     pinnedLink = new SearchItemsView({});
@@ -124,7 +124,7 @@ $(document).ready(function() {
                     $el_pinned_items.show();
                     self.applyTextDecorations( this );
                 }
-                else {
+                else { // Search items for the selected filter
                     self.search( type, this, self );
                 }
             });
@@ -135,15 +135,18 @@ $(document).ready(function() {
             if( !$( _this ).hasClass( 'filter-active' ) ) {
                  var query = (( $( '.txtbx-search-data' ).val() ).trim()).toLowerCase();
                  if( query.length >= self.search_query_minimum_length ) {
+                     // Set the active filter
                      self.active_filter = type;
+                     // Apply css decorations to the selected filter
                      self.applyTextDecorations( _this );
+                     // Search with the query
                      self.searchWithAFilter( self, self.active_filter, query );
                      self.showSearchResult();
                  }
             }
         },
 
-        /** Call with one filter */
+        /** Search with a filter */
         searchWithAFilter: function( self, type, query ) {
 	    switch( type ) {
 	        case "all":
@@ -169,6 +172,7 @@ $(document).ready(function() {
 	    self.clearSearchResults();
             self.setActiveFilter( '.all-filter' );
             self.showSearchResult();
+            // Show default links above search results
             defaultLinks = new SearchItemsView({});
             defaultLinks.showPinnedItems( '.search-results' );
             defaultLinks.buildMostUsedTools( '.search-results' );
@@ -178,8 +182,7 @@ $(document).ready(function() {
 	    self.searchTools( query );
 	    // Search for data libraries
 	    self.searchDataLibrary( query );
-            // Search for workflows
-            // This api call needs authentication
+            // Search for workflows only when the user is authenticated
             if( window.Galaxy.user.id ) {
                 self.searchWorkflow( query );
             }
@@ -196,6 +199,7 @@ $(document).ready(function() {
         /** Search in history */
         searchHistory: function( query ) {
 	    var history_url = Galaxy.root + 'api/histories';
+            // Get all histories
 	    $.get( history_url, function ( histories ) {
 	        var history_list = [];
 	        // Get the content of each history
@@ -325,7 +329,8 @@ $(document).ready(function() {
         /** Initialize the variables */
         initialize: function( item ) {
             var type = ( item ? Object.keys( item )[0] : "" ),
-                data = {};  
+                data = {};
+            // Set the data based on type of the result
 	    switch( type ) {
 		case "tools": 
 		    data.tools = item[ type ];
@@ -340,6 +345,7 @@ $(document).ready(function() {
                     data.workflow = item[ type ];
 	    }
             
+            // Refresh the view as soon as more data arrive
             if( Object.keys( data ).length > 0 ) {
                 this.refreshView( data );
             }
@@ -347,7 +353,7 @@ $(document).ready(function() {
 
         /** Return the active filter */
         getActiveFilter: function() {
-	    var active_filter = "pinneditems";
+	    var active_filter = "all";
                 active_filter = ( $( '.all-filter' ).hasClass( 'filter-active') ? "all" : active_filter );
 	        active_filter = ( $( '.tool-filter' ).hasClass( 'filter-active') ? "tools" : active_filter );
 	        active_filter = ( $( '.history-filter' ).hasClass( 'filter-active' ) ? "history" : active_filter );
@@ -367,6 +373,7 @@ $(document).ready(function() {
 	        data = null;
 
             $el_no_result.remove();
+            // Make all sections when filter is all
 	    if( filter === "all" ) {
 	        this.makeAllSection( items );
 	    }
@@ -422,6 +429,7 @@ $(document).ready(function() {
 	    var has_result = false,
 	        $el_search_result = $( '.search-results' ),
 	        self = this;
+            // Loop through the data and make the available sections
 	    for( type in data ) {
                 if( data[ type ] && data[ type ].length > 0 ) {
                     has_result = true;
@@ -712,20 +720,22 @@ $(document).ready(function() {
                 class_name = "search-section search-tools",
                 html = "";
 
-            // Delete the previous results
+            // Append header section when shown for all
 	    if( self.getActiveFilter() === "all" ) {
 	        $el_search_result.append( self._buildHeaderTemplate( "tools", title, class_name ) );
 	    }
             else {
                 $el_search_result.append( self._buildHeaderTemplate( "tools", "", class_name ) );
             }
-
+            // Make complete template
 	    _.each( collection, function( item ) {
                 html = html + item.template;
 	    });
 
             html = html + tool_template;
+            // Append the template to DOM
             $el_search_result.find( '.search-tools' ).append( "<div>" + html +  "</div>" );
+            // Register link clicks for the new links
 	    self.registerToolLinkClick( self );
 	    self.registerLinkActionClickEvent( self, $( '.tool-search-link' ) );
         },
@@ -778,6 +788,7 @@ $(document).ready(function() {
 	        data_type = "",
                 $el = null,
                 section_class_name = section_object.class_name.split(" ")[1];
+            // Set datatype for different url of links
 	    if( section_object.link_class_name.indexOf( 'history' ) > -1 ) {
 	        data_type = "history";
 	    }
@@ -820,11 +831,11 @@ $(document).ready(function() {
                                                                      section_object.class_name ) );
 	    }
             else {
-                $el_search_result.append( self._buildHeaderTemplate( section_object.id,
-                                                                     "",
-                                                                     section_object.class_name ) );
+                $el_search_result.append( self._buildHeaderTemplate( section_object.id, "", section_object.class_name ) );
             }
+            // Append template to DOM
             $el_search_result.find( '.' + section_class_name ).append( "<div>" + template_string + "</div>" );
+            // Register link clicks for new links
 	    $el_search_result.find( "." + section_object.link_class_name ).click(function( e ) {
 	        self.removeOverlay();
 	    });
@@ -836,7 +847,9 @@ $(document).ready(function() {
         removeFromDataStorage: function( self, $el, class_name, type ) {
 	    var link_id = "",
 	        elem = $el[0].outerHTML;
+            // Get the id of the link
 	    link_id = ( $( elem ).attr( 'id' ) ? $( elem ).attr( 'id' ) : $( elem ).attr( 'data-id' ) );
+            // Delete it from web storage
             self.deleteFromStorage( self, window.Galaxy.user.id, type, link_id );
         },
 
@@ -856,7 +869,9 @@ $(document).ready(function() {
                 key = "",
                 storageObject = {},
                 elem_obj = {};
+            // Get the storage type - localStorage or sessionStorage
             storageType = ( user_id ? window.localStorage : window.sessionStorage );
+            // Get the storage key
             key = ( user_id ? ( user_id + self.web_storage_keys[0] ) : self.web_storage_keys[1] );
             if( storageType.getItem( key ) ) {
                 storageObject = JSON.parse( storageType.getItem( key ) );
@@ -868,7 +883,7 @@ $(document).ready(function() {
 	        storageObject[ type ] = {};
 	    }
 
-            // Check for html strings
+            // Check for html strings and set element to web storage
             if( isNaN( elem ) ) {
                 storageObject[ type ][ id ] = elem;
             }
@@ -887,6 +902,7 @@ $(document).ready(function() {
                                                              'version': elem_obj.version };
                 }
             }
+            // Set the object to key
 	    storageType.setItem( key, JSON.stringify( storageObject ) );
         },
 
@@ -894,8 +910,9 @@ $(document).ready(function() {
         getStorageObject: function( self, user_id, type ) {
             var storageType = null,
                 key = "";
-
+            // Get the storage type - localStorage or sessionStorage
             storageType = ( user_id ? window.localStorage : window.sessionStorage );
+            // Get the storage key
             key = ( user_id ? ( user_id + self.web_storage_keys[0] ) : self.web_storage_keys[1] );
             if ( storageType.getItem( key ) ) {
                 return JSON.parse( storageType.getItem( key ) )[ type ];
@@ -910,8 +927,9 @@ $(document).ready(function() {
             var storageType = null,
                 key = "",
                 localStorageObject = null;
-
+            // Get the storage type - localStorage or sessionStorage
             storageType = ( user_id ? window.localStorage : window.sessionStorage );
+            // Get the storage key
             key = ( user_id ? ( user_id + self.web_storage_keys[0] ) : self.web_storage_keys[1] );
             localStorageObject = JSON.parse(storageType.getItem( key ));
             if( localStorageObject[ type ] ) {
@@ -929,6 +947,7 @@ $(document).ready(function() {
 	                   "' role='button' title='" + name +
 	                   "' target='" + target + 
                            "' data-id='" + id;
+                // If the template is for tool links, add additional attributes
 	        if( cls.indexOf('tool') > -1 ) {
 		    template = template + "' data-version='" + version +
 		               "' minsizehint='" + min_width +
