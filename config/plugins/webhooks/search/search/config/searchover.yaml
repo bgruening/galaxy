@@ -4,7 +4,7 @@ type:
 activate: true
 
 icon: fa-search
-tooltip: Activate overlay search
+tooltip: Click to activate search and press Ctrl + Alt + q to open the overlay
 
 function: >
   $.getJSON("/api/webhooks/masthead", function( data ) {
