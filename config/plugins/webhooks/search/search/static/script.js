@@ -531,15 +531,13 @@ $(document).ready(function() {
 
         /** Register tool search link click */
         registerToolLinkClick: function( self ) {
-	    $( "a.tool-search-link" ).click(function( e ) {
-	        e.stopPropagation();
+	    $( ".tool-search-link" ).click(function( e ) {
                 e.preventDefault();
                 self.saveMostUsedToolsCount( this, self );
 	        self.searchedToolLink( self, e );
 	    });
 
-            $( "a.most-used-tools" ).click(function( e ) {
-	        e.stopPropagation();
+            $( ".most-used-tools" ).click(function( e ) {
                 e.preventDefault();
                 self.saveMostUsedToolsCount( this, self );
 	        self.searchedToolLink( self, e );
@@ -584,9 +582,9 @@ $(document).ready(function() {
 	    });
 
             $el.find( ".pin-item" ).click(function( e ) {
-	        e.preventDefault();
-	        e.stopPropagation();
                 var $el_this = $( this );
+                e.preventDefault();
+	        e.stopPropagation();
                 if( $el_this.hasClass( 'pinned-item' ) ) {
                     self.removeFromDataStorage( self, $el_this.parent(), '.pinned-items', 'pinned_results' );
                     $el_this.removeClass( 'pinned-item' );
@@ -596,7 +594,7 @@ $(document).ready(function() {
                 else {
                     self.setPinnedItemsStorage( self, $el_this.parent() );
                     $el_this.addClass( 'pinned-item' );
-                    $el_this.attr( 'title', 'Bookmarked' );
+                    $el_this.attr( 'title', 'Added to favourites' );
                     $el_this.parent().find( '.remove-item' ).removeClass( 'show' ).addClass( 'hide' );
                 }
 	    });
@@ -631,7 +629,7 @@ $(document).ready(function() {
             $el_span = $el_removed_result.find( 'span' );
             $el_span.removeClass( 'remove-item' ).addClass( 'restore-item' );
             // Update the title of the delete icon
-            $el_span.attr( 'title', 'Restore to search results' );
+            $el_span.attr( 'title', 'Restore to search' );
 	    self.registerRemoveLinkClicks( self );
         },
 
@@ -697,8 +695,8 @@ $(document).ready(function() {
                     class_names = "most-used-tools btn btn-primary link-tile " + id;
                     html_text = html_text + "<a class='" + class_names + "' " +
                                     "title= '"+ item_obj.desc +"' target='"+ item_obj.target +"' href='"+ item_obj.link +"' " +
-                                    "data-id= '" + id + "' data-version='"+ item_obj.version +"' data-formstyle='"+ item_obj.formstyle + "'>" +
-                                    "<b>" + item_obj.desc + "</b></a>";
+                                    "data-id= '" + id + "' data-version='"+ item_obj.version +"' data-formstyle='"+ item_obj.formstyle + "'>"
+                                     + item_obj.desc + "</a>";
             }
             // Build section only if there is at least an item
             if( html_text.length > 0 ) {
@@ -719,7 +717,6 @@ $(document).ready(function() {
                 title = "Tools",
                 class_name = "search-section search-tools",
                 html = "";
-
             // Append header section when shown for all
 	    if( self.getActiveFilter() === "all" ) {
 	        $el_search_result.append( self._buildHeaderTemplate( "tools", title, class_name ) );
@@ -731,13 +728,19 @@ $(document).ready(function() {
 	    _.each( collection, function( item ) {
                 html = html + item.template;
 	    });
-
             html = html + tool_template;
-            // Append the template to DOM
-            $el_search_result.find( '.search-tools' ).append( "<div>" + html +  "</div>" );
-            // Register link clicks for the new links
-	    self.registerToolLinkClick( self );
-	    self.registerLinkActionClickEvent( self, $( '.tool-search-link' ) );
+            self.setHTMLtoDOM( self, $el_search_result, '.search-tools', '.tool-search-link', html );
+        },
+
+        /** Set HTML text to DOM */
+        setHTMLtoDOM: function( self, $el, section_class, link_class , html_text ) {
+            if( html_text.length > 0 ) {
+                // Append the template to DOM
+                $el.find( section_class ).append( "<div>" + html_text +  "</div>" );
+                // Register link clicks for the new links
+	        self.registerToolLinkClick( self );
+	        self.registerLinkActionClickEvent( self, $( link_class ) );
+            }
         },
 
         /** Open the respective link as the modal pop up or in the center of the main screen */
@@ -779,14 +782,13 @@ $(document).ready(function() {
 
         /** Make custom search section */
         makeCustomSearchSection: function( section_object ) {
-	    var template_string = "",
+	    var self = this,
+                template_string = "",
 	        $el_search_result = $( '.search-results' ),
 	        $el_section_link = $( "." + section_object.link_class_name ),
-	        self = this,
 	        link = "",
 	        target = '_top',
 	        data_type = "",
-                $el = null,
                 section_class_name = section_object.class_name.split(" ")[1];
             // Set datatype for different url of links
 	    if( section_object.link_class_name.indexOf( 'history' ) > -1 ) {
@@ -814,21 +816,14 @@ $(document).ready(function() {
                             link = Galaxy.root + "workflow/editor?id=" + item.id;
                             break;
                     }
-	            template_string = template_string + self._buildLinkTemplate( item.id,
-                                                                             link,
-                                                                             item.name,
-                                                                             item.description,
-                                                                             target,
-                                                                             section_object.link_class_name,
-                                                                             self.checkItemPresent( item.id, "pinned_results", self ) );
+	            template_string = template_string + self._buildLinkTemplate( item.id, link, item.name, item.description, target,
+                                                                                 section_object.link_class_name,
+                                                                                 self.checkItemPresent( item.id, "pinned_results", self ) );
 	        }
 	    });
-
 	    // Append section header if filter is "all"
 	    if( self.getActiveFilter() === "all" ) {
-	        $el_search_result.append( self._buildHeaderTemplate( section_object.id,
-                                                                     section_object.name,
-                                                                     section_object.class_name ) );
+	        $el_search_result.append( self._buildHeaderTemplate( section_object.id, section_object.name, section_object.class_name ) );
 	    }
             else {
                 $el_search_result.append( self._buildHeaderTemplate( section_object.id, "", section_object.class_name ) );
@@ -839,8 +834,7 @@ $(document).ready(function() {
 	    $el_search_result.find( "." + section_object.link_class_name ).click(function( e ) {
 	        self.removeOverlay();
 	    });
-            $el = $( '.' + section_object.link_class_name );
-	    self.registerLinkActionClickEvent( self, $el );
+	    self.registerLinkActionClickEvent( self, $( '.' + section_object.link_class_name ) );
         },
 
         /** Remove the delete item from localstorage */
@@ -942,10 +936,10 @@ $(document).ready(function() {
         _buildLinkTemplate: function( id, link, name, description, target, cls, isBookmarked, version, min_width, form_style ) {
 	    var template = "",
                 bookmark_class = (isBookmarked ? "pinned-item" : ""),
-                bookmark_title = (isBookmarked ? "Bookmarked" : "Add to favourites") ;
+                bookmark_title = (isBookmarked ? "Added to favourites" : "Add to favourites") ;
 	        template = "<a class='" + cls + " btn btn-primary link-tile ' href='" + link +
 	                   "' role='button' title='" + name +
-	                   "' target='" + target + 
+	                   "' target='" + target +
                            "' data-id='" + id;
                 // If the template is for tool links, add additional attributes
 	        if( cls.indexOf('tool') > -1 ) {
@@ -953,10 +947,10 @@ $(document).ready(function() {
 		               "' minsizehint='" + min_width +
 		               "' data-formstyle='" + form_style;
 	        }
-                template = template + "' ><span class='fa fa-thumb-tack pin-item actions " + bookmark_class + "'" +
-                           "title='"+ bookmark_title +"'></span>" + 
-                           (( isBookmarked ) ? "<span class='fa fa-trash remove-item actions hide' title='Move to removed items'></span>" : " <span class='fa fa-trash remove-item actions show' title='Move to removed items'></span>") + 
-                           "<b>" + name + " </b>" + (description ? description : "") + "</a>";
+                template = template + "'><span class='fa fa-thumb-tack pin-item actions " + bookmark_class + "' " +
+                           "title='"+ bookmark_title +"'></span>" +
+                           (( isBookmarked ) ? "<span class='fa fa-trash remove-item actions hide' title='Exclude from search'></span>" : " <span class='fa fa-trash remove-item actions show' title='Exclude from search'></span>") +
+                           name +  " " + (description ? description : "") + "</a>";
 	    return template;
         },
 
