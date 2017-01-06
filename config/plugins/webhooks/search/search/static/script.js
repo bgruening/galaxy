@@ -572,12 +572,16 @@ $(document).ready(function() {
         },
  
         /** Register remove and pin action clicks */
-        registerLinkActionClickEvent: function( self, $el ) {
+        registerLinkActionClickEvent: function( self, $el, $el_parent_section ) {
 	    $el.find( ".remove-item" ).click(function( e ) {
 	        e.preventDefault();
 	        e.stopPropagation();
 	        self.setStorage( self, $( this ).parent() );
 	        $( this ).parent().remove();
+                // If there are not elements left, remove the section
+                if( $el_parent_section.find( '.remove-item' ).length == 0 ) {
+                    $el_parent_section.remove();
+                }
 	    });
 
             $el.find( ".pin-item" ).click(function( e ) {
@@ -717,30 +721,32 @@ $(document).ready(function() {
 	        $el_remove_item = null,
                 title = "Tools",
                 class_name = "search-section search-tools",
-                html = "";
+                html = "",
+                header_text = "";
             // Append header section when shown for all
 	    if( self.getActiveFilter() === "all" ) {
-	        $el_search_result.append( self._buildHeaderTemplate( "tools", title, class_name ) );
+	        header_text = self._buildHeaderTemplate( "tools", title, class_name );
 	    }
             else {
-                $el_search_result.append( self._buildHeaderTemplate( "tools", "", class_name ) );
+                header_text = self._buildHeaderTemplate( "tools", "", class_name );
             }
             // Make complete template
 	    _.each( collection, function( item ) {
                 html = html + item.template;
 	    });
             html = html + tool_template;
-            self.setHTMLtoDOM( self, $el_search_result, '.search-tools', '.tool-search-link', html );
+            self.setHTMLtoDOM( self, $el_search_result, '.search-tools', '.tool-search-link', html, header_text );
         },
 
         /** Set HTML text to DOM */
-        setHTMLtoDOM: function( self, $el, section_class, link_class , html_text ) {
+        setHTMLtoDOM: function( self, $el, section_class, link_class , html_text, header_text ) {
             if( html_text.length > 0 ) {
+                $el.append( header_text );
                 // Append the template to DOM
                 $el.find( section_class ).append( "<div>" + html_text +  "</div>" );
                 // Register link clicks for the new links
 	        self.registerToolLinkClick( self );
-	        self.registerLinkActionClickEvent( self, $( link_class ) );
+	        self.registerLinkActionClickEvent( self, $( link_class ), $( '.search-tools' ) );
             }
         },
 
@@ -790,7 +796,8 @@ $(document).ready(function() {
 	        link = "",
 	        target = '_top',
 	        data_type = "",
-                section_class_name = section_object.class_name.split(" ")[1];
+                section_class_name = section_object.class_name.split(" ")[1],
+                header_text = "";
             // Set datatype for different url of links
 	    if( section_object.link_class_name.indexOf( 'history' ) > -1 ) {
 	        data_type = "history";
@@ -824,18 +831,22 @@ $(document).ready(function() {
 	    });
 	    // Append section header if filter is "all"
 	    if( self.getActiveFilter() === "all" ) {
-	        $el_search_result.append( self._buildHeaderTemplate( section_object.id, section_object.name, section_object.class_name ) );
+	        header_text = self._buildHeaderTemplate( section_object.id, section_object.name, section_object.class_name );
 	    }
             else {
-                $el_search_result.append( self._buildHeaderTemplate( section_object.id, "", section_object.class_name ) );
+                header_text = self._buildHeaderTemplate( section_object.id, "", section_object.class_name );
             }
-            // Append template to DOM
-            $el_search_result.find( '.' + section_class_name ).append( "<div>" + template_string + "</div>" );
-            // Register link clicks for new links
-	    $el_search_result.find( "." + section_object.link_class_name ).click(function( e ) {
-	        self.removeOverlay();
-	    });
-	    self.registerLinkActionClickEvent( self, $( '.' + section_object.link_class_name ) );
+
+            if( template_string.length > 0 ) {
+                $el_search_result.append( header_text );
+                // Append template to DOM
+                $el_search_result.find( '.' + section_class_name ).append( "<div>" + template_string + "</div>" );
+                // Register link clicks for new links
+	        $el_search_result.find( "." + section_object.link_class_name ).click(function( e ) {
+	            self.removeOverlay();
+	        });
+	        self.registerLinkActionClickEvent( self, $( '.' + section_object.link_class_name ), $( '.' + section_class_name ) );
+            }
         },
 
         /** Remove the delete item from localstorage */
@@ -965,6 +976,7 @@ $(document).ready(function() {
 	    return '<div class="no-results">No results. Please search with different keywords</div>';
         },
 
+        /** Template for no items when links are removed */
         _templateNoItems: function() {
             return '<div class="no-results"> No items remaining </div>';
         },
