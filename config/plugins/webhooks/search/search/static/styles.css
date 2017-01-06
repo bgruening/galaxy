@@ -87,6 +87,11 @@
     height: 75px;
 }
 
+.actions {
+    width: 8%;
+    margin-left: 1%;
+}
+
 .link-tile .actions {
     float: right;
 }
