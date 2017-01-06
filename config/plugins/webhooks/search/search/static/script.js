@@ -298,12 +298,14 @@ $(document).ready(function() {
 	               '<input class="txtbx-search-data form-control" type="text" value="" ' + 
                            'placeholder="Give at least 3 letters to search" />' + 
                        '<div class="overlay-filters">' +
-                           '<a class="all-filter" title="All"><i class="fa fa-home"></i></a>' +
-                           '<a class="history-filter" title="History"><i class="fa fa-history"></i></a>' +
-                           '<a class="tool-filter" title="Tools"><i class="fa fa-wrench"></i></a>' +
-                           '<a class="workflow-filter" title="Workflow"><i class="fa fa-code-fork rotate"></i></a>' +
-                           '<a class="datalibrary-filter" title="Data Library"><i class="fa fa-folder-open"></i></a>' +
-                           '<a class="removeditems-filter" title="Excluded from search"><i class="fa fa-trash"></i></a>' +
+                           '<ul>' +
+                               '<li><a class="all-filter" title="All"><i class="fa fa-home"></i></a></li>' +
+                               '<li><a class="history-filter" title="History"><i class="fa fa-history"></i></a></li>' +
+                               '<li><a class="tool-filter" title="Tools"><i class="fa fa-wrench"></i></a></li>' +
+                               '<li><a class="workflow-filter" title="Workflow"><i class="fa fa-code-fork rotate"></i></a></li>' +
+                               '<li><a class="datalibrary-filter" title="Data Library"><i class="fa fa-folder-open"></i></a></li>' +
+                               '<li><a class="removeditems-filter" title="Excluded from search"><i class="fa fa-trash"></i></a></li>' +
+                           '</ul>' +
                        '</div>' +
                        '<div class="removed-items"></div>' +
                        '<div class="search-results"></div>' +
