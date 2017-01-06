@@ -28,7 +28,6 @@ $(document).ready(function() {
                 filter_classes.data_library = '.datalibrary-filter';
                 filter_classes.workflow = '.workflow-filter';
                 filter_classes.removeditems = '.removeditems-filter';
-                filter_classes.pinnedfilter = '.pinned-filter';
             // Register event for invoking overlay
             this.parentElement.on( 'keydown', function( e ) {
                 self.invokeOverlay( e, self );
@@ -750,6 +749,11 @@ $(document).ready(function() {
 	        self.registerToolLinkClick( self );
 	        self.registerLinkActionClickEvent( self, $( link_class ), $( '.search-tools' ) );
             }
+            else {
+                if( self.getActiveFilter() !== "all" ) {
+                    $el.append( self._templateNoResults() );
+                }
+            }
         },
 
         /** Open the respective link as the modal pop up or in the center of the main screen */
@@ -799,7 +803,8 @@ $(document).ready(function() {
 	        target = '_top',
 	        data_type = "",
                 section_class_name = section_object.class_name.split(" ")[1],
-                header_text = "";
+                header_text = "",
+                active_filter = self.getActiveFilter();
             // Set datatype for different url of links
 	    if( section_object.link_class_name.indexOf( 'history' ) > -1 ) {
 	        data_type = "history";
@@ -832,7 +837,7 @@ $(document).ready(function() {
 	        }
 	    });
 	    // Append section header if filter is "all"
-	    if( self.getActiveFilter() === "all" ) {
+	    if( active_filter === "all" ) {
 	        header_text = self._buildHeaderTemplate( section_object.id, section_object.name, section_object.class_name );
 	    }
             else {
@@ -848,6 +853,11 @@ $(document).ready(function() {
 	            self.removeOverlay();
 	        });
 	        self.registerLinkActionClickEvent( self, $( '.' + section_object.link_class_name ), $( '.' + section_class_name ) );
+            }
+            else {
+                if( active_filter !== "all" ) {
+                    $el_search_result.append( self._templateNoResults() );
+                }
             }
         },
 
@@ -963,7 +973,8 @@ $(document).ready(function() {
 	        }
                 template = template + "'><span class='fa fa-thumb-tack pin-item actions " + bookmark_class + "' " +
                            "title='"+ bookmark_title +"'></span>" +
-                           (( isBookmarked ) ? "<span class='fa fa-trash remove-item actions hide' title='Exclude from search'></span>" : " <span class='fa fa-trash remove-item actions show' title='Exclude from search'></span>") +
+                           ( ( isBookmarked ) ? "<span class='fa fa-trash remove-item actions hide' title='Exclude from search'></span>" :
+                                               " <span class='fa fa-trash remove-item actions show' title='Exclude from search'></span>" ) +
                            name +  " " + (description ? description : "") + "</a>";
 	    return template;
         },
