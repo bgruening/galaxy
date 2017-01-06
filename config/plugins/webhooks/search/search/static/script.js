@@ -29,7 +29,6 @@ $(document).ready(function() {
                 filter_classes.workflow = '.workflow-filter';
                 filter_classes.removeditems = '.removeditems-filter';
                 filter_classes.pinnedfilter = '.pinned-filter';
-            
             // Register event for invoking overlay
             this.parentElement.on( 'keydown', function( e ) {
                 self.invokeOverlay( e, self );
@@ -75,7 +74,6 @@ $(document).ready(function() {
         triggerEvents: function( e, self ) {
             var $el_search_textbox = $( '.txtbx-search-data' ),
                 query = "";
-            
             if( e ) {
                 e.stopPropagation();
                 query = (( $el_search_textbox.val() ).trim()).toLowerCase();
@@ -85,7 +83,6 @@ $(document).ready(function() {
                     self.searchWithAFilter( self, self.active_filter, query );
                 }
                 else if( query.length < self.search_query_minimum_length ) {
-                    // Remove old entries when search query becomes less than the minimum length
                     self.removeOldEntries();
                 }
             }
@@ -103,28 +100,17 @@ $(document).ready(function() {
         clickEvents: function( selector, type, self ) {
             $( selector ).click(function( e ) {
                 var $el_removed_items = $( '.removed-items' ),
-                    $el_search_results = $( '.search-results' ),
-                    $el_pinned_items = $( '.pinned-items' ),
-                    class_pinned = '.pinned-items';
+                    $el_search_results = $( '.search-results' );
                 // Show removed items from search results
                 if( type.indexOf( 'removed' ) > -1 ) {
-                    removedLink = new SearchItemsView({});
-                    removedLink.showRemovedLinks();
                     $el_removed_items.show();
                     $el_search_results.hide();
-                    $el_pinned_items.hide();
-                    self.applyTextDecorations( this );
-                } // Show pinned items
-                else if( type.indexOf( 'pinned' ) > -1 ) {
-                    $( class_pinned ).html( "" );
-                    pinnedLink = new SearchItemsView({});
-                    pinnedLink.showPinnedItems( class_pinned );
-                    $el_removed_items.hide();
-                    $el_search_results.hide();
-                    $el_pinned_items.show();
+                    removedLink = new SearchItemsView({});
+                    removedLink.showRemovedLinks();
                     self.applyTextDecorations( this );
                 }
-                else { // Search items for the selected filter
+                else {
+                    // Search items for the selected filter
                     self.search( type, this, self );
                 }
             });
@@ -133,16 +119,26 @@ $(document).ready(function() {
         /** Search with a filter */
         search: function( type, _this, self ) {
             if( !$( _this ).hasClass( 'filter-active' ) ) {
-                 var query = (( $( '.txtbx-search-data' ).val() ).trim()).toLowerCase();
-                 if( query.length >= self.search_query_minimum_length ) {
-                     // Set the active filter
-                     self.active_filter = type;
-                     // Apply css decorations to the selected filter
-                     self.applyTextDecorations( _this );
-                     // Search with the query
-                     self.searchWithAFilter( self, self.active_filter, query );
-                     self.showSearchResult();
-                 }
+                var query = (( $( '.txtbx-search-data' ).val() ).trim()).toLowerCase();
+                // Perform search
+                if( query.length >= self.search_query_minimum_length ) {
+                    // Set the active filter
+                    self.active_filter = type;
+                    // Apply css decorations to the selected filter
+                    self.applyTextDecorations( _this );
+                    self.showSearchResult();
+                    self.searchWithAFilter( self, self.active_filter, query );
+                }
+                else {
+                    // Show default links when clicked on home icon
+                    // No search is performed as query length is less than three
+                    if( type === "all" ) {
+                        self.active_filter = type;
+                        self.applyTextDecorations( _this );
+                        self.showSearchResult();
+                        self.showDefaultLinks();
+                    }
+                }
             }
         },
 
@@ -173,9 +169,7 @@ $(document).ready(function() {
             self.setActiveFilter( '.all-filter' );
             self.showSearchResult();
             // Show default links above search results
-            defaultLinks = new SearchItemsView({});
-            defaultLinks.showPinnedItems( '.search-results' );
-            defaultLinks.buildMostUsedTools( '.search-results' );
+            self.showDefaultLinks();
 	    // Search for history
 	    self.searchHistory( query );
 	    // Search for tools
@@ -274,7 +268,6 @@ $(document).ready(function() {
         /** Show search result section and hide removed items */
         showSearchResult: function() {
             $( '.removed-items' ).hide();
-            $( '.pinned-items' ).hide();
             $( '.search-results' ).show();
         },
 
@@ -310,11 +303,9 @@ $(document).ready(function() {
                            '<a class="tool-filter" title="Tools"><i class="fa fa-wrench"></i></a>' +
                            '<a class="workflow-filter" title="Workflow"><i class="fa fa-code-fork rotate"></i></a>' +
                            '<a class="datalibrary-filter" title="Data Library"><i class="fa fa-folder-open"></i></a>' +
-                           '<a class="pinned-filter" title="Favourites"><i class="fa fa-thumb-tack"></i></a>' +
                            '<a class="removeditems-filter" title="Excluded from search"><i class="fa fa-trash"></i></a>' +
                        '</div>' +
                        '<div class="removed-items"></div>' +
-                       '<div class="pinned-items"></div>' +
                        '<div class="search-results"></div>' +
 	       '</div>' +
            '</div>';
@@ -360,7 +351,6 @@ $(document).ready(function() {
 	        active_filter = ( $( '.datalibrary-filter' ).hasClass( 'filter-active' ) ? "data_library" : active_filter );
                 active_filter = ( $( '.workflow-filter' ).hasClass( 'filter-active' ) ? "workflow" : active_filter );
                 active_filter = ( $( '.removeditems-filter' ).hasClass( 'filter-active' ) ? "removeditems" : active_filter );
-                active_filter = ( $( '.pinned-filter' ).hasClass( 'filter-active' ) ? "pinneditems" : active_filter );
 	    return active_filter;
         },
 
@@ -371,7 +361,6 @@ $(document).ready(function() {
 	        $el_no_result = $( '.no-results' ),
 	        filter = this.getActiveFilter(),
 	        data = null;
-
             $el_no_result.remove();
             // Make all sections when filter is all
 	    if( filter === "all" ) {
@@ -559,17 +548,24 @@ $(document).ready(function() {
         /** Register clicks for removed links from custom section */
         registerRemoveLinkClicks: function( self ) {
             $( '.restore-item' ).click(function( e ) {
-	        e.preventDefault();
-	        e.stopPropagation();
-	        self.removeFromDataStorage( self, $( this ).parent(), '.removed-items', 'removed_results' );
-	        $( this ).parent().remove();
+                self.removeItems( self, this, e, 'removed_results' );
 	    });
+
             $( '.remove-item' ).click(function( e ) {
-	        e.preventDefault();
-	        e.stopPropagation();
-	        self.removeFromDataStorage( self, $( this ).parent(), '.pinned-items', 'pinned_results' );
-	        $( this ).parent().remove();
+                self.removeItems( self, this, e, 'pinned_results' );
 	    });
+
+            $( '.remove-fav' ).click(function( e ) {
+                self.removeItems( self, this, e, 'pinned_results' );
+	    });
+        },
+
+        /** Remove items from data storage for trash icon */
+        removeItems: function( self, _self, e, type ) {
+            e.preventDefault();
+	    e.stopPropagation();
+            self.removeFromDataStorage( self, $( _self ).parent(), type );
+            $( _self ).parent().remove();
         },
  
         /** Register remove and pin action clicks */
@@ -586,7 +582,7 @@ $(document).ready(function() {
                 e.preventDefault();
 	        e.stopPropagation();
                 if( $el_this.hasClass( 'pinned-item' ) ) {
-                    self.removeFromDataStorage( self, $el_this.parent(), '.pinned-items', 'pinned_results' );
+                    self.removeFromDataStorage( self, $el_this.parent(), 'pinned_results' );
                     $el_this.removeClass( 'pinned-item' );
                     $el_this.attr( 'title', 'Add to favourites' );
                     $el_this.parent().find( '.remove-item' ).removeClass( 'hide' ).addClass( 'show' );
@@ -614,11 +610,9 @@ $(document).ready(function() {
                 html_text = "",
                 $el_span = null,
                 removed_results_html = null;
-
             $el_removed_result.html( "" );
 	    // Build the removed result from web storage
             removed_results_html = self.getStorageObject( self, window.Galaxy.user.id, 'removed_results' );
-            
             for( item in removed_results_html ) {
 		html_text = html_text + removed_results_html[ item ];
             }
@@ -641,7 +635,6 @@ $(document).ready(function() {
                 $el_pinned_result = $( el ),
                 fav_header = "",
                 title = 'Remove from favourites';
-            
             pinned_results = self.getStorageObject( self, window.Galaxy.user.id, 'pinned_results' );
             // Build html text from web storage
             for( item in pinned_results ) {
@@ -652,12 +645,11 @@ $(document).ready(function() {
                 $el_pinned_result.show();
                 fav_header = self._buildHeaderTemplate( 'fav_header', 'Favourites', 'search-section fav-header' );
                 $el_pinned_result.append( fav_header );
-	        $el_pinned_result.append( html_text );
-
+                $el_pinned_result.find( '.fav-header' ).append( "<div>" + html_text + "</div>" );
                 // Update items in html text
                 $el_pinned_result.find( '.pin-item' ).remove();
-                $el_pinned_result.find( '.remove-item' ).attr( 'title', title );
-
+                $el_pinned_result.find( '.remove-item' ).addClass( 'remove-fav' ).removeClass( 'remove-item' );
+                $el_pinned_result.find( '.remove-fav' ).attr( 'title', title );
 	        // Register events
                 self.registerRemoveLinkClicks( self );
                 self.registerToolLinkClick( self );
@@ -702,7 +694,7 @@ $(document).ready(function() {
             if( html_text.length > 0 ) {
                 used_tools_header = self._buildHeaderTemplate( 'used_tools_header', title, class_name );
                 $el_most_used_tools_result.append( used_tools_header );
-                $el_most_used_tools_result.append( html_text );
+          	$el_most_used_tools_result.find( '.used-tools-header' ).append( "<div>" + html_text + "</div>" );
                 self.registerToolLinkClick( self );
             }
         },
@@ -838,7 +830,7 @@ $(document).ready(function() {
         },
 
         /** Remove the delete item from localstorage */
-        removeFromDataStorage: function( self, $el, class_name, type ) {
+        removeFromDataStorage: function( self, $el, type ) {
 	    var link_id = "",
 	        elem = $el[0].outerHTML;
             // Get the id of the link
@@ -961,7 +953,7 @@ $(document).ready(function() {
 
         /** Template for no results for any query */
         _templateNoResults: function() {
-	    return '<div class="no-results">No results. Please search with a different keywords</div>';
+	    return '<div class="no-results">No results. Please search with different keywords</div>';
         },
 
         /** Remove the search overlay */ 
