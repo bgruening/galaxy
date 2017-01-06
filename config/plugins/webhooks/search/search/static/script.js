@@ -548,15 +548,18 @@ $(document).ready(function() {
         /** Register clicks for removed links from custom section */
         registerRemoveLinkClicks: function( self ) {
             $( '.restore-item' ).click(function( e ) {
+                var $el_removeditems = $( '.removed-items' );
                 self.removeItems( self, this, e, 'removed_results' );
+                if( $el_removeditems.children().length == 0 ) {
+                    $el_removeditems.append( self._templateNoItems() );
+                }
 	    });
-
-            $( '.remove-item' ).click(function( e ) {
-                self.removeItems( self, this, e, 'pinned_results' );
-	    });
-
             $( '.remove-fav' ).click(function( e ) {
+                var $el_favourites = $( '.fav-header' );
                 self.removeItems( self, this, e, 'pinned_results' );
+                if( $el_favourites.children().children().length == 0 ) {
+                    $el_favourites.remove();
+                }
 	    });
         },
 
@@ -616,15 +619,21 @@ $(document).ready(function() {
             for( item in removed_results_html ) {
 		html_text = html_text + removed_results_html[ item ];
             }
-	    $el_removed_result.html( html_text );
-            // Remove the link attribute and pin icon from anchor
-            $el_removed_result.find( 'a.link-tile' ).removeAttr( 'href' );
-            $el_removed_result.find( '.pin-item' ).remove();
-            $el_span = $el_removed_result.find( 'span' );
-            $el_span.removeClass( 'remove-item' ).addClass( 'restore-item' );
-            // Update the title of the delete icon
-            $el_span.attr( 'title', 'Restore to search' );
-	    self.registerRemoveLinkClicks( self );
+            // Build html if there is an item
+            if( html_text.length > 0 ) {
+                $el_removed_result.html( html_text );
+                // Remove the link attribute and pin icon from anchor
+                $el_removed_result.find( 'a.link-tile' ).removeAttr( 'href' );
+                $el_removed_result.find( '.pin-item' ).remove();
+                $el_span = $el_removed_result.find( 'span' );
+                $el_span.removeClass( 'remove-item' ).addClass( 'restore-item' );
+                // Update the title of the delete icon
+                $el_span.attr( 'title', 'Restore to search' );
+	        self.registerRemoveLinkClicks( self );
+            }
+            else {
+                $el_removed_result.append( self._templateNoItems() );
+            }
         },
 
         /** Display pinned items */
@@ -954,6 +963,10 @@ $(document).ready(function() {
         /** Template for no results for any query */
         _templateNoResults: function() {
 	    return '<div class="no-results">No results. Please search with different keywords</div>';
+        },
+
+        _templateNoItems: function() {
+            return '<div class="no-results"> No items remaining </div>';
         },
 
         /** Remove the search overlay */ 
