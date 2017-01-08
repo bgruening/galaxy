@@ -21,20 +21,23 @@ $(document).ready(function() {
         /** Register events for the overlay */
         registerEvents: function() {
             var self = this,
-                filter_classes = {};
-                filter_classes.all = '.all-filter';
-                filter_classes.tools = '.tool-filter';
-                filter_classes.history = '.history-filter';
-                filter_classes.data_library = '.datalibrary-filter';
-                filter_classes.workflow = '.workflow-filter';
-                filter_classes.removeditems = '.removeditems-filter';
+                filter_classes = {},
+                $el_search_text = $( '.txtbx-search-data' );
+            filter_classes = {
+                'all': '.all-filter',
+                'tools': '.tool-filter',
+                'history': '.history-filter',
+                'data_library': '.datalibrary-filter',
+                'workflow': '.workflow-filter',
+                'removeditems': '.removeditems-filter'
+            }
             // Register event for invoking overlay
             this.parentElement.on( 'keydown', function( e ) {
                 self.invokeOverlay( e, self );
             });
 
             // Register events for search textbox
-            $( '.txtbx-search-data' ).on( 'keyup', function( e ) { 
+            $el_search_text.on( 'keyup', function( e ) { 
                 self.triggerEvents( e, self );
             });
           
@@ -46,13 +49,14 @@ $(document).ready(function() {
 
         /** Invoke the search overlay */
         invokeOverlay: function( e, self ) {
+            var class_allfilter = '.all-filter';
             if( e ) {
                 e.stopPropagation();
                 // Click of ctrl + alt + q shows search overlay
 	        if ( ( e.which === 81 || e.keyCode === 81 ) && e.ctrlKey && e.altKey ) {
                     self.clearSearchResults();
                     self.showOverlay();
-                    self.setActiveFilter( '.all-filter' );
+                    self.setActiveFilter( class_allfilter );
                     self.showDefaultLinks();
 	        }
 	        // Remove the overlay and hides the search screen on clicking escape key
@@ -64,9 +68,10 @@ $(document).ready(function() {
 
         /** Display favourites and most used tools if present for home filter */
         showDefaultLinks: function() {
+            var class_search_results = '.search-results';
             defaultLinks = new SearchItemsView({});
-            defaultLinks.showPinnedItems( '.search-results' );
-            defaultLinks.buildMostUsedTools( '.search-results' );
+            defaultLinks.showPinnedItems( class_search_results );
+            defaultLinks.buildMostUsedTools( class_search_results );
         },
 
         /** Trigger events on search overlay */ 
@@ -99,9 +104,10 @@ $(document).ready(function() {
         clickEvents: function( selector, type, self ) {
             $( selector ).click(function( e ) {
                 var $el_removed_items = $( '.removed-items' ),
-                    $el_search_results = $( '.search-results' );
+                    $el_search_results = $( '.search-results' ),
+                    removed_type_text = 'removed';
                 // Show removed items from search results
-                if( type.indexOf( 'removed' ) > -1 ) {
+                if( type.indexOf( removed_type_text ) > -1 ) {
                     $el_removed_items.show();
                     $el_search_results.hide();
                     removedLink = new SearchItemsView({});
@@ -117,8 +123,10 @@ $(document).ready(function() {
    
         /** Search with a filter */
         search: function( type, _this, self ) {
+            var class_active = 'filter-active',
+                $el_search_text = $( '.txtbx-search-data' );
             if( !$( _this ).hasClass( 'filter-active' ) ) {
-                var query = (( $( '.txtbx-search-data' ).val() ).trim()).toLowerCase();
+                var query = ( ( $el_search_text.val() ).trim() ).toLowerCase();
                 // Perform search
                 if( query.length >= self.search_query_minimum_length ) {
                     // Set the active filter
@@ -273,20 +281,22 @@ $(document).ready(function() {
         /** Set the active filter */
         setActiveFilter: function( filter_class ) {
             var $el_filter = $( filter_class ),
+                $el_filter_link = $( '.overlay-filters a' ),
                 active = 'filter-active',
                 inactive = 'filter-inactive';
 	    if( !$el_filter.hasClass( active ) ) {
-                $( '.overlay-filters a' ).addClass( inactive ).removeClass( active );
+                $el_filter_link.addClass( inactive ).removeClass( active );
 	        $el_filter.addClass( active ).removeClass( inactive );
 	    }
-            $( '.overlay-filters' ).show();
         },
 
         /** Apply the text decoration to the search overlay filters */
         applyTextDecorations: function( self ) {
+            var active = 'filter-active',
+                inactive = 'filter-inactive';
 	    $( '.search-results' ).html( "" );
-            $( '.overlay-filters a' ).addClass( 'filter-inactive' ).removeClass( 'filter-active' );
-            $( self ).removeClass( 'filter-inactive' ).addClass( 'filter-active' );
+            $( '.overlay-filters a' ).addClass( inactive ).removeClass( active );
+            $( self ).removeClass( inactive ).addClass( active );
         },
 
         /** Template for search overlay */
@@ -448,7 +458,10 @@ $(document).ready(function() {
 	    var template_dict = [], 
 	        tool_template = "",
 	        self = this,
-	        $el_search_result = $( '.search-results' );
+	        $el_search_result = $( '.search-results' ),
+                removed_results_key = "removed_results",
+                pinned_results_key = "pinned_results",
+                class_tool_link = "tool-search-link";
 	    _.each( search_result, function( item ) {
 	        var all_sections = Galaxy.toolPanel.attributes.layout.models;
 	        _.each( all_sections, function( section ) {
@@ -461,18 +474,19 @@ $(document).ready(function() {
 		        _.each( all_tools, function( tool ) {
 		            if( tool.id === item ) {
 		                var attrs = tool.attributes;
-		                if( !self.checkItemPresent( attrs.id, "removed_results", self ) ) {
+		                if( !self.checkItemPresent( attrs.id, removed_results_key, self ) ) {
 		                     is_present = true;
 		                     tools_template = tools_template + self._buildLinkTemplate( attrs.id,
                                                                                                 attrs.link,
                                                                                                 attrs.name,
                                                                                                 attrs.description,
                                                                                                 attrs.target,
-                                                                                                'tool-search-link',
-                                                                                                 self.checkItemPresent( attrs.id, "pinned_results", self ),
-                                                                                                 attrs.version,
-                                                                                                 attrs.min_width,
-                                                                                                 attrs.form_style );
+                                                                                                class_tool_link,
+                                                                                                self.checkItemPresent( attrs.id,
+                                                                                                                       pinned_results_key,  	                                                                                                                   self ),
+                                                                                                attrs.version,
+                                                                                                attrs.min_width,
+                                                                                                attrs.form_style );
 		                }
 		            }
 		        });
@@ -488,10 +502,10 @@ $(document).ready(function() {
 		    else if( section.attributes.model_class === "Tool" || section.attributes.model_class === "DataSourceTool" ) {
 		        var attributes = section.attributes;
 		        if( item === attributes.id ) {
-		            if( !self.checkItemPresent( attributes.id, "removed_results", self ) ) {
+		            if( !self.checkItemPresent( attributes.id, removed_results_key, self ) ) {
 		                tool_template = tool_template + self._buildLinkTemplate( attributes.id, attributes.link,
                                                 attributes.name, attributes.description, attributes.target,
-                                                'tool-search-link', self.checkItemPresent( attributes.id, "pinned_results", self ),
+                                                class_tool_link, self.checkItemPresent( attributes.id, pinned_results_key, self ),
                                                 attributes.version, attributes.min_width, attributes.form_style );
 		            }
 		        }
@@ -991,7 +1005,7 @@ $(document).ready(function() {
 
         /** Template for no items when links are removed */
         _templateNoItems: function() {
-            return '<div class="no-results"> No items remaining </div>';
+            return '<div class="no-results"> No items </div>';
         },
 
         /** Remove the search overlay */ 
