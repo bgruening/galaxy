@@ -117,6 +117,7 @@ var Collection = Backbone.Collection.extend({
                     $.each(webhooks.models, function(index, model) {
                         var webhook = model.toJSON();
                         if (webhook.activate) {
+                            // Galaxy.page is undefined for data libraries, workflows pages
                             if( Galaxy.page ) {
                                 Galaxy.page.masthead.collection.add({
                                     id      : webhook.name,
@@ -126,7 +127,7 @@ var Collection = Backbone.Collection.extend({
                                     onclick : webhook.config.function && new Function(webhook.config.function),
                                 });
                             }
-                            else {
+                            else if( Galaxy.masthead ) {
                                 Galaxy.masthead.collection.add({
                                     id      : webhook.name,
                                     icon    : webhook.config.icon,
