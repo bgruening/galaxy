@@ -21,6 +21,14 @@ define( [], function() {
                 value   : 'white',
                 data    : [ { label : 'Light', value : 'white' }, { label : 'Dark', value : 'black' } ]
             },
+            spin : {
+                label   : 'Spin',
+                help    : 'Spin the molecule view.',
+                type    : 'select',
+                display : 'radio',
+                value   : false,
+                data    : [ { label : 'On', value : true }, { label : 'Off', value : false } ]
+            },
             viewer : {
                 type        : 'conditional',
                 test_param  : {

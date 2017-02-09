@@ -21,6 +21,9 @@ define( [ 'utilities/utils', "plugins/ngl/viewer" ], function( Utils, ngl ) {
                         o.centerView();
                     } );
                     stage.setQuality( settings.get( 'quality' ) );
+                    if( settings.get( 'spin' ) === true || settings.get( 'spin' ) === 'true' ) {
+                        stage.setSpin( [ 0, 1, 0 ], 0.01 );
+                    }
                     options.chart.state( 'ok', 'Chart drawn.' );
                     options.process.resolve();
                 },
