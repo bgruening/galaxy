@@ -980,7 +980,7 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	                help    : 'Select the rendering quality.',
 	                type    : 'select',
 	                display : 'radio',
-	                value   : 'light',
+	                value   : 'medium',
 	                data    : [ { label : 'High', value : 'high' }, { label : 'Medium', value : 'medium' }, { label : 'Low', value : 'low' } ]
 	            }, 
 	            backcolor : {
@@ -1000,8 +1000,25 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	                    display : 'radio',
 	                    value   : 'cartoon',
 	                    help    : 'Select the rendering mode.',
-	                    data    : [ { label : 'Cartoon',        value : 'cartoon' },
-	                                { label : 'Line',          value : 'line' } ]
+	                    data    : [ { label : 'Cartoon', value : 'cartoon' },
+	                                { label : 'Line', value : 'line' },
+	                                { label : 'Base', value : 'base' },
+	                                { label : 'Backbone', value : 'backbone' },
+	                                { label : 'Ball+Stick', value : 'ball+stick' },
+	                                { label : 'Contact', value : 'contact' },
+	                                { label : 'Helixorient', value : 'helixorient' },
+	                                { label : 'Hyperball', value : 'hyperball' },
+	                                { label : 'Label', value : 'label' },
+	                                { label : 'Licorice', value : 'licorice' },
+	                                { label : 'Point', value : 'point' },
+	                                { label : 'Ribbon', value : 'ribbon' },
+	                                { label : 'Rocket', value : 'rocket' },
+	                                { label : 'Rope', value : 'rope' },
+	                                { label : 'Spacefill', value : 'spacefill' },
+	                                { label : 'Surface', value : 'surface' },
+	                                { label : 'Trace', value : 'trace' },
+	                                { label : 'Tube', value : 'tube' }
+	                              ]
 	                },
 	                cases       : [ { value : 'cartoon', inputs: [ {
 	                                    name  : 'radius',
