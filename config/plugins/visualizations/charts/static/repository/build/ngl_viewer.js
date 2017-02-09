@@ -50,8 +50,8 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	            var dataset = options.dataset,
 	                settings = options.chart.settings,
 	                url = window.location.protocol + '//' + window.location.host + "/datasets/" + dataset.dataset_id +
-	                      "/display?to_ext=" + dataset.extension;
-	            
+	                      "/display?to_ext=" + dataset.extension,
+	                stage = new ngl.Stage( options.targets[ 0 ], { backgroundColor: settings.get( 'backcolor' ) } );
 	            Utils.get( {
 	                url     : url,
 	                cache   : true,
@@ -61,13 +61,11 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	                        if ( key.startsWith( 'viewer|' ) ) {
 	                            viewer_options[ key.replace( 'viewer|', '' ) ] = value;
 	                        }
-	                    });
-	
-	                    var stage = new ngl.Stage( options.targets[ 0 ], { backgroundColor: settings.get( 'backcolor' ) } );
+	                    } );
 	                    stage.loadFile( url, {ext: dataset.extension, name: dataset.name, defaultRepresentation: true} ).then( function( o ) {
 	                        o.addRepresentation( viewer_options.mode, { radius: viewer_options.radius } );
 	                        o.centerView();
-	                    });
+	                    } );
 	                    stage.setQuality( settings.get( 'quality' ) );
 	                    options.chart.state( 'ok', 'Chart drawn.' );
 	                    options.process.resolve();
@@ -77,6 +75,8 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	                    options.process.resolve();
 	                }
 	            });
+	            // Re-renders the molecule view when window is resized
+	            $( window ).resize( function() { stage.viewer.handleResize() } );
 	        }
 	    });
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));

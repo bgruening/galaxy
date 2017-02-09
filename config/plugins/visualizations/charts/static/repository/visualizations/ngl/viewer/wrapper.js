@@ -4,8 +4,8 @@ define( [ 'utilities/utils', "plugins/ngl/viewer" ], function( Utils, ngl ) {
             var dataset = options.dataset,
                 settings = options.chart.settings,
                 url = window.location.protocol + '//' + window.location.host + "/datasets/" + dataset.dataset_id +
-                      "/display?to_ext=" + dataset.extension;
-            
+                      "/display?to_ext=" + dataset.extension,
+                stage = new ngl.Stage( options.targets[ 0 ], { backgroundColor: settings.get( 'backcolor' ) } );
             Utils.get( {
                 url     : url,
                 cache   : true,
@@ -15,13 +15,11 @@ define( [ 'utilities/utils', "plugins/ngl/viewer" ], function( Utils, ngl ) {
                         if ( key.startsWith( 'viewer|' ) ) {
                             viewer_options[ key.replace( 'viewer|', '' ) ] = value;
                         }
-                    });
-
-                    var stage = new ngl.Stage( options.targets[ 0 ], { backgroundColor: settings.get( 'backcolor' ) } );
+                    } );
                     stage.loadFile( url, {ext: dataset.extension, name: dataset.name, defaultRepresentation: true} ).then( function( o ) {
                         o.addRepresentation( viewer_options.mode, { radius: viewer_options.radius } );
                         o.centerView();
-                    });
+                    } );
                     stage.setQuality( settings.get( 'quality' ) );
                     options.chart.state( 'ok', 'Chart drawn.' );
                     options.process.resolve();
@@ -31,6 +29,8 @@ define( [ 'utilities/utils', "plugins/ngl/viewer" ], function( Utils, ngl ) {
                     options.process.resolve();
                 }
             });
+            // Re-renders the molecule view when window is resized
+            $( window ).resize( function() { stage.viewer.handleResize() } );
         }
     });
 });
