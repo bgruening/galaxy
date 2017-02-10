@@ -10,14 +10,21 @@ define( [ 'utilities/utils', "plugins/ngl/viewer" ], function( Utils, ngl ) {
                 url     : url,
                 cache   : true,
                 success : function( response ) {
-                    var viewer_options = {};
+                    var viewer_options = {},
+                        representation_parameters = {};
                     _.each( settings.attributes, function( value, key ) {
                         if ( key.startsWith( 'viewer|' ) ) {
                             viewer_options[ key.replace( 'viewer|', '' ) ] = value;
                         }
                     } );
+                    representation_parameters = { 
+                        radiusType: settings.get('radiustype'),
+                        radius: settings.get('radius'),
+                        scale: settings.get('scale'),
+                        assembly: settings.get('assembly'),
+                    };
                     stage.loadFile( url, {ext: dataset.extension, name: dataset.name, defaultRepresentation: true} ).then( function( o ) {
-                        o.addRepresentation( viewer_options.mode, { radius: viewer_options.radius } );
+                        o.addRepresentation( viewer_options.mode, representation_parameters );
                         o.centerView();
                     } );
                     stage.setQuality( settings.get( 'quality' ) );
