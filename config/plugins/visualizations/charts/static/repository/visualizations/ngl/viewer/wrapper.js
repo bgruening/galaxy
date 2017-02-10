@@ -18,10 +18,11 @@ define( [ 'utilities/utils', "plugins/ngl/viewer" ], function( Utils, ngl ) {
                         }
                     } );
                     representation_parameters = { 
-                        radiusType: settings.get('radiustype'),
-                        radius: settings.get('radius'),
-                        scale: settings.get('scale'),
-                        assembly: settings.get('assembly'),
+                        radius: settings.get( 'radius' ),
+                        scale: settings.get( 'scale' ),
+                        assembly: settings.get( 'assembly' ),
+                        color: settings.get( 'colorscheme' ),
+                        opacity: settings.get( 'opacity' )
                     };
                     stage.loadFile( url, {ext: dataset.extension, name: dataset.name, defaultRepresentation: true} ).then( function( o ) {
                         o.addRepresentation( viewer_options.mode, representation_parameters );

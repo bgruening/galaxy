@@ -44,13 +44,17 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() { return {nvd3_bar:__webpack_require__( 1 ), nvd3_bar_horizontal:__webpack_require__( 4 ), nvd3_bar_horizontal_stacked:__webpack_require__( 5 ), nvd3_bar_stacked:__webpack_require__( 6 ), nvd3_line:__webpack_require__( 7 ), nvd3_line_focus:__webpack_require__( 8 ), nvd3_scatter:__webpack_require__( 9 ), nvd3_stackedarea:__webpack_require__( 10 ), nvd3_stackedarea_full:__webpack_require__( 11 ), nvd3_stackedarea_stream:__webpack_require__( 12 ), nvd3_pie:__webpack_require__( 13 ), nvd3_histogram:__webpack_require__( 14 ), nvd3_histogram_discrete:__webpack_require__( 15 ), jqplot_bar:__webpack_require__( 16 ), jqplot_boxplot:__webpack_require__( 18 ), jqplot_histogram_discrete:__webpack_require__( 19 ), jqplot_line:__webpack_require__( 20 ), jqplot_scatter:__webpack_require__( 21 ), biojs_msa:__webpack_require__( 22 ), biojs_drawrnajs:__webpack_require__( 23 ), others_example:__webpack_require__( 24 ), others_heatmap:__webpack_require__( 25 ), others_heatmap_cluster:__webpack_require__( 26 ), cytoscape_basic:__webpack_require__( 27 ), pv_viewer:__webpack_require__( 28 ), benfred_venn:__webpack_require__( 29 ), ngl_viewer:__webpack_require__( 30 ),} }.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() { return {nvd3_bar:__webpack_require__( 5 ), nvd3_bar_horizontal:__webpack_require__( 8 ), nvd3_bar_horizontal_stacked:__webpack_require__( 9 ), nvd3_bar_stacked:__webpack_require__( 10 ), nvd3_line:__webpack_require__( 11 ), nvd3_line_focus:__webpack_require__( 12 ), nvd3_scatter:__webpack_require__( 13 ), nvd3_stackedarea:__webpack_require__( 14 ), nvd3_stackedarea_full:__webpack_require__( 15 ), nvd3_stackedarea_stream:__webpack_require__( 16 ), nvd3_pie:__webpack_require__( 17 ), nvd3_histogram:__webpack_require__( 18 ), nvd3_histogram_discrete:__webpack_require__( 19 ), jqplot_bar:__webpack_require__( 20 ), jqplot_boxplot:__webpack_require__( 22 ), jqplot_histogram_discrete:__webpack_require__( 23 ), jqplot_line:__webpack_require__( 24 ), jqplot_scatter:__webpack_require__( 25 ), biojs_msa:__webpack_require__( 26 ), biojs_drawrnajs:__webpack_require__( 27 ), others_example:__webpack_require__( 28 ), others_heatmap:__webpack_require__( 29 ), others_heatmap_cluster:__webpack_require__( 30 ), cytoscape_basic:__webpack_require__( 31 ), pv_viewer:__webpack_require__( 32 ), benfred_venn:__webpack_require__( 33 ), ngl_viewer:__webpack_require__( 34 ),} }.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 1 */
+/* 1 */,
+/* 2 */,
+/* 3 */,
+/* 4 */,
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend(true, {}, nvd3_config, {
 	        title       : 'Bar diagram',
 	        description : 'Renders a regular bar diagram using NVD3 hosted at http://www.nvd3.org.',
@@ -71,10 +75,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 2 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(3) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(7) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
 	    return $.extend( true, {}, default_config, {
 	        title       : '',
 	        library     : 'NVD3',
@@ -97,7 +101,7 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 3 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() {
@@ -181,10 +185,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 4 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend( true, {}, nvd3_config, {
 	        title       : 'Horizontal',
 	        description : 'Renders a horizontal bar diagram using NVD3 hosted at http://www.nvd3.org.',
@@ -205,10 +209,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 5 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend( true, {}, nvd3_config, {
 	        title       : 'Stacked horizontal',
 	        description : 'Renders a stacked horizontal bar diagram using NVD3 hosted at http://www.nvd3.org.',
@@ -230,10 +234,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 6 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend( true, {}, nvd3_config, {
 	        title       : 'Stacked',
 	        description : 'Renders a stacked bar diagram using NVD3 hosted at http://www.nvd3.org.',
@@ -255,10 +259,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 7 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend( true, {}, nvd3_config, {
 	        title       : 'Line chart',
 	        description : 'Renders a line chart using NVD3 hosted at http://www.nvd3.org.',
@@ -280,10 +284,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 8 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend( true, {}, nvd3_config, {
 	        title       : 'Line with focus',
 	        description : 'Renders a line chart with focus panel using NVD3 hosted at http://www.nvd3.org.',
@@ -305,10 +309,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 9 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend( true, {}, nvd3_config, {
 	        title       : 'Scatter plot',
 	        description : 'Renders a scatter plot using NVD3 hosted at http://www.nvd3.org.',
@@ -329,10 +333,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 10 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend( true, {}, nvd3_config, {
 	        title       : 'Stacked area',
 	        zoomable    : true,
@@ -355,10 +359,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 11 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend( true, {}, nvd3_config, {
 	        title       : 'Expanded',
 	        zoomable    : true,
@@ -381,10 +385,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 12 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(2) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(6) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( nvd3_config ) {
 	    return $.extend(true, {}, nvd3_config, {
 	        title       : 'Stream',
 	        description : 'Renders a stream chart using NVD3 hosted at http://www.nvd3.org.',
@@ -408,10 +412,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 13 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(3) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(7) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
 	    return $.extend( true, {}, default_config, {
 	        title       : 'Pie chart',
 	        description : 'Renders a pie chart using NVD3 hosted at http://www.nvd3.org.',
@@ -486,10 +490,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 14 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(3) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(7) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
 	    return $.extend( true, {}, default_config, {
 	        library     : 'NVD3',
 	        tag         : 'svg',
@@ -518,10 +522,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 15 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(3) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(7) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
 	    return $.extend(true, {}, default_config, {
 	        library     : 'NVD3',
 	        tag         : 'svg',
@@ -540,10 +544,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 16 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(17) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( plot_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(21) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( plot_config ) {
 	    return $.extend( true, {}, plot_config, {
 	        title       : 'Bar diagram',
 	        description : 'Renders a bar diagram using jqPlot hosted at http://www.jqplot.com.',
@@ -564,10 +568,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 17 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(3) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(7) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
 	    return $.extend(true, {}, default_config, {
 	        title       : '',
 	        library     : 'jqPlot',
@@ -591,10 +595,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 18 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(17) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( plot_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(21) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( plot_config ) {
 	    return $.extend( true, {}, plot_config, {
 	        title       : 'Box plot',
 	        library     : 'jqPlot',
@@ -612,10 +616,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 19 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(17) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(21) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
 	    return $.extend( true, {}, default_config, {
 	        title       : 'Discrete Histogram',
 	        description : 'Derives a discrete histogram from tabular data using R and renders a regular bar diagram using jqPlot hosted at http://www.jqplot.com.',
@@ -631,10 +635,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 20 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(17) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( plot_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(21) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( plot_config ) {
 	    return $.extend( true, {}, plot_config, {
 	        title       : 'Line chart',
 	        description : 'Renders a line chart using jqPlot hosted at http://www.jqplot.com.',
@@ -655,10 +659,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 21 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(17) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( plot_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(21) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( plot_config ) {
 	    return $.extend( true, {}, plot_config, {
 	        title       : 'Scatter plot',
 	        description : 'Renders a scatter plot using jqPlot hosted at http://www.jqplot.com.',
@@ -678,7 +682,7 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 22 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() {
@@ -697,7 +701,7 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 23 */
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() {
@@ -711,7 +715,7 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 24 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() {
@@ -732,10 +736,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 25 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(3) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(7) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
 	    return $.extend( true, {}, default_config, {
 	        title       : 'Heatmap',
 	        description : 'Renders a heatmap from matrix data provided in 3-column format (x, y, observation).',
@@ -798,10 +802,10 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 26 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(25) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(29) ], __WEBPACK_AMD_DEFINE_RESULT__ = function( default_config ) {
 	    return $.extend( true, {}, default_config, {
 	        title       : 'Clustered Heatmap',
 	        description : 'Applies hierarchical clustering to a matrix using R. The data has to be provided in 3-column format. The result is displayed as clustered heatmap.',
@@ -810,7 +814,7 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 27 */
+/* 31 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() {
@@ -824,7 +828,7 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 28 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() {
@@ -932,7 +936,7 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 29 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() {
@@ -961,7 +965,7 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
-/* 30 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function() {
@@ -979,7 +983,65 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	                display : 'radio',
 	                value   : 'medium',
 	                data    : [ { label : 'High', value : 'high' }, { label : 'Medium', value : 'medium' }, { label : 'Low', value : 'low' } ]
-	            }, 
+	            },
+	            viewer : {
+	                type        : 'conditional',
+	                test_param  : {
+	                    name    : 'mode',
+	                    label   : 'Display mode',
+	                    type    : 'select',
+	                    display : 'radio',
+	                    value   : 'cartoon',
+	                    help    : '',
+	                    data    : [ { label : 'Axes', value : 'axes' },
+	                                { label : 'Base', value : 'base' },
+	                                { label : 'Backbone', value : 'backbone' },
+	                                { label : 'Ball+Stick', value : 'ball+stick' },
+	                                { label : 'Cartoon', value : 'cartoon' },
+	                                { label : 'Contact', value : 'contact' },
+	                                { label : 'Helixorient', value : 'helixorient' },
+	                                { label : 'Hyperball', value : 'hyperball' },
+	                                { label : 'Label', value : 'label' },
+	                                { label : 'Licorice', value : 'licorice' },
+	                                { label : 'Line', value : 'line' },
+	                                { label : 'Point', value : 'point' },
+	                                { label : 'Ribbon', value : 'ribbon' },
+	                                { label : 'Rocket', value : 'rocket' },
+	                                { label : 'Rope', value : 'rope' },
+	                                { label : 'Spacefill', value : 'spacefill' },
+	                                { label : 'Surface', value : 'surface' },
+	                                { label : 'Trace', value : 'trace' },
+	                                { label : 'Tube', value : 'tube' },
+	                                { label : 'Unitcell', value : 'unitcell' } ]
+	                }
+	            },
+	            colorscheme : {
+	                label   : 'Color Scheme',
+	                help    : 'Select color scheme of the molecule scene.',
+	                type    : 'select',
+	                display : 'radio',
+	                value   : 'atomindex',
+	                data    : [ { label : 'Element', value : 'element' },
+	                            { label : 'Picking', value : 'picking' },
+	                            { label : 'Random', value : 'random' },
+	                            { label : 'Uniform', value : 'uniform' },
+	                            { label : 'Atomindex', value : 'atomindex' },
+	                            { label : 'Residue Index', value : 'residueindex' },
+	                            { label : 'Chain Index', value : 'chainindex' },
+	                            { label : 'Chain Name', value : 'chainname' },
+	                            { label : 'Chain Id', value : 'chainid' },
+	                            { label : 'Polymer', value : 'polymer' },
+	                            { label : 'Model Index', value : 'modelindex' },
+	                            { label : 'Entity Type', value : 'entitytype' },
+	                            { label : 'Molecule Type', value : 'moleculetype' },
+	                            { label : 'Secondary Structure', value : 'sstruc' },
+	                            { label : 'Bfactor', value : 'bfactor' },
+	                            { label : 'Resname', value : 'resname' },
+	                            { label : 'Hydrophobicity', value : 'hydrophobicity' },
+	                            { label : 'Value', value : 'value' },
+	                            { label : 'Volume', value : 'volume' },
+	                            { label : 'Occupancy', value : 'occupancy' } ]
+	            },
 	            backcolor : {
 	                label   : 'Background Color',
 	                help    : 'Select background color of the viewer.',
@@ -995,16 +1057,6 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	                display : 'radio',
 	                value   : false,
 	                data    : [ { label : 'On', value : true }, { label : 'Off', value : false } ]
-	            },
-	            radiustype : {
-	                label   : 'Radius Type',
-	                help    : 'Select a possible source of radius used for rendering the representation.',
-	                type    : 'select',
-	                display : 'radio',
-	                value   : '',
-	                data    : [ { label : 'By VDW radius', value : 'vdw' }, { label : 'By Covalent Radius', value : 'covalent' },
-	                            { label : 'By Secondary Structure', value : 'sstruc' }, { label : 'By B-Factor', value : 'bfactor' },
-	                            { label : 'Size', value : 'size' }, { label : 'Default', value : '' } ]
 	            },
 	            radius: {
 	                name  : 'radius',
@@ -1034,35 +1086,15 @@ define(function() { return /******/ (function(modules) { // webpackBootstrap
 	                            { label : 'BU1', value : 'BU1' }, { label : 'UNITCELL', value : 'UNITCELL' },
 	                            { label : 'SUPERCELL', value: 'SUPERCELL' } ]
 	            },
-	            viewer : {
-	                type        : 'conditional',
-	                test_param  : {
-	                    name    : 'mode',
-	                    label   : 'Display mode',
-	                    type    : 'select',
-	                    display : 'radio',
-	                    value   : 'cartoon',
-	                    help    : '',
-	                    data    : [ { label : 'Cartoon', value : 'cartoon' },
-	                                { label : 'Line', value : 'line' },
-	                                { label : 'Base', value : 'base' },
-	                                { label : 'Backbone', value : 'backbone' },
-	                                { label : 'Ball+Stick', value : 'ball+stick' },
-	                                { label : 'Contact', value : 'contact' },
-	                                { label : 'Helixorient', value : 'helixorient' },
-	                                { label : 'Hyperball', value : 'hyperball' },
-	                                { label : 'Label', value : 'label' },
-	                                { label : 'Licorice', value : 'licorice' },
-	                                { label : 'Point', value : 'point' },
-	                                { label : 'Ribbon', value : 'ribbon' },
-	                                { label : 'Rocket', value : 'rocket' },
-	                                { label : 'Rope', value : 'rope' },
-	                                { label : 'Spacefill', value : 'spacefill' },
-	                                { label : 'Surface', value : 'surface' },
-	                                { label : 'Trace', value : 'trace' },
-	                                { label : 'Tube', value : 'tube' }
-	                              ]
-	                }
+	            opacity : {
+	                name  : 'opacity',
+	                label : 'Opacity',
+	                help  : 'Select opacity for the molecule scene.',
+	                type  : 'float',
+	                min   : 0.0,
+	                max   : 1.0,
+	                value : 1.0
+	
 	            }
 	        }
 	    }
