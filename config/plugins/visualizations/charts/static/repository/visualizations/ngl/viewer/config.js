@@ -100,7 +100,7 @@ define( [], function() {
             scale: {
                 name  : 'scale',
                 label : 'Scale',
-                help  : 'Select a number that scales the value defined by the *radius* or the *radiusType* parameter.',
+                help  : 'Select a number that scales the value defined by the *radius* parameter.',
                 type  : 'float',
                 min   : 0.001,
                 max   : 10.0,
