@@ -78,6 +78,7 @@ from galaxy.util.bunch import Bunch
 from galaxy.util.dictifiable import Dictifiable
 from galaxy.util.expressions import ExpressionContext
 from galaxy.util.json import json_fix
+from galaxy.util.json import safe_loads
 from galaxy.util.odict import odict
 from galaxy.util.template import fill_template
 from galaxy.version import VERSION_MAJOR
@@ -120,6 +121,7 @@ GALAXY_LIB_TOOLS = [
     "MAF_split_blocks_by_species1",
     "maf_limit_size1",
     "maf_by_block_number1",
+    "wiggle2simple1",
     # Tools improperly migrated to the tool shed (devteam)
     "lastz_wrapper_2",
     "qualityFilter",
@@ -133,6 +135,7 @@ GALAXY_LIB_TOOLS = [
     "sam_pileup",
     "find_diag_hits",
     "cufflinks",
+    "sam_to_bam",  # This was fixed with version 1.1.3 of the tool - TODO add Galaxy to PYTHONPATH only for older versions
     # Tools improperly migrated to the tool shed (iuc)
     "tabular_to_dbnsfp",
 ]
@@ -197,8 +200,8 @@ class ToolBox( BaseGalaxyToolBox ):
 
     @property
     def all_requirements(self):
-        reqs = [json.dumps(req, sort_keys=True) for _, tool in self.tools() for req in tool.tool_requirements]
-        return [json.loads(req) for req in set(reqs)]
+        reqs = set([req for _, tool in self.tools() for req in tool.tool_requirements])
+        return [r.to_dict() for r in reqs]
 
     @property
     def tools_by_id( self ):
@@ -301,29 +304,34 @@ class DefaultToolState( object ):
     def __init__( self ):
         self.page = 0
         self.rerun_remap_job_id = None
-        self.inputs = None
+        self.inputs = {}
 
-    def encode( self, tool, app ):
+    def initialize( self, trans, tool ):
+        """
+        Create a new `DefaultToolState` for this tool. It will be initialized
+        with default values for inputs. Grouping elements are filled in recursively.
+        """
+        self.inputs = {}
+        context = ExpressionContext( self.inputs )
+        for input in tool.inputs.itervalues():
+            self.inputs[ input.name ] = input.get_initial_value( trans, context )
+
+    def encode( self, tool, app, nested=False ):
         """
         Convert the data to a string
         """
-        # Convert parameters to a dictionary of strings, and save curent
-        # page in that dict
-        value = params_to_strings( tool.inputs, self.inputs, app )
+        value = params_to_strings( tool.inputs, self.inputs, app, nested=nested )
         value["__page__"] = self.page
         value["__rerun_remap_job_id__"] = self.rerun_remap_job_id
-        return json.dumps( value )
+        return value
 
-    def decode( self, value, tool, app ):
+    def decode( self, values, tool, app ):
         """
         Restore the state from a string
         """
-        values = json_fix( json.loads( value ) )
-        self.page = values.pop( "__page__" )
-        if '__rerun_remap_job_id__' in values:
-            self.rerun_remap_job_id = values.pop( "__rerun_remap_job_id__" )
-        else:
-            self.rerun_remap_job_id = None
+        values = json_fix( safe_loads( values ) ) or {}
+        self.page = values.pop( "__page__" ) if "__page__" in values else None
+        self.rerun_remap_job_id = values.pop( "__rerun_remap_job_id__" ) if "__rerun_remap_job_id__" in values else None
         self.inputs = params_from_strings( tool.inputs, values, app, ignore_errors=True )
 
     def copy( self ):
@@ -1148,21 +1156,11 @@ class Tool( object, Dictifiable ):
     def new_state( self, trans ):
         """
         Create a new `DefaultToolState` for this tool. It will be initialized
-        with default values for inputs.
+        with default values for inputs. Grouping elements are filled in recursively.
         """
         state = DefaultToolState()
-        state.inputs = {}
-        self.fill_in_new_state( trans, self.inputs, state.inputs )
+        state.initialize( trans, self )
         return state
-
-    def fill_in_new_state( self, trans, inputs, state, context=None ):
-        """
-        Fill in a tool state dictionary with default values for all parameters
-        in the dictionary `inputs`. Grouping elements are filled in recursively.
-        """
-        context = ExpressionContext( state, context )
-        for input in inputs.values():
-            state[ input.name ] = input.get_initial_value( trans, context )
 
     def get_param( self, key ):
         """
@@ -1426,8 +1424,7 @@ class Tool( object, Dictifiable ):
         """
         Return all requiremens of type package
         """
-        reqs = [req for req in self.requirements if req.type == 'package']
-        return reqs
+        return self.requirements.packages
 
     @property
     def tool_requirements_status(self):
@@ -1794,7 +1791,7 @@ class Tool( object, Dictifiable ):
                     tool_dict = input.to_dict( request_context )
                     group_cache = tool_dict[ 'cache' ] = {}
                     for i in range( len( group_state ) ):
-                        group_cache[ i ] = {}
+                        group_cache[ i ] = []
                         populate_model( input.inputs, group_state[ i ], group_cache[ i ], other_values )
                 elif input.type == 'conditional':
                     tool_dict = input.to_dict( request_context )
@@ -1819,7 +1816,10 @@ class Tool( object, Dictifiable ):
                         tool_dict = input.to_dict( request_context )
                         log.exception('tools::to_json() - Skipping parameter expansion \'%s\': %s.' % ( input.name, e ) )
                         pass
-                group_inputs[ input_index ] = tool_dict
+                if input_index >= len( group_inputs ):
+                    group_inputs.append( tool_dict )
+                else:
+                    group_inputs[ input_index ] = tool_dict
 
         # expand incoming parameters (parameters might trigger multiple tool executions,
         # here we select the first execution only in order to resolve dynamic parameters)
@@ -1838,7 +1838,7 @@ class Tool( object, Dictifiable ):
 
         # create tool model
         tool_model = self.to_dict( request_context )
-        tool_model[ 'inputs' ] = {}
+        tool_model[ 'inputs' ] = []
         populate_model( self.inputs, state_inputs, tool_model[ 'inputs' ] )
 
         # create tool help

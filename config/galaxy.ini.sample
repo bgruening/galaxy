@@ -210,7 +210,7 @@ paste.app_factory = galaxy.web.buildapp:app_factory
 #conda_auto_install = False
 # Set to True to instruct Galaxy to install Conda from the web automatically
 # if it cannot find a local copy and conda_exec is not configured.
-#conda_auto_init = False
+#conda_auto_init = True
 # You must set this to True if conda_prefix and job_working_directory are not on the same
 # volume, or some conda dependencies will fail to execute at job runtime.
 # Conda will copy packages content instead of creating hardlinks or symlinks.
@@ -309,6 +309,17 @@ paste.app_factory = galaxy.web.buildapp:app_factory
 # when installed from a ToolShed. Defaults to tool_data_path.
 #shed_tool_data_path = tool-data
 
+# Set to True to enable monitoring of the tool_data and shed_tool_data_path
+# directories. If changes in tool data table files are found, the tool data
+# tables for that data manager are automatically reloaded.
+# Watchdog ( https://pypi.python.org/pypi/watchdog ) must be installed and
+# available to Galaxy to use this option. Other options include 'auto'
+# which will attempt to use the watchdog library if it is available but won't
+# fail to load Galaxy if it is not and 'polling' which will use a less
+# efficient monitoring scheme that may work in wider range of scenarios
+# than the watchdog default.
+#watch_tool_data_dir = False
+
 # File containing old-style genome builds
 #builds_file_path = tool-data/shared/ucsc/builds.txt
 
@@ -349,8 +360,9 @@ paste.app_factory = galaxy.web.buildapp:app_factory
 # Webhooks directory: where to store webhooks - plugins to extend the Galaxy UI.
 # By default none will be loaded.  Set to config/plugins/webhooks/demo to load Galaxy's
 # demo webhooks.  To use an absolute path begin the path with '/'.  This is a comma
-# separated list.
-# webhooks_dir = config/plugins/webhooks
+# separated list. Add test/functional/webhooks to this list to include the demo webhooks
+# used to test the webhook framework.
+#webhooks_dir = config/plugins/webhooks
 
 # Each job is given a unique empty directory as its current working directory.
 # This option defines in what parent directory those directories will be
@@ -909,6 +921,16 @@ use_interactive = True
 # results will appear.
 # tool_search_limit = 20
 
+# Enable/ disable Ngram-search for tools. It makes tool
+# search results tolerant for spelling mistakes in the query
+# by dividing the query into multiple ngrams and search for
+# each ngram
+#tool_enable_ngram_search = False
+
+# Set minimum and maximum sizes of ngrams
+#tool_ngram_minsize = 3
+#tool_ngram_maxsize = 4
+
 # -- Users and Security
 
 # Galaxy encodes various internal values when these values will be output in
@@ -1044,8 +1066,12 @@ use_interactive = True
 # the Galaxy's beta workflow scheduling.
 #force_beta_workflow_scheduled_min_steps=250
 # Switch to using Galaxy's beta workflow scheduling for all workflows involving
-# ccollections.
+# collections.
 #force_beta_workflow_scheduled_for_collections=False
+
+
+# Force serial scheduling of workflows within the context of a particular history
+#history_local_serial_workflow_scheduling=False
 
 # Enable authentication via OpenID.  Allows users to log in to their Galaxy
 # account by authenticating with an OpenID provider.
@@ -1216,7 +1242,7 @@ use_interactive = True
 # tools). Set this to legacy_and_local to preserve the environment for legacy
 # tools and locally managed tools (this might be useful for instance if you are
 # installing software into Galaxy's virtualenv for tool development).
-#python_environment_problem = legacy_only
+#preserve_python_environment = legacy_only
 
 # Clean up various bits of jobs left on the filesystem after completion.  These
 # bits include the job working directory, external metadata temporary files,

@@ -34,8 +34,8 @@ class WorkflowEditorTestCase(SeleniumTestCase):
         self.wait_for_selector_visible("#__workflow__inputs__ .toolTitle")
         input_links = self.driver.find_elements_by_css_selector("#__workflow__inputs__ .toolTitle a")
         input_links[0].click()
-        time.sleep(1)
-        assert False
+        # TODO: verify box is highlighted and side panel is a form describing input.
+        # More work needs to be done to develop testing abstractions for doing these things.
 
     @selenium_test
     def test_save_as(self):
@@ -55,7 +55,7 @@ class WorkflowEditorTestCase(SeleniumTestCase):
         time.sleep(.5)
         modal_element = self.wait_for_selector_visible(self.modal_body_selector())
         text = modal_element.text
-        assert "using version '0.2' instead of version '0.0.1'" in text, text
+        assert "Using version '0.2' instead of version '0.0.1'" in text, text
 
     @selenium_test
     def test_editor_invalid_tool_state(self):
@@ -66,7 +66,7 @@ class WorkflowEditorTestCase(SeleniumTestCase):
         time.sleep(.5)
         modal_element = self.wait_for_selector_visible(self.modal_body_selector())
         text = modal_element.text
-        assert "using version '0.2' instead of version '0.0.1'" in text, text
+        assert "Using version '0.2' instead of version '0.0.1'" in text, text
         assert "Using default: '1'" in text, text
 
     @selenium_test
@@ -85,10 +85,9 @@ steps:
         self.workflow_index_open()
         self.workflow_index_click_option("Edit")
         time.sleep(.5)
-        self.workflow_editor_click_option("Auto Re-layout")
-        time.sleep(.1)
-        self.workflow_editor_click_option("Save")
-        # Server error message, this is a problem...
+        modal_element = self.wait_for_selector_visible(self.modal_body_selector())
+        text = modal_element.text
+        assert "Tool is not installed" in text, text
 
     def workflow_create_new(self, name=None, annotation=None):
         self.workflow_index_open()
