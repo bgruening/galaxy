@@ -34,7 +34,7 @@ define( [ 'utils/utils', 'mvc/ui/ui-misc' ], function( Utils, Ui ) {
                     self.register_tag_click( self, tags, response );
 
                     // Register search tags event
-                    self.filter_items( self, self.$el.find( '.search-tags-input' ), self.$el.find( '.search-tags-tbody tr' ), min_query_length );
+                    self.filter_items( self, self.$el.find( '.search-tags-input' ), self.$el.find( '.search-tags-tbody .tags-tr' ), min_query_length );
                 },
                 error: function( response ) {
                     var error_msg = "Error occurred while loading the resource.",
@@ -86,7 +86,16 @@ define( [ 'utils/utils', 'mvc/ui/ui-misc' ], function( Utils, Ui ) {
                 else {
                     $el_tabletr.show();
                 }
+
+                // Reset the tags table after filtering
+                self.resetTagsTable( self );
             });
+        },
+
+        /** Reset the tags table after filtering*/
+        resetTagsTable: function( self ) {
+            self.$el.find( '.published-history-tr' ).hide();
+            self.$el.find( '.tags-link' ).addClass( ' fa-plus-square-o' ).removeClass( 'fa-minus-square-o' );
         },
 
         /** Main template */
@@ -102,13 +111,13 @@ define( [ 'utils/utils', 'mvc/ui/ui-misc' ], function( Utils, Ui ) {
         _templateHistoryTagsTable: function( self, tags ) {
             var tableHtml = "",
                 trHtml = "";
-            tableHtml = tableHtml + '<table class="table colored"><thead>' +
+            tableHtml = tableHtml + '<table class="table colored published-history-colored"><thead>' +
                 '<tr class="header">' +
                     '<th>Tag names</th>' +
                 '</tr></thead>';
 
             _.each( tags, function( tag ) {
-                trHtml = trHtml + '<tr>' +
+                trHtml = trHtml + '<tr class="tags-tr">' +
                               '<td> <a class="fa fa-plus-square-o history-tag-'+ tag +' tags-link"><span>' + tag.toLowerCase() + '</span></a></td>' +
                          '</tr>' + 
                          '<tr class="tr-'+ tag +' published-history-tr">' +
@@ -131,7 +140,7 @@ define( [ 'utils/utils', 'mvc/ui/ui-misc' ], function( Utils, Ui ) {
         _templatePublishedHistoryTable: function( self, published_history_list, tag ) {
             var tableHtml = "",
                 trHtml = "";
-            tableHtml = tableHtml + '<table class="table colored"><thead>' +
+            tableHtml = tableHtml + '<table class="table colored published-history-colored history-items"><thead>' +
                     '<tr class="header">' +
                         '<th>Name</th>' +
                         '<th>Annotation</th>' +
@@ -144,7 +153,7 @@ define( [ 'utils/utils', 'mvc/ui/ui-misc' ], function( Utils, Ui ) {
                     '</tr>';
                 }
             });
-            return tableHtml + '<tbody class="history_item-search">' + trHtml + '</tbody></table>';
+            return tableHtml + '<tbody class="history-item-search">' + trHtml + '</tbody></table>';
         },
     });
     
