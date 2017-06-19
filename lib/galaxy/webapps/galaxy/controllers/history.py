@@ -239,7 +239,7 @@ class HistoryController( BaseUIController, SharableMixin, UsesAnnotations, UsesI
     published_list_grid = HistoryAllPublishedGrid()
 
     @web.expose
-    def list_published( self, trans, **kwargs ):
+    def history_list_published( self, trans, **kwargs ):
         if 'async' in kwargs:
             kwargs[ 'embedded' ] = True
             return self.published_list_grid( trans, **kwargs )

@@ -12,7 +12,8 @@ var jQuery = require( 'jquery' ),
     GridView = require( 'mvc/grid/grid-view' ),
     PageList = require( 'mvc/page/page-list' ),
     Workflows = require( 'mvc/workflow/workflow' ),
-    WorkflowsConfigureMenu = require( 'mvc/workflow/workflow-configure-menu' );
+    WorkflowsConfigureMenu = require( 'mvc/workflow/workflow-configure-menu' ),
+    PublishedHistoryView = require( 'mvc/history/published-history-view' );
 
 /** define the 'Analyze Data'/analysis/main/home page for Galaxy
  *  * has a masthead
@@ -85,7 +86,8 @@ window.app = function app( options, bootstrapped ){
             '(/)pages(/)(:action_id)' : 'show_pages',
             '(/)datasets(/)(:action_id)' : 'show_datasets',
             '(/)workflow/configure_menu(/)' : 'show_configure_menu',
-            '(/)custom_builds' : 'show_custom_builds'
+            '(/)custom_builds' : 'show_custom_builds',
+            '(/)history/list_published' : 'show_published_history',
         },
 
         require_login: [
@@ -147,6 +149,10 @@ window.app = function app( options, bootstrapped ){
                 return;
             }
             this.page.display( new CustomBuilds.View() );
+        },
+
+        show_published_history : function() {
+            this.page.display( new PublishedHistoryView.View() );
         },
 
         /**  */

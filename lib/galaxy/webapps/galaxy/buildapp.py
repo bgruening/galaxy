@@ -112,6 +112,7 @@ def paste_app_factory( global_conf, **kwargs ):
     webapp.add_client_route( '/datasets/{action_id}' )
     webapp.add_client_route( '/workflow/configure_menu' )
     webapp.add_client_route( '/custom_builds' )
+    webapp.add_client_route( '/history/list_published' )
 
     # ==== Done
     # Indicate that all configuration settings have been provided
