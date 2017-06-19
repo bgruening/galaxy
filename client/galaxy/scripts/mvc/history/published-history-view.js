@@ -1,5 +1,5 @@
 /** Published history view */
-define( [], function() {
+define( [ 'utils/utils', 'mvc/ui/ui-misc' ], function( Utils, Ui ) {
     var View = Backbone.View.extend({
 
         initialize: function( options ) {
@@ -10,27 +10,38 @@ define( [], function() {
         render: function() {
             var self = this,
                 min_query_length = 3;
-            $.getJSON( Galaxy.root + 'api/histories/published/', function( response ) {
-                self.$el.empty().append( self._templateHeader() );
-                var tags = [],
-                    $el_tags = null;
-                _.each(response, function( item ) {
-                    _.each( item.tags, function( tag_item ) {
-                        // Add unique tag names to the list
-                        if( !_.contains(tags, tag_item) ) {
-                            tags.push( tag_item );
-                        }
-                    });
-                });
-                
-                // Append templates
-                $el_tags = self.$el.find( '.published-histories' );
-                $el_tags.append( self._templateTagsTableActionButtons() );
-                $el_tags.append( self._templateHistoryTagsTable( self, tags ) );
-                self.register_tag_click( self, tags, response );
 
-                // Register search tags event
-                self.filter_items( self, self.$el.find( '.search-tags-input' ), self.$el.find( '.search-tags-tbody tr' ), min_query_length );
+            Utils.get({
+                url: Galaxy.root + 'api/histories/published/',
+                data: { 'detailed': 'detailed' },
+                success: function( response ) {
+                    var tags = [],
+                        $el_tags = null;
+                    self.$el.empty().append( self._templateHeader() )
+                    _.each(response, function( item ) {
+                        _.each( item.tags, function( tag_item ) {
+                            // Add unique tag names to the list
+                            if( !_.contains(tags, tag_item) ) {
+                                tags.push( tag_item );
+                            }
+                        });
+                    });
+                
+                    // Append templates
+                    $el_tags = self.$el.find( '.published-histories' );
+                    $el_tags.append( self._templateTagsTableActionButtons() );
+                    $el_tags.append( self._templateHistoryTagsTable( self, tags ) );
+                    self.register_tag_click( self, tags, response );
+
+                    // Register search tags event
+                    self.filter_items( self, self.$el.find( '.search-tags-input' ), self.$el.find( '.search-tags-tbody tr' ), min_query_length );
+                },
+                error: function( response ) {
+                    var error_msg = "Error occurred while loading the resource.",
+                        options = { 'message': error_msg, 'status': 'error', 'persistent': true, 'cls': 'errormessage' },
+                        error = new Ui.Message( options );
+                    self.$el.empty().append( error.$el );
+                }
             });
         },
 
@@ -46,9 +57,11 @@ define( [], function() {
                     $el_td.empty().append( template_tag_history_item );
                     if( $el_tr.css( "display" ) === "none" ) {
                         $el_tr.show();
+                        $el_tags.find( '.history-tag-' + tag ).removeClass( 'fa-plus-square-o' ).addClass( 'fa-minus-square-o ' );
                     }
                     else {
                         $el_tr.hide();
+                        $el_tags.find( '.history-tag-' + tag ).addClass( 'fa-plus-square-o' ).removeClass( 'fa-minus-square-o ' );
                     }
                 });
             });
@@ -96,7 +109,7 @@ define( [], function() {
 
             _.each( tags, function( tag ) {
                 trHtml = trHtml + '<tr>' +
-                              '<td> <a class="history-tag-'+ tag +'" href="#">' + tag + '</a></td>' +
+                              '<td> <a class="fa fa-plus-square-o history-tag-'+ tag +' tags-link"><span>' + tag.toLowerCase() + '</span></a></td>' +
                          '</tr>' + 
                          '<tr class="tr-'+ tag +' published-history-tr">' +
                               '<td></td>' +
@@ -121,11 +134,13 @@ define( [], function() {
             tableHtml = tableHtml + '<table class="table colored"><thead>' +
                     '<tr class="header">' +
                         '<th>Name</th>' +
+                        '<th>Annotation</th>' +
                     '</tr></thead>';
             _.each( published_history_list, function( history_item ) {
                 if( _.contains( history_item.tags, tag ) ) {
                     trHtml = trHtml + '<tr>' +
-                        '<td>' + history_item.name + '</td>' +
+                        '<td><a href=' + Galaxy.root + history_item.username_and_slug + '>' + _.escape( history_item.name ) + '</a></td>' +
+                        '<td>' + _.escape( history_item.annotation ) + '</td>' +
                     '</tr>';
                 }
             });

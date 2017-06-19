@@ -256,7 +256,7 @@ class HistoriesController( BaseAPIController, ExportsHistoryMixin, ImportsHistor
         rval = []
         for history in histories:
             history_dict = self.history_serializer.serialize_to_view( history, user=trans.user, trans=trans,
-                **self._parse_serialization_params( kwd, 'summary' ) )
+                **self._parse_serialization_params( kwd, 'detailed' ) )
             rval.append( history_dict )
         return rval
 
