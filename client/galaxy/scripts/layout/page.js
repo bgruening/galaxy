@@ -134,26 +134,29 @@ define( [ 'layout/masthead', 'layout/panel', 'mvc/ui/ui-modal' ], function( Mast
             var host = window.Galaxy.config.communication_server_host,
                 port = window.Galaxy.config.communication_server_port,
                 preferences = window.Galaxy.user.attributes.preferences,
+                enable_communication_server = Galaxy.config.enable_communication_server,
                 $chat_icon_element = $( "#show-chat-online" );
             /** Check if the user has deactivated the communication in it's personal settings */
-            if ( preferences && [ '1', 'true' ].indexOf( preferences.communication_server ) != -1 ) {
+            if ( enable_communication_server && preferences && [ '1', 'true' ].indexOf( preferences.communication_server ) != -1 ) {
                 // See if the configured communication server is available
                 $.ajax({
                     url: host + ":" + port,
+                    cache: false,
                 })
                 .success( function( data ) {
-                        // enable communication only when a user is logged in
-                        if( window.Galaxy.user.id !== null ) {
-                            if( $chat_icon_element.css( "visibility")  === "hidden" ) {
-                                $chat_icon_element.css( "visibility", "visible" ); 
-                            }
+                    // enable communication only when a user is logged in
+                    if( window.Galaxy.user.id !== null ) {
+                        if( $chat_icon_element.css( "visibility")  === "hidden" ) {
+                            $chat_icon_element.css( "visibility", "visible" );
                         }
+                    }
                 })
                 .error( function( data ) { 
                     // hide the communication icon if the communication server is not available
                     $chat_icon_element.css( "visibility", "hidden" ); 
                 });
-            } else {
+            }
+            else {
                 $chat_icon_element.css( "visibility", "hidden" ); 
             }
         },
