@@ -151,7 +151,7 @@ def static_style():
 
 @socketio.on('event connect', namespace='/chat')
 def event_connect(message):
-    log.info("%s connected" % (current_user.username,))
+    log.info("%s connected" % current_user.username)
 
 
 @socketio.on('event broadcast', namespace='/chat')
