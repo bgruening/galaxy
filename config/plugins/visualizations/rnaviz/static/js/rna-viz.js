@@ -13,6 +13,7 @@ var RNAInteractionViewer = (function( riv ) {
     riv.showRecords = 1000;
     riv.model = null;
     riv.configObject = null;
+    riv.minQueryLength = 3;
 
     /** Create a url with the specified query */
     riv.formUrl = function( configObject, query ) {
@@ -35,7 +36,87 @@ var RNAInteractionViewer = (function( riv ) {
         templateText = riv.createInteractionTemplate( configObject );
         $elContainer.html( templateText );
         $elContainer.find( ".one-sample" ).show();
+        riv.registerPageEvents();
         riv.buildInteractionsPanel( configObject, records );
+    };
+    
+    riv.registerPageEvents = function() {
+        var $elSearchGene = $( '.search-gene' ),
+            $elSort = $( '.rna-sort' ),
+            $elFilter = $( '.rna-filter' ),
+            $elFilterVal = $( '.filter-value' ),
+            $elExport = $( '.export-results' ),
+            $elResetFilters = $( '.reset-filters' ),
+            $elSummary = $( '.rna-summary' );
+
+        // search query event
+        $elSearchGene.off( 'keyup' ).on( 'keyup', function( e ) {
+            riv.searchGene( e );
+        });
+
+        // onchange for sort
+        $elSort.off( 'change' ).on( 'change', function( e ) {
+            riv.sortInteractions( e );
+        });
+
+        // onchange for filter
+        $elFilter.off( 'change' ).on( 'change', function( e ) {
+            riv.filterInteractions( e );
+        });
+
+        // fetch records using filter's value
+        $elFilterVal.off( 'keyup' ).on( 'keyup', function( e ) {
+            riv.setFilterValue( e );
+        });
+
+        // export samples in the workspace
+        $elExport.off( 'click' ).on( 'click', function( e ) {
+            riv.exportInteractions( e );
+        });
+
+        // reset the filters
+        $elResetFilters.off( 'click' ).on( 'click', function( e ) {
+            riv.resetFilters( e );
+        });
+
+        $elSummary.off( 'click' ).on( 'click', function( e ) {
+            riv.getInteractionsSummary( e );
+        });
+    };
+    
+    /** Callback for searching interactions */ 
+    riv.searchGene = function( e ) {
+        e.preventDefault();
+        var query = e.target.value;
+        if( query.length >= riv.minQueryLength ) {
+            if( e.which === 13 || e.keyCode == 13 ) {
+                riv.makeSearch( query );
+            }
+        }
+        else {
+            return false;
+        }
+    };
+    
+    riv.makeSearch = function( query ) {
+        var queryLike = "%" + query + "%",
+            colNames = { "txid1": queryLike, "txid2": queryLike, "geneid1": queryLike,
+                         "geneid2": queryLike, "symbol1":queryLike, "symbol2": queryLike,
+                         "type1":queryLike, "type2": queryLike },              
+            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "LIKE", "OR" ),
+            url = riv.formUrl( riv.configObject, dbQuery );
+        riv.ajaxCall( url, riv.configObject, riv.createUI );
+    };
+    
+    riv.setDefaultFilters = function() {
+        $( '.rna-filter' ).val( "-1" );
+        $( '.filter-operator' ).hide();
+        $( '.filter-operator' ).val( "-1" );
+        $( '.filter-value' )[ 0 ].value = "";
+        $( '.search-gene' )[ 0 ].value = "";
+        $( '.rna-sort' ).val( "score" );
+        $( '.check-all-interactions' )[ 0 ].checked = false;
+        riv.cleanSummary();
     };
 
     /** Create a list of interactions panel */
@@ -266,15 +347,32 @@ var RNAInteractionViewer = (function( riv ) {
         alignment = VisualizeAlignment.repres( viz4d );
         return alignment;
     };
+    
+    riv.constructQuery = function( tableName, conditionValueDict={}, equalityOp="=", joinCondition="", orderByCol="score", orderByDirection="DESC" ) {
+        var query = "&query=",
+            colsNum = Object.keys( conditionValueDict ).length;
+        query = query + "SELECT * FROM " + tableName;
+        if( Object.keys( conditionValueDict ) && Object.keys( conditionValueDict ).length > 0 ) {
+            query = query + " WHERE ";
+            var colsCounter = 0;
+            for( var item in conditionValueDict ) {
+                query = query + tableName + "." + item + " " + equalityOp + " " + "'" + conditionValueDict[ item ] + "'";
+                if( colsCounter < colsNum - 1 ) {
+                    query = query + " " + joinCondition + " ";
+                }
+                colsCounter++;
+            }
+        }
+        query = query + " ORDER BY " + tableName + "." + orderByCol + " " + orderByDirection;
+        return query;
+    };
 
     /** Create Cytoscape graphs */
     riv.fetchRNAPairGraphInformation = function( item ) {
-        //TODO Add lines of code
-        // riv.configObject
-        var tableName = riv.configObject.tableNames[ "name" ],
-            query = "&query=SELECT * FROM " + tableName + " WHERE " + tableName + "." + "geneid1 = " + "'" + item[ 4 ] + "'" + " OR " +
-                tableName + "." + "geneid2 = " + "'" + item[ 5 ] + "'",
-            graphLoadingText = "<p class='load-graph'>loading interactions graph...</p>"
+        var graphLoadingText = "<p class='load-graph'>loading interactions graph...</p>",
+            colNames = { "geneid1": item[ 4 ], "geneid2": item[ 5 ] },
+            query = "";
+        query = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "=","OR" );
         $( "#interaction-graph-1" ).html( graphLoadingText );
         $( "#interaction-graph-2" ).html( graphLoadingText );
         riv.configObject.gene1 = item[ 4 ];
@@ -434,8 +532,17 @@ var RNAInteractionViewer = (function( riv ) {
         });
 
         // when a node is tapped, make a search with the node's text
+        // when a node is tapped, make a search with the node's text
         graph.on( 'tap', 'node', function( ev ) {
-            // TODO: update on node tap
+            var query = this.id(),
+                conf = window.confirm( "Do you want to make a search for geneid - " + query );
+            if ( conf && conf === true ) {
+                riv.makeSearch( query );
+                $( ".search-gene" ).val( query );
+            }
+            else {
+                return false;
+            }
         });
 
         $( window ).resize(function( e ) {
@@ -590,9 +697,6 @@ var RNAInteractionViewer = (function( riv ) {
 		           '<button type="button" class="reset-filters btn btn-primary btn-rna btn-interaction"' +
                                   'title="Reset all the filters and reload original interactions">' +
 			      'Reset filters' +
-		           '</button>' +
-		           '<button type="button" class="back-samples btn btn-primary btn-rna btn-interaction" title="Back to all samples">' +
-			      'Back' +
 		           '</button>' +
                        '</div>' +
                        '<div class="col-sm-2"></div>' +
