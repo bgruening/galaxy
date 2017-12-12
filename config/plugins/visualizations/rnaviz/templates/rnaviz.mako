@@ -5,9 +5,9 @@
     <title>Galaxy SQLite Data Viewer</title>
 
     <link rel="stylesheet" href="/plugins/visualizations/rnaviz/static/css/bootstrap.min.css">
+    <link href="/plugins/visualizations/rnaviz/static/css/font-awesome.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/plugins/visualizations/rnaviz/static/css/jquery.mCustomScrollbar.min.css">
     <link rel="stylesheet" href="/plugins/visualizations/rnaviz/static/css/rna.viz.css">
-    
     
 </head>
 <body class="body-rna-viz">

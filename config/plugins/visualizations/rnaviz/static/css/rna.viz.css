@@ -1,10 +1,18 @@
 
+html, body {
+    height: 100%;
+}
+
 .body-rna-viz {
     font-family: "Lucida Grande", verdana, arial, helvetica, sans-serif;
     font-size: 9pt;
     background-color: #f8f8f8;
-    width: 99.1%;
+    width: 100%;
     overflow: hidden;
+}
+
+.main-container {
+    height: 100%;
 }
 
 .row {
@@ -32,6 +40,7 @@
 .samples-loader,
 .sample-ids {
     display: none;
+    height: 100%;
 }
 
 .heading {
@@ -52,6 +61,7 @@
     padding-left: 0;
     height: 100%;
     border-right: 1px solid black;
+    overflow: hidden;
 }
 
 .samples {
@@ -73,12 +83,13 @@
     border-top: 1px solid black;
     border-bottom: 1px solid black;
     background-color: white;
+    height: 84%;
 }
 
 .sample-ids, .transcriptions-ids {
     overflow-y: visible;
     padding-top: 1%;
-    height: 620px;
+    height: 100%;
     font-size: 8pt;
 }
 
@@ -136,6 +147,7 @@
 
 .both-genes {
     display: none;
+    height: 100%;
 }
 
 .pair-mouseenter, .selected-item {
@@ -162,8 +174,9 @@
 }
 
 .interaction-header a {
-    margin-left: 70%;
+    margin-left: 1%;
     font-weight: normal;
+    color: black;
 }
 
 p {
@@ -173,18 +186,20 @@ p {
 .single-interactions-info {
     padding-top: 1%;
     display: inline-block;
-    width: 48%;
-    height: 62%;
+    width: 49%;
+    height: 65%;
     overflow: auto;
 }
 
 #info-gene1 {
     margin: 0 1% 0 1%;
+    overflow: hidden;
 }
 
 #info-gene2 {
     border-left: 1px solid black;
     padding-left: 1%;
+    overflow: hidden;
 }
 
 .seq-alignment {

@@ -508,8 +508,9 @@ var RNAInteractionViewer = (function( riv ) {
     },
 
     riv.createAlignmentTemplate = function( alignment, energyExpr ) {
-        return "<div class='interaction-header'>Alignment Information <a href='#' class='download-alignment'" +
-               "title='Download the alignment as text file'>Download Alignment</a></div>" +
+        return "<div class='interaction-header'>Alignment Information  <a href='#' class='download-alignment'" +
+               "title='Download the alignment as text file'><i class='fa fa-download' aria-hidden='true'></i>" +
+               "</a></div>" +
                "<span class='alignment-energy' title='Gibbs free energy'>" + energyExpr + "</span>" +
                "<div class='seq-alignment' title='Sequence alignment'><pre class='pre-align'>" + alignment + "</pre></div>";
     };
