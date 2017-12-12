@@ -12,6 +12,7 @@ var RNAInteractionViewer = (function( riv ) {
     riv.modelHeaders = null;
     riv.showRecords = 1000;
     riv.model = null;
+    riv.configObject = null;
 
     /** Create a url with the specified query */
     riv.formUrl = function( configObject, query ) {
@@ -269,6 +270,179 @@ var RNAInteractionViewer = (function( riv ) {
     /** Create Cytoscape graphs */
     riv.fetchRNAPairGraphInformation = function( item ) {
         //TODO Add lines of code
+        // riv.configObject
+        var tableName = riv.configObject.tableNames[ "name" ],
+            query = "&query=SELECT * FROM " + tableName + " WHERE " + tableName + "." + "geneid1 = " + "'" + item[ 4 ] + "'" + " OR " +
+                tableName + "." + "geneid2 = " + "'" + item[ 5 ] + "'",
+            graphLoadingText = "<p class='load-graph'>loading interactions graph...</p>"
+        $( "#interaction-graph-1" ).html( graphLoadingText );
+        $( "#interaction-graph-2" ).html( graphLoadingText );
+        riv.configObject.gene1 = item[ 4 ];
+        riv.configObject.gene2 = item[ 5 ];
+        var url = riv.formUrl( riv.configObject, query );
+        riv.ajaxCall( url, riv.configObject, riv.separateInteractions );
+    };
+
+    /** Separate the records based on geneids for creating two cytoscape graphs */
+    riv.separateInteractions = function( configObject, records ) {
+        var data = records.data,
+            gene1InteractionsUnpacked = [],
+            gene2InteractionsUnpacked = [];
+
+        _.each( data, function( rec ) {
+            if( rec[ 4 ] === configObject.gene1 ) {
+                gene1InteractionsUnpacked.push( rec );
+            }
+            else if( rec[ 5 ] === configObject.gene2 ) {
+                gene2InteractionsUnpacked.push( rec );
+            }
+        });
+        
+        riv.buildCytoscapeGraphData( gene1InteractionsUnpacked, gene2InteractionsUnpacked );
+    };
+    
+    /** Create data for building cytoscape graphs */
+    riv.buildCytoscapeGraphData = function( interactions1, interactions2 ) {
+        var $elGene1 = document.getElementById( 'interaction-graph-1' ),
+            $elGene2 = document.getElementById( 'interaction-graph-2' ),
+            gene1Nodes = [],
+            gene1Edges = [],
+            gene2Nodes = [],
+            gene2Edges = [];
+
+        $elGene1.style.width = "400px";
+        $elGene1.style.height = "220px";
+        $elGene1.style.position = "relative";
+        $elGene2.style.width = "400px";
+        $elGene2.style.height = "220px";
+        $elGene2.style.position = "relative";
+
+        var source1 = interactions1[ 0 ][ 4 ];
+        gene1Nodes.push( {
+            data: { id: source1 }
+        });
+
+        // alignment scores
+        var scores1 = interactions1.map(function( row ) {
+                          return row[ 28 ];
+                      });
+        var maxScore1 = scores1.reduce(function(a, b) {
+                            return Math.max(a, b);
+                        });
+
+        var scores2 = interactions2.map(function( row ) {
+                          return row[ 28 ];
+                      });
+
+        var maxScore2 = scores2.reduce(function(a, b) {
+                            return Math.max(a, b);
+                        });
+
+        // gene expression
+        var expression1 = interactions1.map(function( row ) { 
+                          return row[ 25 ];
+                      });
+        var maxExpr1 = expression1.reduce(function(a, b) {
+                            return Math.max(a, b);
+                        });
+
+        var expression2 = interactions2.map(function( row ) { 
+                          return row[ 24 ];
+                      });
+
+        var maxExpr2 = expression2.reduce(function(a, b) {
+                          return Math.max(a, b);
+                      });
+
+        _.each( interactions1, function( item ) {
+            var targetGeneId = item[ 5 ];
+            gene1Nodes.push( {
+                data: { id: targetGeneId, weight: ( item[ 25 ] / maxExpr1 ) }
+            });
+            gene1Edges.push( {
+                data: { source: source1, target: targetGeneId, weight: ( item[ 28 ] / maxScore1 ) }
+            });
+        });
+
+        var source2 = interactions2[ 0 ][ 5 ];
+        gene2Nodes.push( {
+            data: { id: source2 }
+        });
+
+        _.each( interactions2, function( item ) {
+            var targetGeneId = item[ 4 ];
+            gene2Nodes.push( {
+                data: { id: targetGeneId, weight: ( item[ 24 ] / maxExpr2 ) }
+            });
+            gene2Edges.push( {
+                data: { source: source2, target: targetGeneId, weight: ( item[ 28 ] / maxScore2 ) }
+            });
+        });
+
+        // make call to cytoscape to generate graphs
+        var cytoscapePromise = new Promise( function( resolve, reject ) {
+            resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges } ) );
+            resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene2Nodes, edges: gene2Edges } ) );
+        });
+
+        cytoscapePromise.then(function() {
+            $( "#interaction-graph-1" ).find( '.load-graph' ).remove();
+            $( "#interaction-graph-2" ).find( '.load-graph' ).remove();
+        });
+    };
+
+    /** Create cytoscape graph */
+    riv.makeCytoGraph = function( data ) {
+        var graph = null;
+        graph = cytoscape({
+            container: data.elem,
+            elements: {
+                nodes: data.nodes,
+                edges: data.edges
+            },
+            layout: {
+                name: 'concentric'
+            },
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'content': 'data(id)',
+                        'width': 'mapData(weight, 0, 1, 20, 60)',
+                        'height': 'mapData(weight, 0, 1, 20, 60)',
+                        'text-opacity': 1,
+                        'text-valign': 'center',
+                        'text-halign': 'right',
+                        'background-color': '#337ab7',
+                        'font-size': '9pt',
+                        'font-family': '"Lucida Grande", verdana, arial, helvetica, sans-serif'
+                    }
+                },
+
+                {
+                    selector: 'edge',
+                    style: {
+                        "width": "mapData(weight, 0, 1, 1, 8)",
+                        'line-color': '#9dbaea',
+                        'curve-style': 'haystack',
+                        'target-arrow-shape': 'triangle',
+                        'font-size': '9pt',
+                        'font-family': '"Lucida Grande", verdana, arial, helvetica, sans-serif'
+                    }
+                }
+            ]
+        });
+
+        // when a node is tapped, make a search with the node's text
+        graph.on( 'tap', 'node', function( ev ) {
+            // TODO: update on node tap
+        });
+
+        $( window ).resize(function( e ) {
+            graph.resize();
+        });
+
+        return graph;
     };
 
     /** Switch between two sections and one section */
@@ -306,6 +480,7 @@ var RNAInteractionViewer = (function( riv ) {
     riv.loadData = function( configObject ) {
         var query = '&query=SELECT * FROM ' + configObject.tableNames[ "name" ],
             urlValue = riv.formUrl( configObject, query );
+        riv.configObject = configObject
         riv.ajaxCall( urlValue, configObject, riv.createUI );
     };
 
