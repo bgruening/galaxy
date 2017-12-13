@@ -260,6 +260,10 @@ p {
     z-index: 1;
 }
 
+.samples-overlay > span {
+    margin-left: 45%;
+}
+
 .plot-loader {
     margin: 1% 0 0 38%;
 }

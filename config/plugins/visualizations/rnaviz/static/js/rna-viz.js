@@ -23,6 +23,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Make an ajax call with a url */
     riv.ajaxCall = function( url, callBack, configOb={} ) {
+        riv.$elLoader.show();
         $.get( url, function( data ) {
             callBack( data, configOb );
         });
@@ -34,10 +35,11 @@ var RNAInteractionViewer = (function( riv ) {
             $elContainer = $( ".main-container" );
  
         templateText = riv.createInteractionTemplate();
-        $elContainer.html( templateText );
+        $elContainer.append( templateText );
         $elContainer.find( ".one-sample" ).show();
         riv.registerPageEvents();
         riv.buildInteractionsPanel( data );
+        riv.$elLoader.hide();
     };
     
     riv.registerPageEvents = function() {
@@ -225,6 +227,7 @@ var RNAInteractionViewer = (function( riv ) {
         link.setAttribute( 'download', file_name );
         document.body.appendChild( link );
         linkClick = link.click();
+        riv.$elLoader.hide()
     };
 
     /** Slice off the first row containing table headers */
@@ -323,7 +326,6 @@ var RNAInteractionViewer = (function( riv ) {
             summaryItems = [];
 
         riv.showHideGeneSections( true );
-        riv.$elLoader.show();
         _.each( checkboxes, function( item ) {
             if( item.checked ) {
                 checkedIds = ( checkedIds === "" ) ? item.id : checkedIds + ',' + item.id;
@@ -360,9 +362,8 @@ var RNAInteractionViewer = (function( riv ) {
             filterType = $elFilterType.find( ":selected" ).val();
 
         riv.cleanSummary();
-        riv.showHideGeneSections( true );
         riv.$elLoader.show();
-
+        riv.showHideGeneSections( true );
         $( '#rna-score' ).append( "<p class='plot-loader'>Loading plots. Please wait...</p>" );
         $( '#rna-type2' ).append( "<p class='plot-loader'>Loading plots. Please wait...</p>" );
         
@@ -614,9 +615,9 @@ var RNAInteractionViewer = (function( riv ) {
         }
         else {
            $elInteractionsList.html( "<div> No results found. </div>" );
-           return;
         }     
         $elInteractionsList.show();
+        riv.$elLoader.hide();
     };
 
     /** Register events for the items in the interactions list */
@@ -943,6 +944,7 @@ var RNAInteractionViewer = (function( riv ) {
         cytoscapePromise.then(function() {
             $( "#interaction-graph-1" ).find( '.load-graph' ).remove();
             $( "#interaction-graph-2" ).find( '.load-graph' ).remove();
+            riv.$elLoader.hide();
         });
     };
 
@@ -1046,6 +1048,7 @@ var RNAInteractionViewer = (function( riv ) {
         var query = '&query=SELECT * FROM ' + configObject.tableNames[ "name" ],
             urlValue = riv.formUrl( configObject, query );
         riv.configObject = configObject;
+        riv.$elLoader.show();
         riv.ajaxCall( urlValue, riv.createUI, configObject );
     };
 
