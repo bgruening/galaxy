@@ -15,6 +15,7 @@
         <div class="samples-overlay loader"></div>
     </div>
     <script src="/plugins/visualizations/rnaviz/static/js/lib/jquery-3.2.1.min.js"></script>
+    <script src="/plugins/visualizations/rnaviz/static/js/lib/plotly.min.js"></script>
     <script src="/plugins/visualizations/rnaviz/static/js/lib/bootstrap.min.js"></script>
     <script src="/plugins/visualizations/rnaviz/static/js/lib/underscore.min.js"></script>
     <script src="/plugins/visualizations/rnaviz/static/js/lib/cytoscape.min.js"></script>

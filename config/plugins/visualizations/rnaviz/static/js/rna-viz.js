@@ -47,7 +47,8 @@ var RNAInteractionViewer = (function( riv ) {
             $elFilterVal = $( '.filter-value' ),
             $elExport = $( '.export-results' ),
             $elResetFilters = $( '.reset-filters' ),
-            $elSummary = $( '.rna-summary' );
+            $elSummary = $( '.rna-summary' ),
+            $elCheckAll = $( '.check-all-interactions' );
 
         // search query event
         $elSearchGene.off( 'keyup' ).on( 'keyup', function( e ) {
@@ -82,6 +83,19 @@ var RNAInteractionViewer = (function( riv ) {
         $elSummary.off( 'click' ).on( 'click', function( e ) {
             riv.getInteractionsSummary( e );
         });
+
+        $elCheckAll.off( 'click' ).on( 'click', function( e ) {
+            riv.checkAllInteractions( e );
+        });
+    };
+
+    /** Select all the interactions in the left panel */
+    riv.checkAllInteractions = function( e ) {
+        var $elInteractionsChecked = $( '.rna-interaction' ),
+            checkallStatus = e.target.checked;
+        _.each( $elInteractionsChecked, function( item ) {
+            item.checked = checkallStatus ? true : false;
+        });
     };
     
     /** Callback for searching interactions */ 
@@ -106,6 +120,286 @@ var RNAInteractionViewer = (function( riv ) {
             dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "LIKE", "OR" ),
             url = riv.formUrl( riv.configObject, dbQuery );
         riv.ajaxCall( url, riv.configObject, riv.createUI );
+    };
+
+    riv.getInteractionsSummary = function( e ) {
+        e.preventDefault();
+        var checkedIds = "",
+            checkboxes = $( '.rna-interaction' ),
+            summaryItems = [],
+            summaryResultType2 = {},
+            summaryResultScore = [],
+            summaryResultScore1 = [],
+            summaryResultScore2 = [],
+            summaryResultEnergy = [],
+            summaryResultAlignment1 = [],
+            summaryResultAlignment2 = [],
+            summaryResultGeneExpr1 = [],
+            summaryResultGeneExpr2 = [],
+            summaryResultSymbol1 = [];
+
+        riv.showHideGeneSections( true );
+        _.each( checkboxes, function( item ) {
+            if( item.checked ) {
+                checkedIds = ( checkedIds === "" ) ? item.id : checkedIds + ',' + item.id;
+            }
+        });
+        checkedIds = checkedIds.split( "," );
+        // if there are no checked interactions, then summary is computed over
+        // server for all the interactions for that sample (or filtered interactions)
+        $( '.rna-pair' ).removeClass( 'selected-item' );
+        if( checkedIds && checkedIds[ 0 ] === "" ) {
+            //riv.fetchSummaryAllInteractions();
+        }
+        else {
+            _.each( checkedIds, function( id ) {
+                for( var ctr = 0, len = riv.model.length; ctr < len; ctr++ ) {
+                    var item = riv.model[ ctr ];
+                    if ( id.toString() === item[ 0 ].toString() ) {
+                        summaryItems.push( item );
+                        break;
+                    }
+                }
+            });
+
+            // summary fields - geneid (1 and 2) and type (1 and 2)
+            _.each( summaryItems, function( item ) {
+
+                summaryResultType2[ item[ 9 ] ] = ( summaryResultType2[ item[ 9 ] ] || 0 ) + 1;
+                summaryResultScore1.push( item[ 26 ] );
+                summaryResultScore2.push( item[ 27 ] );
+                summaryResultScore.push( item[ 28 ] );
+                summaryResultEnergy.push( item[ 32 ] );
+                summaryResultGeneExpr1.push( item[ 24 ] );
+                summaryResultGeneExpr2.push( item[ 25 ] );
+                summaryResultSymbol1[ item[ 6 ] ] = ( summaryResultSymbol1[ item[ 6 ] ] || 0 ) + 1;
+
+                // select only unique gene ids
+                var presentGene1 = _.findWhere( summaryResultAlignment1, { geneid: item[ 4 ] } );
+                if( !presentGene1 ) {
+                    summaryResultAlignment1.push({
+                        startPos: item[ 10 ],
+                        endPos: item[ 11 ],
+                        seqLength: item[ 12 ],
+                        geneid: item[ 4 ],
+                        symbol: item[ 6 ]
+                    });
+                }
+ 
+                var presentGene2 = _.findWhere( summaryResultAlignment2, { geneid: item[ 5 ] } );
+                if( !presentGene2 ) {
+                    summaryResultAlignment2.push({
+                        startPos: item[ 13 ],
+                        endPos: item[ 14 ],
+                        seqLength: item[ 15 ],
+                        geneid: item[ 5 ],
+                        symbol: item[ 7 ]
+                    });
+                }
+            });
+
+            // sort the lists by symbol names
+            summaryResultAlignment1 = _.sortBy( summaryResultAlignment1, 'symbol' );
+            summaryResultAlignment2 = _.sortBy( summaryResultAlignment2, 'symbol' );
+            
+            var plottingData = {
+                'family_names_count': summaryResultType2,
+                'score': summaryResultScore,
+                'score1': summaryResultScore1,
+                'score2': summaryResultScore2,
+                'energy': summaryResultEnergy,
+                'rnaexpr1': summaryResultGeneExpr1,
+                'rnaexpr2': summaryResultGeneExpr2,
+                'symbol1': summaryResultSymbol1
+            };
+
+            plottingData.symbol1 = riv.mergeFamiliesToOthers( plottingData.symbol1, summaryResultScore1.length );
+            plottingData.family_names_count = riv.mergeFamiliesToOthers( plottingData.family_names_count, summaryResultScore2.length );
+
+            riv.cleanSummary();
+            var plotPromise = new Promise( function( resolve, reject ) {
+                resolve( riv.plotInteractions( plottingData ) );
+                resolve( riv.makeAlignmentSummary( summaryResultAlignment1, summaryResultAlignment2 ) );
+            });
+        }
+    };
+
+    /** Send data for summary plotting */
+    riv.plotInteractions = function( data ) {
+        var fileName = riv.configObject.tableNames[ "name" ];
+        // build scrolls
+        riv.createFancyScroll( "first-gene" );
+        riv.createFancyScroll( "second-gene" );
+        
+        // plot the summary as pie charts and histograms
+        riv.plotPieChart( data.symbol1, "rna-symbol1", 'Gene1 RNA family distribution' );
+        riv.plotHistogram( data.score, "rna-score", 'Score distribution', "Score", "# Interactions" );
+        riv.plotPieChart( data.family_names_count, "rna-type2", 'Gene2 RNA family distribution' );
+        riv.plotHistogram( data.score1, "rna-score1", 'Score1 distribution', "Score1", "# Interactions" );
+        riv.plotHistogram( data.score2, "rna-score2", 'Score2 distribution', "Score2", "# Interactions" );
+        riv.plotBar( data.energy, "rna-energy", 'Energy distribution', 'Energy (kcal/mol)', "# Interactions" );
+        riv.plotHistogram( data.rnaexpr1, "rna-expr1", 'Gene1 expression distribution', 'Gene1 Expression', "# Interactions" );
+        riv.plotHistogram( data.rnaexpr2, "rna-expr2", 'Gene2 expression distribution', 'Gene2 Expression', "# Interactions" );
+    };
+
+    /** Plot pie chart for interactions chosen for summary */
+    riv.plotPieChart = function( dict, container, name ) {
+        var layout = {
+            title: name,
+            autosize: true,
+            margin: {
+                autoexpand: true
+            },
+            legend:{
+                xanchor: "center",
+                yanchor: "top",
+                y: 0,
+                x: 0.5
+            }
+        },
+        labels = [],
+        values = [];
+
+        _.mapObject( dict, function( value, key ) {
+            labels.push( key );
+            values.push( value ); 
+        });
+
+        var data = [{
+            values: values,
+            labels: labels,
+            type: 'pie'
+        }];
+
+        Plotly.newPlot( container, data, layout );
+    };
+
+    /** Plot histogram for interactions chosen for summary */
+    riv.plotHistogram = function( data, container, name, xTitle, yTitle ) {
+	var trace = {
+	    x: data,
+	    type: 'histogram',
+        }, 
+        layout = {
+            autosize: true,
+            margin: {
+                autoexpand: true
+            },
+            title: name,
+            xaxis: {
+                title: xTitle
+            },
+            yaxis: {
+                title: yTitle
+            },
+        }; 
+        var plot_data = [ trace ];
+	Plotly.newPlot( container, plot_data, layout );
+    };
+
+    /** Plot bar for interactions chosen for summary */
+    riv.plotBar = function( data, container, name, xTitle, yTitle ) {
+	var trace = [
+            {
+                x: data,
+	        type: 'bar'
+            }
+        ], 
+        layout = {
+            autosize: true,
+            margin: {
+                autoexpand: true
+            },
+            title: name,
+            xaxis: {
+                title: xTitle
+            },
+            yaxis: {
+                title: yTitle
+            },
+        };
+	Plotly.newPlot( container, trace, layout );
+    };
+
+    /** Make alignment graphics summary for all checked items*/
+    riv.makeAlignmentSummary = function( alignment1, alignment2 ) {
+        var scale = 100,
+            ratio = 0,
+            scaledBegin = 0,
+            scaledEnd = 0,
+            barLength = 0,
+            template1 = "",
+            template2 = "";
+
+        $( '#rna-alignment-graphics1' ).empty();
+        $( '#rna-alignment-graphics2' ).empty();
+        $( '#rna-alignment-graphics1' ).append( "<p>Alignment positions for " + alignment1.length + " interactions on gene1<p>" );
+        $( '#rna-alignment-graphics2' ).append( "<p>Alignment positions for " + alignment2.length + " interactions on gene2<p>" );
+
+        template1 = riv.buildSVGgraphics( alignment1, 'gene1' );
+        $( '#rna-alignment-graphics1' ).append( template1 );
+
+        template2 = riv.buildSVGgraphics( alignment2, 'gene2' );
+        $( '#rna-alignment-graphics2' ).append( template2 );
+    };
+
+    /** Build SVG graphics  */
+    riv.buildSVGgraphics = function( alignmentCollection, geneType ) {
+        var tableTemplate = "",
+            scale = 100,
+            heightDiff = 10,
+            alignmentHeight = 30,
+            svgHeight = alignmentCollection.length * alignmentHeight,
+            xOffset = 10,
+            yOffset = 2,
+            seqLengthXPos = 200,
+            symbolXPos = 300,
+            symbolSearchUrl = "";
+
+        tableTemplate = '<div><svg height="'+ svgHeight +'" width="500">';
+        _.each( alignmentCollection, function( item, index ) {
+            seq1Scale = item.seqLength < scale ? item.seqLength : scale;
+            ratio = scale / item.seqLength,
+            scaledBegin = parseInt( ratio * item.startPos ) + xOffset,
+	    scaledEnd = parseInt( ratio * item.endPos ) + xOffset,
+            barLength = ( item.endPos - item.startPos ),
+            seqEndPos = scaledBegin + barLength + ratio * ( item.seqLength - item.endPos );
+            symbolSearchUrl = 'https://www.google.com/search?q=' + ( geneType === 'gene1' ? item.symbol : item.geneid );
+
+            tableTemplate += '<line x1="'+ xOffset +'" y1="'+ heightDiff +'" x2="'+ scaledBegin +'" y2="'+ heightDiff +'" style="stroke:black;stroke-width:2" />' +
+                '<rect x="'+ scaledBegin +'" y="'+ (heightDiff - 5) +'" width="'+ barLength +'" height="10" style="fill:green" />' +
+                '<line x1="'+ (scaledBegin + barLength) +'" y1="'+ heightDiff +'" x2="'+ seqEndPos +'" y2="'+ heightDiff +'" style="stroke:black;stroke-width:2" />' +
+                '<text x="'+ seqLengthXPos +'" y="'+ (heightDiff + yOffset) +'" fill="black">'+ item.seqLength +'</text>' +
+                '<a xlink:href="'+ symbolSearchUrl +'" target="_blank">' +
+                    '<text x="'+ symbolXPos +'" y="'+ (heightDiff + yOffset) +'" fill="black">'+ item.symbol +'</text>' +
+                '</a>';
+
+             heightDiff += alignmentHeight;
+        });
+        tableTemplate += '</svg></div>';
+        return tableTemplate;
+    }
+
+    /**Merge the families whose counts are very small to none category */
+    riv.mergeFamiliesToOthers = function( symbolsCount, interactionsCount ) {
+        var otherCategoryCount = 0,
+            familiesCount = {},
+            minShare = 0.01;
+        for( var item in symbolsCount ) {
+            var count = symbolsCount[ item ],
+                share = count / interactionsCount;
+            // if the overall share of any family is less than 1%, then merge all these families to "none" category
+            if( share < minShare ) {
+                otherCategoryCount += count;
+            }
+            else {
+                familiesCount[ item ] = count;
+            }
+        }
+        if ( otherCategoryCount > 0 ) {
+            familiesCount[ "none" ] = otherCategoryCount;
+        }
+        return familiesCount;
     };
     
     riv.setDefaultFilters = function() {
