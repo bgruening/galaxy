@@ -14,6 +14,7 @@ var RNAInteractionViewer = (function( riv ) {
     riv.model = null;
     riv.configObject = null;
     riv.minQueryLength = 3;
+    riv.$elLoader = $( '.loader' );
 
     /** Create a url with the specified query */
     riv.formUrl = function( configObject, query ) {
@@ -21,23 +22,22 @@ var RNAInteractionViewer = (function( riv ) {
     };
 
     /** Make an ajax call with a url */
-    riv.ajaxCall = function( url, configObject, callBack ) {
+    riv.ajaxCall = function( url, callBack, configOb={} ) {
         $.get( url, function( data ) {
-            callBack( configObject, data );
+            callBack( data, configOb );
         });
     };
 
     /** Create the UI when a sqlite file is clicked */
-    riv.createUI = function( configObject, data ) {
-        var records = data.data,
-            templateText = "",
+    riv.createUI = function( data  ) {
+        var templateText = "",
             $elContainer = $( ".main-container" );
  
-        templateText = riv.createInteractionTemplate( configObject );
+        templateText = riv.createInteractionTemplate();
         $elContainer.html( templateText );
         $elContainer.find( ".one-sample" ).show();
         riv.registerPageEvents();
-        riv.buildInteractionsPanel( configObject, records );
+        riv.buildInteractionsPanel( data );
     };
     
     riv.registerPageEvents = function() {
@@ -104,7 +104,8 @@ var RNAInteractionViewer = (function( riv ) {
         var query = e.target.value;
         if( query.length >= riv.minQueryLength ) {
             if( e.which === 13 || e.keyCode == 13 ) {
-                riv.makeSearch( query );
+                var url = riv.makeSearchURL( query );
+                riv.ajaxCall( url, riv.buildInteractionsPanel );
             }
         }
         else {
@@ -112,22 +113,33 @@ var RNAInteractionViewer = (function( riv ) {
         }
     };
     
-    riv.makeSearch = function( query ) {
-        var queryLike = "%" + query + "%",
-            colNames = { "txid1": queryLike, "txid2": queryLike, "geneid1": queryLike,
-                         "geneid2": queryLike, "symbol1":queryLike, "symbol2": queryLike,
-                         "type1":queryLike, "type2": queryLike },              
-            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "LIKE", "OR" ),
-            url = riv.formUrl( riv.configObject, dbQuery );
-        riv.ajaxCall( url, riv.configObject, riv.createUI );
+    riv.makeSearchURL = function( query ) {
+        if ( query !== "" ) {
+            var queryLike = "%" + query + "%",
+                colNames = { "txid1": queryLike, "txid2": queryLike, "geneid1": queryLike,
+                    "geneid2": queryLike, "symbol1":queryLike, "symbol2": queryLike,
+                    "type1":queryLike, "type2": queryLike },
+                dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "LIKE", "OR" ),
+                url = riv.formUrl( riv.configObject, dbQuery );
+            return url;
+        }
     };
 
-    riv.getInteractionsSummary = function( e ) {
-        e.preventDefault();
-        var checkedIds = "",
-            checkboxes = $( '.rna-interaction' ),
-            summaryItems = [],
-            summaryResultType2 = {},
+    riv.exportInteractions = function( e ) {
+
+
+    };
+
+    /** Slice off the first row containing table headers */
+    riv.createSummaryDB = function( summaryItems ) {
+        var records = summaryItems.data;
+        records = records.slice( 1, records.length );
+        riv.createSummary( records );
+    };
+
+    /** Create summary plots */ 
+    riv.createSummary = function( summaryItems ) {
+        var summaryResultType2 = {},
             summaryResultScore = [],
             summaryResultScore1 = [],
             summaryResultScore2 = [],
@@ -137,8 +149,84 @@ var RNAInteractionViewer = (function( riv ) {
             summaryResultGeneExpr1 = [],
             summaryResultGeneExpr2 = [],
             summaryResultSymbol1 = [];
+ 
+        // summary fields - geneid (1 and 2) and type (1 and 2)
+        _.each( summaryItems, function( item ) {
+
+            summaryResultType2[ item[ 9 ] ] = ( summaryResultType2[ item[ 9 ] ] || 0 ) + 1;
+            summaryResultScore1.push( item[ 26 ] );
+            summaryResultScore2.push( item[ 27 ] );
+            summaryResultScore.push( item[ 28 ] );
+            summaryResultEnergy.push( item[ 32 ] );
+            summaryResultGeneExpr1.push( item[ 24 ] );
+            summaryResultGeneExpr2.push( item[ 25 ] );
+            summaryResultSymbol1[ item[ 6 ] ] = ( summaryResultSymbol1[ item[ 6 ] ] || 0 ) + 1;
+
+            // select only unique gene ids
+            var presentGene1 = _.findWhere( summaryResultAlignment1, { geneid: item[ 4 ] } );
+            if( !presentGene1 ) {
+                summaryResultAlignment1.push({
+                    startPos: item[ 10 ],
+                    endPos: item[ 11 ],
+                    seqLength: item[ 12 ],
+                    geneid: item[ 4 ],
+                    symbol: item[ 6 ]
+                });
+            }
+            var presentGene2 = _.findWhere( summaryResultAlignment2, { geneid: item[ 5 ] } );
+            if( !presentGene2 ) {
+                summaryResultAlignment2.push({
+                    startPos: item[ 13 ],
+                    endPos: item[ 14 ],
+                    seqLength: item[ 15 ],
+                    geneid: item[ 5 ],
+                    symbol: item[ 7 ]
+                });
+            }
+        });
+
+        // sort the lists by symbol names
+        summaryResultAlignment1 = _.sortBy( summaryResultAlignment1, 'symbol' );
+        summaryResultAlignment2 = _.sortBy( summaryResultAlignment2, 'symbol' );
+            
+        var plottingData = {
+            'family_names_count': summaryResultType2,
+            'score': summaryResultScore,
+            'score1': summaryResultScore1,
+            'score2': summaryResultScore2,
+            'energy': summaryResultEnergy,
+            'rnaexpr1': summaryResultGeneExpr1,
+            'rnaexpr2': summaryResultGeneExpr2,
+            'symbol1': summaryResultSymbol1
+        };
+
+        // sort the lists by symbols names
+        summaryResultAlignment1 = _.sortBy( summaryResultAlignment1, 'symbol' );
+        summaryResultAlignment2 = _.sortBy( summaryResultAlignment2, 'symbol' );
+
+        plottingData.symbol1 = riv.mergeFamiliesToOthers( plottingData.symbol1, summaryResultScore1.length );
+        plottingData.family_names_count = riv.mergeFamiliesToOthers( plottingData.family_names_count, summaryResultScore2.length );
+
+        riv.cleanSummary();
+        var plotPromise = new Promise( function( resolve, reject ) {
+            resolve( riv.plotInteractions( plottingData ) );
+            resolve( riv.makeAlignmentSummary( summaryResultAlignment1, summaryResultAlignment2 ) );
+        });
+
+        plotPromise.then( function() {
+            riv.$elLoader.hide();
+            $( '.plot-loader' ).remove();
+        });
+    };
+
+    riv.getInteractionsSummary = function( e ) {
+        e.preventDefault();
+        var checkedIds = "",
+            checkboxes = $( '.rna-interaction' ),
+            summaryItems = [];
 
         riv.showHideGeneSections( true );
+        riv.$elLoader.show();
         _.each( checkboxes, function( item ) {
             if( item.checked ) {
                 checkedIds = ( checkedIds === "" ) ? item.id : checkedIds + ',' + item.id;
@@ -149,7 +237,7 @@ var RNAInteractionViewer = (function( riv ) {
         // server for all the interactions for that sample (or filtered interactions)
         $( '.rna-pair' ).removeClass( 'selected-item' );
         if( checkedIds && checkedIds[ 0 ] === "" ) {
-            //riv.fetchSummaryAllInteractions();
+            riv.fetchSummaryAllInteractions();
         }
         else {
             _.each( checkedIds, function( id ) {
@@ -161,67 +249,37 @@ var RNAInteractionViewer = (function( riv ) {
                     }
                 }
             });
-
-            // summary fields - geneid (1 and 2) and type (1 and 2)
-            _.each( summaryItems, function( item ) {
-
-                summaryResultType2[ item[ 9 ] ] = ( summaryResultType2[ item[ 9 ] ] || 0 ) + 1;
-                summaryResultScore1.push( item[ 26 ] );
-                summaryResultScore2.push( item[ 27 ] );
-                summaryResultScore.push( item[ 28 ] );
-                summaryResultEnergy.push( item[ 32 ] );
-                summaryResultGeneExpr1.push( item[ 24 ] );
-                summaryResultGeneExpr2.push( item[ 25 ] );
-                summaryResultSymbol1[ item[ 6 ] ] = ( summaryResultSymbol1[ item[ 6 ] ] || 0 ) + 1;
-
-                // select only unique gene ids
-                var presentGene1 = _.findWhere( summaryResultAlignment1, { geneid: item[ 4 ] } );
-                if( !presentGene1 ) {
-                    summaryResultAlignment1.push({
-                        startPos: item[ 10 ],
-                        endPos: item[ 11 ],
-                        seqLength: item[ 12 ],
-                        geneid: item[ 4 ],
-                        symbol: item[ 6 ]
-                    });
-                }
- 
-                var presentGene2 = _.findWhere( summaryResultAlignment2, { geneid: item[ 5 ] } );
-                if( !presentGene2 ) {
-                    summaryResultAlignment2.push({
-                        startPos: item[ 13 ],
-                        endPos: item[ 14 ],
-                        seqLength: item[ 15 ],
-                        geneid: item[ 5 ],
-                        symbol: item[ 7 ]
-                    });
-                }
-            });
-
-            // sort the lists by symbol names
-            summaryResultAlignment1 = _.sortBy( summaryResultAlignment1, 'symbol' );
-            summaryResultAlignment2 = _.sortBy( summaryResultAlignment2, 'symbol' );
-            
-            var plottingData = {
-                'family_names_count': summaryResultType2,
-                'score': summaryResultScore,
-                'score1': summaryResultScore1,
-                'score2': summaryResultScore2,
-                'energy': summaryResultEnergy,
-                'rnaexpr1': summaryResultGeneExpr1,
-                'rnaexpr2': summaryResultGeneExpr2,
-                'symbol1': summaryResultSymbol1
-            };
-
-            plottingData.symbol1 = riv.mergeFamiliesToOthers( plottingData.symbol1, summaryResultScore1.length );
-            plottingData.family_names_count = riv.mergeFamiliesToOthers( plottingData.family_names_count, summaryResultScore2.length );
-
-            riv.cleanSummary();
-            var plotPromise = new Promise( function( resolve, reject ) {
-                resolve( riv.plotInteractions( plottingData ) );
-                resolve( riv.makeAlignmentSummary( summaryResultAlignment1, summaryResultAlignment2 ) );
-            });
+            riv.createSummary( summaryItems );
         }
+    };
+
+    riv.fetchSummaryAllInteractions = function( e ) {
+        var url = "",
+            queryString = "",
+            $elSearchGene = $( '.search-gene' ),
+            $elFilterType = $( '.rna-filter' ),
+            $elFilterOperator = $( '.filter-operator' ),
+            $elFilterValue = $( '.filter-value' ),
+            filterType = $elFilterType.find( ":selected" ).val();
+
+        riv.cleanSummary();
+        riv.showHideGeneSections( true );
+        riv.$elLoader.show();
+
+        $( '#rna-score' ).append( "<p class='plot-loader'>Loading plots. Please wait...</p>" );
+        $( '#rna-type2' ).append( "<p class='plot-loader'>Loading plots. Please wait...</p>" );
+        
+        // take into account if the filters are active while fetching 
+        // summary data and build url accordingly
+        queryString = $elSearchGene.val()
+        if ( queryString !== "" ) {
+            url = riv.makeSearchURL( queryString );
+        }
+        else {
+            var dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ] ),
+            url = riv.formUrl( riv.configObject, dbQuery );
+        }
+        riv.ajaxCall( url, riv.createSummaryDB );
     };
 
     /** Send data for summary plotting */
@@ -352,8 +410,8 @@ var RNAInteractionViewer = (function( riv ) {
             svgHeight = alignmentCollection.length * alignmentHeight,
             xOffset = 10,
             yOffset = 2,
-            seqLengthXPos = 200,
-            symbolXPos = 300,
+            seqLengthXPos = 160,
+            symbolXPos = 200,
             symbolSearchUrl = "";
 
         tableTemplate = '<div><svg height="'+ svgHeight +'" width="500">';
@@ -374,7 +432,7 @@ var RNAInteractionViewer = (function( riv ) {
                     '<text x="'+ symbolXPos +'" y="'+ (heightDiff + yOffset) +'" fill="black">'+ item.symbol +'</text>' +
                 '</a>';
 
-             heightDiff += alignmentHeight;
+            heightDiff += alignmentHeight;
         });
         tableTemplate += '</svg></div>';
         return tableTemplate;
@@ -403,25 +461,27 @@ var RNAInteractionViewer = (function( riv ) {
     };
     
     riv.setDefaultFilters = function() {
-        $( '.rna-filter' ).val( "-1" );
+        /*$( '.rna-filter' ).val( "-1" );
         $( '.filter-operator' ).hide();
         $( '.filter-operator' ).val( "-1" );
         $( '.filter-value' )[ 0 ].value = "";
         $( '.search-gene' )[ 0 ].value = "";
         $( '.rna-sort' ).val( "score" );
-        $( '.check-all-interactions' )[ 0 ].checked = false;
+        $( '.check-all-interactions' )[ 0 ].checked = false;*/
         riv.cleanSummary();
     };
 
     /** Create a list of interactions panel */
-    riv.buildInteractionsPanel = function( configObject, records ) {
+    riv.buildInteractionsPanel = function( records ) {
         var $elParentInteractionIds = $( ".rna-transcriptions-container" ),
             $elInteractionsList = $( ".transcriptions-ids" ),
             $elShowModelSizeText = $( ".sample-current-size" ),
             sizeText = "",
             interactionsTemplate = "",
             header = null,
-            interactions = null;
+            interactions = null,
+            configObject = riv.configObject,
+            records = records.data;
         
         if ( records && records.length > 0 ) {
             // set the models
@@ -672,11 +732,11 @@ var RNAInteractionViewer = (function( riv ) {
         riv.configObject.gene1 = item[ 4 ];
         riv.configObject.gene2 = item[ 5 ];
         var url = riv.formUrl( riv.configObject, query );
-        riv.ajaxCall( url, riv.configObject, riv.separateInteractions );
+        riv.ajaxCall( url, riv.separateInteractions, riv.configObject );
     };
 
     /** Separate the records based on geneids for creating two cytoscape graphs */
-    riv.separateInteractions = function( configObject, records ) {
+    riv.separateInteractions = function( records, configObject ) {
         var data = records.data,
             gene1InteractionsUnpacked = [],
             gene2InteractionsUnpacked = [];
@@ -881,8 +941,8 @@ var RNAInteractionViewer = (function( riv ) {
     riv.loadData = function( configObject ) {
         var query = '&query=SELECT * FROM ' + configObject.tableNames[ "name" ],
             urlValue = riv.formUrl( configObject, query );
-        riv.configObject = configObject
-        riv.ajaxCall( urlValue, configObject, riv.createUI );
+        riv.configObject = configObject;
+        riv.ajaxCall( urlValue, riv.createUI, configObject );
     };
 
     /** Create fancy scrollbars */
@@ -921,11 +981,11 @@ var RNAInteractionViewer = (function( riv ) {
                '<span class="rna-pair-interaction">' + record[ 2 ] + '-' + record[ 3 ]  + '</span></div>';
     }; 
 
-    riv.createInteractionTemplate = function( options ) {
+    riv.createInteractionTemplate = function() {
         return '<div class="container one-sample">' +
                    '<div class="row">' +
                        '<div class="col-sm-2 elem-rna">' +
-                           '<div class="sample-name">' + options.dataName +'</div>' +
+                           '<div class="sample-name">' + riv.configObject.dataName +'</div>' +
                            '<div class="sample-current-size"></div>' +
                        '</div>' +
                        '<div class="col-sm-2 elem-rna">' +
