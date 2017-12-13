@@ -98,6 +98,7 @@ var RNAInteractionViewer = (function( riv ) {
         url = riv.formUrl( riv.configObject, dbQuery );
         riv.ajaxCall( url, riv.buildInteractionsPanel );
         riv.setDefaultFilters();
+        riv.cleanSummary();
     };
 
     riv.filterInteractions = function( e ) {
@@ -111,29 +112,39 @@ var RNAInteractionViewer = (function( riv ) {
     riv.setFilterValue = function( e ) {
         e.preventDefault();
         var query = e.target.value,
-            filterType = "",
+            dbQuery = "",
+            url = "";
+        if( ( e.which === 13 || e.keyCode === 13 ) && query.length >= riv.minQueryLength ) { // search on enter click
+            dbQuery = riv.getFilterQuery( query );
+            url = riv.formUrl( riv.configObject, dbQuery );
+            riv.ajaxCall( url, riv.buildInteractionsPanel );
+            riv.cleanSummary();
+        }
+    };
+
+    riv.getFilterQuery = function( query ) {
+        var filterType = "",
             filterOperator = "",
             $elFilter = $( '.rna-filter' ),
             $elFilterOperator = $( '.filter-operator' ),
-            dbQuery = "",
-            url = "";
-        if( e.which === 13 || e.keyCode === 13 ) { // search on enter click
-            filterType = $elFilter.find( ":selected" ).val();
-            filterOperator = $elFilterOperator.find( ":selected" ).text();
-            if ( filterType === "-1" || query === "" ) return;
-            if ( filterType === "score" && isNaN( query ) ) return;
+            $elSearchBox = $( '.search-gene' ),
+            dbQuery = "";
 
-            if ( filterType === "score" ) {
-                dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "score": parseFloat( query ) }, filterOperator );
-            }
-            else if( filterType === "family" ) {
-                query = "%" + query + "%";
-                dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "type1": query, "type2": query }, "LIKE", "OR" );
-            }
-            url = riv.formUrl( riv.configObject, dbQuery );
-            riv.ajaxCall( url, riv.buildInteractionsPanel );
-            $( '.search-gene' )[ 0 ].value = "";
+        $elSearchBox[ 0 ].value = "";
+        filterType = $elFilter.find( ":selected" ).val();
+        filterOperator = $elFilterOperator.find( ":selected" ).text();
+
+        if ( filterType === "-1" || query === "" ) return;
+        if ( filterType === "score" && isNaN( query ) ) return;
+
+        if ( filterType === "score" ) {
+            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "score": parseFloat( query ) }, filterOperator );
         }
+        else if( filterType === "family" ) {
+            query = "%" + query + "%";
+            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "type1": query, "type2": query }, "LIKE", "OR" );
+        }
+        return dbQuery;
     };
 
     riv.resetFilters = function( e ) {
@@ -159,6 +170,7 @@ var RNAInteractionViewer = (function( riv ) {
                 var url = riv.makeSearchURL( query );
                 riv.ajaxCall( url, riv.buildInteractionsPanel );
                 riv.setDefaultFilters();
+                riv.cleanSummary();
             }
         }
         else {
@@ -177,10 +189,16 @@ var RNAInteractionViewer = (function( riv ) {
     };
 
     riv.exportInteractions = function( e ) {
-        var query = $( '.search-gene' ).val();
+        var query = $( '.search-gene' ).val(),
+            filterQuery = $( '.filter-value' ).val(),
+            url = "";
 
         if ( query !== "" ) {
             url = riv.makeSearchURL( query );
+        }
+        else if( filterQuery.length > 0 ) {
+            dbQuery = riv.getFilterQuery( filterQuery );
+            url = riv.formUrl( riv.configObject, dbQuery );
         }
         else {
             var dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ] ),
@@ -559,25 +577,31 @@ var RNAInteractionViewer = (function( riv ) {
     /** Create a list of interactions panel */
     riv.buildInteractionsPanel = function( records ) {
         var $elParentInteractionIds = $( ".rna-transcriptions-container" ),
-            $elInteractionsList = $( ".transcriptions-ids" ),
             $elShowModelSizeText = $( ".sample-current-size" ),
+            $elInteractionsList = null,
             sizeText = "",
             interactionsTemplate = "",
             header = null,
             interactions = null,
             configObject = riv.configObject,
+            modelLength = 0,
             records = records.data;
 
-        if ( records && records.length > 0 ) {
+        $( '.transcriptions-ids' ).remove();
+        $elParentInteractionIds.append( '<div class="transcriptions-ids"></div>' );
+        $elInteractionsList = $( ".transcriptions-ids" );
+
+        if ( records && records.length > 1 ) {
             // set the models
             riv.modelHeaders = records[ 0 ];
             riv.model = records.slice( 1, records.length );
+            modelLength = riv.model.length
             // show how many records being shown
-            if( riv.model.length >= riv.showRecords ) {
-                sizeText = "Showing <b>" + riv.showRecords + "</b> interactions of <b>" + riv.model.length + "</b>";
+            if( modelLength >= riv.showRecords ) {
+                sizeText = "Showing <b>" + riv.showRecords + "</b> interactions of <b>" + modelLength + "</b>";
             }
             else {
-                sizeText = "Showing only <b>" + riv.model.length + " </b>interactions";
+                sizeText = "Showing only <b>" + modelLength + " </b>interactions";
             }
             $elShowModelSizeText.empty().html( sizeText );
 
@@ -965,14 +989,14 @@ var RNAInteractionViewer = (function( riv ) {
         });
 
         // when a node is tapped, make a search with the node's text
-        // when a node is tapped, make a search with the node's text
         graph.on( 'tap', 'node', function( ev ) {
             var query = this.id(),
                 conf = window.confirm( "Do you want to make a search for geneid - " + query );
             if ( conf && conf === true ) {
-                riv.makeSearch( query );
-                $( ".search-gene" ).val( query );
+                riv.ajaxCall( riv.makeSearchURL( query ), riv.buildInteractionsPanel );
                 riv.setDefaultFilters();
+                riv.cleanSummary();
+                $( ".search-gene" ).val( query );
             }
             else {
                 return false;
