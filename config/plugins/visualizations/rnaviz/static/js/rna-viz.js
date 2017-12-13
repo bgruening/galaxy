@@ -10,9 +10,9 @@ along with cytoscape graphs
 var RNAInteractionViewer = (function( riv ) {
  
     riv.modelHeaders = null;
-    riv.showRecords = 1000;
-    riv.model = null;
     riv.configObject = null;
+    riv.model = null;
+    riv.showRecords = 1000;
     riv.minQueryLength = 3;
     riv.$elLoader = $( '.loader' );
 
@@ -42,6 +42,7 @@ var RNAInteractionViewer = (function( riv ) {
         riv.$elLoader.hide();
     };
     
+    /** Register events for UI elements */
     riv.registerPageEvents = function() {
         var $elSearchGene = $( '.search-gene' ),
             $elSort = $( '.rna-sort' ),
@@ -74,7 +75,7 @@ var RNAInteractionViewer = (function( riv ) {
 
         // export samples in the workspace
         $elExport.off( 'click' ).on( 'click', function( e ) {
-            riv.exportInteractions( e );
+            riv.fetchInteractionsSummaryExport( riv.createExportData );
         });
 
         // reset the filters
@@ -82,15 +83,18 @@ var RNAInteractionViewer = (function( riv ) {
             riv.resetFilters( e );
         });
 
+        // summary event
         $elSummary.off( 'click' ).on( 'click', function( e ) {
             riv.getInteractionsSummary( e );
         });
-
+        
+        // check all event
         $elCheckAll.off( 'click' ).on( 'click', function( e ) {
             riv.checkAllInteractions( e );
         });
     };
 
+    /** Event callback for sorting element */
     riv.sortInteractions = function( e ) {
         var value = e.target.value,
             url = "",
@@ -103,6 +107,7 @@ var RNAInteractionViewer = (function( riv ) {
         riv.cleanSummary();
     };
 
+    /** Callback to show operator select or not */
     riv.filterInteractions = function( e ) {
         e.preventDefault();
         var value = e.target.value,
@@ -111,6 +116,7 @@ var RNAInteractionViewer = (function( riv ) {
         value === "score" ? $elFilterOperator.show() : $elFilterOperator.hide();
     };
 
+    /** Execute filter with the correct query */
     riv.setFilterValue = function( e ) {
         e.preventDefault();
         var query = e.target.value,
@@ -126,6 +132,7 @@ var RNAInteractionViewer = (function( riv ) {
         }
     };
 
+    /** Return a query for the selected filter */
     riv.getFilterQuery = function( query ) {
         var filterType = "",
             filterOperator = "",
@@ -138,6 +145,7 @@ var RNAInteractionViewer = (function( riv ) {
         filterType = $elFilter.find( ":selected" ).val();
         filterOperator = $elFilterOperator.find( ":selected" ).val();
         
+        // validations against wrong entry
         if ( filterType === "-1" || query === "" ) return;
         if ( filterType === "score" && ( isNaN( query ) || filterOperator === "-1" ) ) return;
 
@@ -150,6 +158,7 @@ var RNAInteractionViewer = (function( riv ) {
         return dbQuery;
     };
 
+    /** Reload the visualizer */
     riv.resetFilters = function( e ) {
         riv.setToDefaults();
         riv.loadData( riv.configObject );
@@ -181,6 +190,7 @@ var RNAInteractionViewer = (function( riv ) {
         }
     };
     
+    /** Prepare url for searching taking multiple columns from the database table */
     riv.makeSearchURL = function( query ) {
         var queryLike = "%" + query + "%",
             colNames = { "txid1": queryLike, "txid2": queryLike, "geneid1": queryLike,
@@ -191,27 +201,7 @@ var RNAInteractionViewer = (function( riv ) {
         return url;
     };
 
-    riv.exportInteractions = function( e ) {
-        var query = $( '.search-gene' ).val(),
-            filterQuery = $( '.filter-value' ).val(),
-            url = "";
-
-        if ( query !== "" ) {
-            url = riv.makeSearchURL( query );
-        }
-        else if( filterQuery.length > 0 ) {
-            dbQuery = riv.getFilterQuery( filterQuery );
-            if ( dbQuery !== undefined && dbQuery !== "" && dbQuery !== null ) {
-                url = riv.formUrl( riv.configObject, dbQuery );
-            }
-        }
-        else {
-            var dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ] );
-            url = riv.formUrl( riv.configObject, dbQuery );
-        }
-        riv.ajaxCall( url, riv.createExportData );
-    };
-
+    /** Callback event for exporting data using export button */ 
     riv.createExportData = function( records ) {
         var inte_records = [],
             tsv_data = null,
@@ -322,6 +312,7 @@ var RNAInteractionViewer = (function( riv ) {
         });
     };
 
+    /** Prepare summary of interactions either from the selected ones or taken from the file */
     riv.getInteractionsSummary = function( e ) {
         e.preventDefault();
         var checkedIds = "",
@@ -341,7 +332,7 @@ var RNAInteractionViewer = (function( riv ) {
         if( checkedIds && checkedIds[ 0 ] === "" ) {
             riv.fetchSummaryAllInteractions();
         }
-        else {
+        else { // summary for all the selected/checked ones
             _.each( checkedIds, function( id ) {
                 for( var ctr = 0, len = riv.model.length; ctr < len; ctr++ ) {
                     var item = riv.model[ ctr ];
@@ -355,32 +346,47 @@ var RNAInteractionViewer = (function( riv ) {
         }
     };
 
+    /** Fetch all the records from file for showing summary (with or without filter) */
     riv.fetchSummaryAllInteractions = function( e ) {
-        var url = "",
-            queryString = "",
-            $elSearchGene = $( '.search-gene' ),
-            $elFilterType = $( '.rna-filter' ),
-            $elFilterOperator = $( '.filter-operator' ),
-            $elFilterValue = $( '.filter-value' ),
-            filterType = $elFilterType.find( ":selected" ).val();
-
         riv.cleanSummary();
         riv.$elLoader.show();
         riv.showHideGeneSections( true );
         $( '#rna-score' ).append( "<p class='plot-loader'>Loading plots. Please wait...</p>" );
         $( '#rna-type2' ).append( "<p class='plot-loader'>Loading plots. Please wait...</p>" );
-        
+        riv.fetchInteractionsSummaryExport( riv.createSummaryDB );
+    };
+    
+    /** Select records from file with or without filters for summary and exports */
+    riv.fetchInteractionsSummaryExport = function( callBack ) {
+        var url = "",
+            searchQuery = "",
+            filterQuery = "",
+            dbQuery = "",
+            $elSearchGene = $( '.search-gene' ),
+            $elFilterValue = $( '.filter-value' );
+    
         // take into account if the filters are active while fetching 
         // summary data and build url accordingly
-        queryString = $elSearchGene.val()
-        if ( queryString !== "" ) {
-            url = riv.makeSearchURL( queryString );
+        searchQuery = $elSearchGene.val();
+        filterQuery = $elFilterValue.val();
+        
+        // while fetching records, take into account if there is 
+        // any filter active. If it is fetch only those records which satisfy
+        // the conditions of the filter
+        if ( searchQuery !== "" ) {
+            url = riv.makeSearchURL( searchQuery );
+        }
+        else if( filterQuery.length > 0 ) {
+            dbQuery = riv.getFilterQuery( filterQuery );
+            if ( dbQuery !== undefined && dbQuery !== "" && dbQuery !== null ) {
+                url = riv.formUrl( riv.configObject, dbQuery );
+            }
         }
         else {
-            var dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ] ),
+            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ] ),
             url = riv.formUrl( riv.configObject, dbQuery );
         }
-        riv.ajaxCall( url, riv.createSummaryDB );
+        riv.ajaxCall( url, callBack );
     };
 
     /** Send data for summary plotting */
@@ -537,7 +543,7 @@ var RNAInteractionViewer = (function( riv ) {
         });
         tableTemplate += '</svg></div>';
         return tableTemplate;
-    }
+    };
 
     /**Merge the families whose counts are very small to none category */
     riv.mergeFamiliesToOthers = function( symbolsCount, interactionsCount ) {
@@ -809,6 +815,7 @@ var RNAInteractionViewer = (function( riv ) {
         return alignment;
     };
     
+    /** Construct database query using table name and clauses */
     riv.constructQuery = function( tableName, conditionValueDict={}, equalityOp="=", joinCondition="", orderByCol="score", orderByDirection="DESC" ) {
         var query = "&query=",
             colsNum = Object.keys( conditionValueDict ).length;
@@ -1019,7 +1026,7 @@ var RNAInteractionViewer = (function( riv ) {
             $( ".second-gene" ).hide();
             $( ".both-genes" ).show();
         }
-    }
+    };
 
     /** Clear the UI elements */
     riv.cleanSummary = function() {
@@ -1036,7 +1043,7 @@ var RNAInteractionViewer = (function( riv ) {
         $( "#rna-symbol1" ).empty();
         $( "#interaction-graph-1" ).empty();
         $( "#interaction-graph-2" ).empty();
-    }
+    };
 
     /** Load sqlite dataset records on first load of the visualization */
     riv.loadData = function( configObject ) {
@@ -1161,6 +1168,5 @@ var RNAInteractionViewer = (function( riv ) {
 
     };
 
-    
     return riv;
 }( RNAInteractionViewer || {} ) );
