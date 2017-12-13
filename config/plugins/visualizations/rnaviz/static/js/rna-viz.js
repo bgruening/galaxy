@@ -118,9 +118,11 @@ var RNAInteractionViewer = (function( riv ) {
             url = "";
         if( ( e.which === 13 || e.keyCode === 13 ) && query.length >= riv.minQueryLength ) { // search on enter click
             dbQuery = riv.getFilterQuery( query );
-            url = riv.formUrl( riv.configObject, dbQuery );
-            riv.ajaxCall( url, riv.buildInteractionsPanel );
-            riv.cleanSummary();
+            if ( dbQuery !== undefined && dbQuery !== "" && dbQuery !== null ) {
+                url = riv.formUrl( riv.configObject, dbQuery );
+                riv.ajaxCall( url, riv.buildInteractionsPanel );
+                riv.cleanSummary();
+            }
         }
     };
 
@@ -134,17 +136,16 @@ var RNAInteractionViewer = (function( riv ) {
 
         $elSearchBox[ 0 ].value = "";
         filterType = $elFilter.find( ":selected" ).val();
-        filterOperator = $elFilterOperator.find( ":selected" ).text();
-
+        filterOperator = $elFilterOperator.find( ":selected" ).val();
+        
         if ( filterType === "-1" || query === "" ) return;
-        if ( filterType === "score" && isNaN( query ) ) return;
+        if ( filterType === "score" && ( isNaN( query ) || filterOperator === "-1" ) ) return;
 
         if ( filterType === "score" ) {
             dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "score": parseFloat( query ) }, filterOperator );
         }
         else if( filterType === "family" ) {
-            query = "%" + query + "%";
-            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "type1": query, "type2": query }, "LIKE", "OR" );
+            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "type1": query, "type2": query }, "=", "OR" );
         }
         return dbQuery;
     };
@@ -200,10 +201,12 @@ var RNAInteractionViewer = (function( riv ) {
         }
         else if( filterQuery.length > 0 ) {
             dbQuery = riv.getFilterQuery( filterQuery );
-            url = riv.formUrl( riv.configObject, dbQuery );
+            if ( dbQuery !== undefined && dbQuery !== "" && dbQuery !== null ) {
+                url = riv.formUrl( riv.configObject, dbQuery );
+            }
         }
         else {
-            var dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ] ),
+            var dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ] );
             url = riv.formUrl( riv.configObject, dbQuery );
         }
         riv.ajaxCall( url, riv.createExportData );
@@ -562,7 +565,6 @@ var RNAInteractionViewer = (function( riv ) {
     riv.setToDefaults = function() {
         $( '.search-gene' )[ 0 ].value = "";
         $( '.rna-sort' ).val( "score" );
-        $( '.check-all-interactions' )[ 0 ].checked = false;
         riv.setDefaultFilters();
         riv.cleanSummary();
     };
@@ -573,6 +575,7 @@ var RNAInteractionViewer = (function( riv ) {
         $( '.filter-operator' ).hide();
         $( '.filter-operator' ).val( "-1" );
         $( '.filter-value' )[ 0 ].value = "";
+        $( '.check-all-interactions' )[ 0 ].checked = false;
     };
 
     /** Create a list of interactions panel */
@@ -589,6 +592,7 @@ var RNAInteractionViewer = (function( riv ) {
             records = records.data;
 
         $( '.transcriptions-ids' ).remove();
+        $elShowModelSizeText.empty();
         $elParentInteractionIds.append( '<div class="transcriptions-ids"></div>' );
         $elInteractionsList = $( ".transcriptions-ids" );
 
@@ -599,13 +603,12 @@ var RNAInteractionViewer = (function( riv ) {
             modelLength = riv.model.length
             // show how many records being shown
             if( modelLength >= riv.showRecords ) {
-                sizeText = "Showing <b>" + riv.showRecords + "</b> interactions of <b>" + modelLength + "</b>";
+                sizeText = "Showing <b>" + riv.showRecords + "</b> of <b>" + modelLength + "</b>";
             }
             else {
                 sizeText = "Showing only <b>" + modelLength + " </b>interactions";
             }
-            $elShowModelSizeText.empty().html( sizeText );
-
+            $elShowModelSizeText.html( sizeText );
             _.each( riv.model, function( item ) {
                 interactionsTemplate = interactionsTemplate + riv.createInteractionsListTemplate( item );
             });
@@ -827,12 +830,9 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Create Cytoscape graphs */
     riv.fetchRNAPairGraphInformation = function( item ) {
-        var graphLoadingText = "<p class='load-graph'>loading interactions graph...</p>",
-            colNames = { "geneid1": item[ 4 ], "geneid2": item[ 5 ] },
+        var colNames = { "geneid1": item[ 4 ], "geneid2": item[ 5 ] },
             query = "";
         query = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "=","OR" );
-        $( "#interaction-graph-1" ).html( graphLoadingText );
-        $( "#interaction-graph-2" ).html( graphLoadingText );
         riv.configObject.gene1 = item[ 4 ];
         riv.configObject.gene2 = item[ 5 ];
         var url = riv.formUrl( riv.configObject, query );
@@ -864,86 +864,81 @@ var RNAInteractionViewer = (function( riv ) {
             gene1Nodes = [],
             gene1Edges = [],
             gene2Nodes = [],
-            gene2Edges = [];
+            gene2Edges = [],
+            cytoscapePromise = null,
+            graphLoadErrorMessage = "Unable to load graph...";
 
-        $elGene1.style.width = "400px";
-        $elGene1.style.height = "220px";
-        $elGene1.style.position = "relative";
-        $elGene2.style.width = "400px";
-        $elGene2.style.height = "220px";
-        $elGene2.style.position = "relative";
-
-        var source1 = interactions1[ 0 ][ 4 ];
-        gene1Nodes.push( {
-            data: { id: source1 }
-        });
-
-        // alignment scores
-        var scores1 = interactions1.map(function( row ) {
-                          return row[ 28 ];
-                      });
-        var maxScore1 = scores1.reduce(function(a, b) {
-                            return Math.max(a, b);
-                        });
-
-        var scores2 = interactions2.map(function( row ) {
-                          return row[ 28 ];
-                      });
-
-        var maxScore2 = scores2.reduce(function(a, b) {
-                            return Math.max(a, b);
-                        });
-
-        // gene expression
-        var expression1 = interactions1.map(function( row ) { 
-                          return row[ 25 ];
-                      });
-        var maxExpr1 = expression1.reduce(function(a, b) {
-                            return Math.max(a, b);
-                        });
-
-        var expression2 = interactions2.map(function( row ) { 
-                          return row[ 24 ];
-                      });
-
-        var maxExpr2 = expression2.reduce(function(a, b) {
-                          return Math.max(a, b);
-                      });
-
-        _.each( interactions1, function( item ) {
-            var targetGeneId = item[ 5 ];
+        if ( interactions1 && interactions1.length > 0 ) {
+            
+            var source1 = interactions1[ 0 ][ 4 ],
+                scores1 = interactions1.map( function( row ) { return row[ 28 ] } ),
+                maxScore1 = scores1.reduce( function( a, b ) { return Math.max( a, b ) } ),
+                expression1 = interactions1.map( function( row ) { return row[ 25 ] } ),
+                maxExpr1 = expression1.reduce( function( a, b ) { return Math.max( a, b ) } );
+            
+            $elGene1.style.width = "400px";
+            $elGene1.style.height = "220px";
+            $elGene1.style.position = "relative";
+            
             gene1Nodes.push( {
-                data: { id: targetGeneId, weight: ( item[ 25 ] / maxExpr1 ) }
+                data: { id: source1 }
             });
-            gene1Edges.push( {
-                data: { source: source1, target: targetGeneId, weight: ( item[ 28 ] / maxScore1 ) }
+
+            _.each( interactions1, function( item ) {
+                var targetGeneId = item[ 5 ];
+                gene1Nodes.push( {
+                    data: { id: targetGeneId, weight: ( item[ 25 ] / maxExpr1 ) }
+                });
+                gene1Edges.push( {
+                    data: { source: source1, target: targetGeneId, weight: ( item[ 28 ] / maxScore1 ) }
+                });
             });
-        });
+            
+            cytoscapePromise = new Promise( function( resolve, reject ) {
+                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges } ) );
+            });  
+        }
+        else {
+            $( $elGene1 ).html( "<p class='graph-error'>"+ graphLoadErrorMessage +"</p>" );
+            riv.$elLoader.hide();
+        }
 
-        var source2 = interactions2[ 0 ][ 5 ];
-        gene2Nodes.push( {
-            data: { id: source2 }
-        });
-
-        _.each( interactions2, function( item ) {
-            var targetGeneId = item[ 4 ];
+        if ( interactions2 && interactions2.length > 0 ) {
+        
+            var scores2 = interactions2.map( function( row ) { return row[ 28 ] } ),
+                maxScore2 = scores2.reduce( function( a, b ) { return Math.max( a, b ) } ),
+                expression2 = interactions2.map( function( row ) { return row[ 24 ] } ),
+                maxExpr2 = expression2.reduce( function(a, b) { return Math.max( a, b ) } ),
+                source2 = interactions2[ 0 ][ 5 ];
+                
+            $elGene2.style.width = "400px";
+            $elGene2.style.height = "220px";
+            $elGene2.style.position = "relative";
+            
             gene2Nodes.push( {
-                data: { id: targetGeneId, weight: ( item[ 24 ] / maxExpr2 ) }
+                data: { id: source2 }
             });
-            gene2Edges.push( {
-                data: { source: source2, target: targetGeneId, weight: ( item[ 28 ] / maxScore2 ) }
+            _.each( interactions2, function( item ) {
+                var targetGeneId = item[ 4 ];
+                gene2Nodes.push( {
+                    data: { id: targetGeneId, weight: ( item[ 24 ] / maxExpr2 ) }
+                });
+                gene2Edges.push( {
+                    data: { source: source2, target: targetGeneId, weight: ( item[ 28 ] / maxScore2 ) }
+                });
             });
-        });
 
-        // make call to cytoscape to generate graphs
-        var cytoscapePromise = new Promise( function( resolve, reject ) {
-            resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges } ) );
-            resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene2Nodes, edges: gene2Edges } ) );
-        });
-
+            // make call to cytoscape to generate graphs
+            cytoscapePromise = new Promise( function( resolve, reject ) {
+                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene2Nodes, edges: gene2Edges } ) );
+            });
+        }
+        else {
+            $( $elGene2 ).html( "<p class='graph-error'>" + graphLoadErrorMessage + "</p>" );
+            riv.$elLoader.hide();
+        }
+        
         cytoscapePromise.then(function() {
-            $( "#interaction-graph-1" ).find( '.load-graph' ).remove();
-            $( "#interaction-graph-2" ).find( '.load-graph' ).remove();
             riv.$elLoader.hide();
         });
     };
@@ -1112,12 +1107,12 @@ var RNAInteractionViewer = (function( riv ) {
 	                   '</select>' +
                            '<select name="filter-operator" class="filter-operator form-control elem-rna" title="Filter operator">' +
         	               '<option value="-1">Choose operator...</option>' +
-	                       '<option value="equal">=</option>' +
-	                       '<option value="greaterthan">></option>' +
-                               '<option value="lessthan"><</option>' +
-                               '<option value="lessthanequal"><=</option>' +
-                               '<option value="greaterthanequal">>=</option>' +
-                               '<option value="notequalto"><></option>' +
+	                       '<option value="=">=</option>' +
+	                       '<option value=">">></option>' +
+                               '<option value="<"><</option>' +
+                               '<option value="<="><=</option>' +
+                               '<option value=">=">>=</option>' +
+                               '<option value="<>"><></option>' +
                            '</select>' +
                          '<input type="text" class="filter-value form-control elem-rna" title="Enter the selected filter value"' +
                              'value="" placeholder="Enter the selected filters value..." />' +
@@ -1146,7 +1141,7 @@ var RNAInteractionViewer = (function( riv ) {
                    '<div class="row">' +
                        '<div class="col-sm-10">' +
                            '<input id="check_all_interactions" type="checkbox" class="check-all-interactions"' +
-                               'value="false" title="Check 1000 interactions" />' +
+                               'value="false" title="Check all displayed interactions" />' +
                            '<span>Check all above</span>' +
 		           '<button type="button" class="rna-summary btn btn-primary btn-rna btn-interaction" title="Get summary of RNA-RNA interactions">' +
 			       'Summary' +

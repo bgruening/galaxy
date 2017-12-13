@@ -280,6 +280,11 @@ p {
     margin-left: 36%;
 }
 
+.graph-error {
+    margin-left: 40%;
+    color: red;
+}
+
 
 #rna-alignment-graphics1 svg, #rna-alignment-graphics2 svg {
     margin-top: 3%;

@@ -12,7 +12,7 @@
 </head>
 <body class="body-rna-viz">
     <div class="main-container">
-        <div class="samples-overlay loader"></div>
+        <div class="samples-overlay loader"><span> loading... </span></div>
     </div>
     <script src="/plugins/visualizations/rnaviz/static/js/lib/jquery-3.2.1.min.js"></script>
     <script src="/plugins/visualizations/rnaviz/static/js/lib/plotly.min.js"></script>
