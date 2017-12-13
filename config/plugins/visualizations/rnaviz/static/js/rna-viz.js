@@ -89,6 +89,58 @@ var RNAInteractionViewer = (function( riv ) {
         });
     };
 
+    riv.sortInteractions = function( e ) {
+        var value = e.target.value,
+            url = "",
+            dbQuery = "";
+        e.preventDefault(); 
+        dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], {}, "", "", value );
+        url = riv.formUrl( riv.configObject, dbQuery );
+        riv.ajaxCall( url, riv.buildInteractionsPanel );
+        riv.setDefaultFilters();
+    };
+
+    riv.filterInteractions = function( e ) {
+        e.preventDefault();
+        var value = e.target.value,
+            $elFilterOperator = $( '.filter-operator' );
+        // if the selected filter is 'score', show the selectbox for operators
+        value === "score" ? $elFilterOperator.show() : $elFilterOperator.hide();
+    };
+
+    riv.setFilterValue = function( e ) {
+        e.preventDefault();
+        var query = e.target.value,
+            filterType = "",
+            filterOperator = "",
+            $elFilter = $( '.rna-filter' ),
+            $elFilterOperator = $( '.filter-operator' ),
+            dbQuery = "",
+            url = "";
+        if( e.which === 13 || e.keyCode === 13 ) { // search on enter click
+            filterType = $elFilter.find( ":selected" ).val();
+            filterOperator = $elFilterOperator.find( ":selected" ).text();
+            if ( filterType === "-1" || query === "" ) return;
+            if ( filterType === "score" && isNaN( query ) ) return;
+
+            if ( filterType === "score" ) {
+                dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "score": parseFloat( query ) }, filterOperator );
+            }
+            else if( filterType === "family" ) {
+                query = "%" + query + "%";
+                dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "type1": query, "type2": query }, "LIKE", "OR" );
+            }
+            url = riv.formUrl( riv.configObject, dbQuery );
+            riv.ajaxCall( url, riv.buildInteractionsPanel );
+            $( '.search-gene' )[ 0 ].value = "";
+        }
+    };
+
+    riv.resetFilters = function( e ) {
+        riv.setToDefaults();
+        riv.loadData( riv.configObject );
+    };
+
     /** Select all the interactions in the left panel */
     riv.checkAllInteractions = function( e ) {
         var $elInteractionsChecked = $( '.rna-interaction' ),
@@ -106,6 +158,7 @@ var RNAInteractionViewer = (function( riv ) {
             if( e.which === 13 || e.keyCode == 13 ) {
                 var url = riv.makeSearchURL( query );
                 riv.ajaxCall( url, riv.buildInteractionsPanel );
+                riv.setDefaultFilters();
             }
         }
         else {
@@ -114,20 +167,46 @@ var RNAInteractionViewer = (function( riv ) {
     };
     
     riv.makeSearchURL = function( query ) {
-        if ( query !== "" ) {
-            var queryLike = "%" + query + "%",
-                colNames = { "txid1": queryLike, "txid2": queryLike, "geneid1": queryLike,
-                    "geneid2": queryLike, "symbol1":queryLike, "symbol2": queryLike,
-                    "type1":queryLike, "type2": queryLike },
-                dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "LIKE", "OR" ),
-                url = riv.formUrl( riv.configObject, dbQuery );
-            return url;
-        }
+        var queryLike = "%" + query + "%",
+            colNames = { "txid1": queryLike, "txid2": queryLike, "geneid1": queryLike,
+                "geneid2": queryLike, "symbol1":queryLike, "symbol2": queryLike,
+                "type1":queryLike, "type2": queryLike },
+            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "LIKE", "OR" ),
+            url = riv.formUrl( riv.configObject, dbQuery );
+        return url;
     };
 
     riv.exportInteractions = function( e ) {
+        var query = $( '.search-gene' ).val();
 
+        if ( query !== "" ) {
+            url = riv.makeSearchURL( query );
+        }
+        else {
+            var dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ] ),
+            url = riv.formUrl( riv.configObject, dbQuery );
+        }
+        riv.ajaxCall( url, riv.createExportData );
+    };
 
+    riv.createExportData = function( records ) {
+        var inte_records = [],
+            tsv_data = null,
+            data = records.data,
+            link = document.createElement( 'a' ),
+            file_name = Date.now().toString( 16 ) + '_results.tsv';
+        // add headers to the tsv file
+        tsv_data = riv.modelHeaders.join( "\t" ) + "\n";
+        data = data.slice( 1, records.length );
+        _.each( data, function( item ) {
+            tsv_data = tsv_data + item.join( "\t" ) + "\n";
+        });
+          
+        tsv_data = window.encodeURIComponent( tsv_data );
+        link.setAttribute( 'href', 'data:application/octet-stream,' + tsv_data );
+        link.setAttribute( 'download', file_name );
+        document.body.appendChild( link );
+        linkClick = link.click();
     };
 
     /** Slice off the first row containing table headers */
@@ -459,16 +538,22 @@ var RNAInteractionViewer = (function( riv ) {
         }
         return familiesCount;
     };
-    
+
+    /** Set to default values */
+    riv.setToDefaults = function() {
+        $( '.search-gene' )[ 0 ].value = "";
+        $( '.rna-sort' ).val( "score" );
+        $( '.check-all-interactions' )[ 0 ].checked = false;
+        riv.setDefaultFilters();
+        riv.cleanSummary();
+    };
+
+    /** Set the filters to their default values */
     riv.setDefaultFilters = function() {
-        /*$( '.rna-filter' ).val( "-1" );
+        $( '.rna-filter' ).val( "-1" );
         $( '.filter-operator' ).hide();
         $( '.filter-operator' ).val( "-1" );
         $( '.filter-value' )[ 0 ].value = "";
-        $( '.search-gene' )[ 0 ].value = "";
-        $( '.rna-sort' ).val( "score" );
-        $( '.check-all-interactions' )[ 0 ].checked = false;*/
-        riv.cleanSummary();
     };
 
     /** Create a list of interactions panel */
@@ -482,7 +567,7 @@ var RNAInteractionViewer = (function( riv ) {
             interactions = null,
             configObject = riv.configObject,
             records = records.data;
-        
+
         if ( records && records.length > 0 ) {
             // set the models
             riv.modelHeaders = records[ 0 ];
@@ -499,15 +584,9 @@ var RNAInteractionViewer = (function( riv ) {
             _.each( riv.model, function( item ) {
                 interactionsTemplate = interactionsTemplate + riv.createInteractionsListTemplate( item );
             });
-            
-            var interactionsPromise = new Promise( function( resolve, reject ) {
-                resolve( $elInteractionsList.append( interactionsTemplate ) );
-            });
-
-            interactionsPromise.then( function() {
-                riv.createFancyScroll( 'transcriptions-ids' );
-                riv.registerEventsInteractions();
-            });
+            $elInteractionsList.empty().append( interactionsTemplate )
+            riv.createFancyScroll( 'transcriptions-ids' );
+            riv.registerEventsInteractions();
         }
         else {
            $elInteractionsList.html( "<div> No results found. </div>" );
@@ -893,6 +972,7 @@ var RNAInteractionViewer = (function( riv ) {
             if ( conf && conf === true ) {
                 riv.makeSearch( query );
                 $( ".search-gene" ).val( query );
+                riv.setDefaultFilters();
             }
             else {
                 return false;
@@ -1050,7 +1130,7 @@ var RNAInteractionViewer = (function( riv ) {
 		           '</button>' +
 		           '<button type="button" class="reset-filters btn btn-primary btn-rna btn-interaction"' +
                                   'title="Reset all the filters and reload original interactions">' +
-			      'Reset filters' +
+			      'Reload' +
 		           '</button>' +
                        '</div>' +
                        '<div class="col-sm-2"></div>' +
