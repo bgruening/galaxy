@@ -12,7 +12,7 @@ var RNAInteractionViewer = (function( riv ) {
     riv.modelHeaders = null;
     riv.configObject = null;
     riv.model = null;
-    riv.showRecords = 1000;
+    riv.showRecords = 5000;
     riv.minQueryLength = 3;
     riv.$elLoader = $( '.loader' );
 
@@ -330,7 +330,7 @@ var RNAInteractionViewer = (function( riv ) {
         // server for all the interactions for that sample (or filtered interactions)
         $( '.rna-pair' ).removeClass( 'selected-item' );
         if( checkedIds && checkedIds[ 0 ] === "" ) {
-            riv.fetchSummaryAllInteractions();
+            riv.fetchSummaryAllInteractions( e );
         }
         else { // summary for all the selected/checked ones
             _.each( checkedIds, function( id ) {
@@ -605,11 +605,12 @@ var RNAInteractionViewer = (function( riv ) {
         if ( records && records.length > 1 ) {
             // set the models
             riv.modelHeaders = records[ 0 ];
-            riv.model = records.slice( 1, records.length );
-            modelLength = riv.model.length
+            records = records.slice( 1, records.length );
+            riv.model = records.slice( 1, riv.showRecords + 1 );
+            modelLength = records.length;
             // show how many records being shown
             if( modelLength >= riv.showRecords ) {
-                sizeText = "Showing <b>" + riv.showRecords + "</b> of <b>" + modelLength + "</b>";
+                sizeText = "Showing <b>" + riv.showRecords + "</b> of <b>" + modelLength + " </b>interactions";
             }
             else {
                 sizeText = "Showing only <b>" + modelLength + " </b>interactions";
