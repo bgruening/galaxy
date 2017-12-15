@@ -137,21 +137,21 @@ html, body {
 
 .first-gene {
     height: 100%;
-    width: 37%;
+    width: 39%;
     border-right: 1px solid black;
     overflow: auto;
 }
 
 .second-gene {
     height: 100%;
-    width: 37%;
+    width: 39%;
     overflow: auto;
 }
 
 .both-genes {
     display: none;
     height: 100%;
-    width: 74%;
+    width: 78%;
 }
 
 .pair-mouseenter, .selected-item {
@@ -191,7 +191,7 @@ p {
     padding-top: 1%;
     display: inline-block;
     width: 49%;
-    height: 65%;
+    height: 68%;
     overflow: auto;
 }
 
