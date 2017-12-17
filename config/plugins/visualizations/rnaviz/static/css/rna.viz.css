@@ -1,14 +1,29 @@
 
 html, body {
     height: 100%;
+    width: 100%;
 }
 
 .body-rna-viz {
     font-family: "Lucida Grande", verdana, arial, helvetica, sans-serif;
     font-size: 9pt;
     background-color: #f8f8f8;
-    width: 100%;
     overflow: hidden;
+}
+
+.samples-overlay {
+    display: none;
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.2);
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%; 
+    z-index: 1;
+}
+
+.samples-overlay > span {
+    margin-left: 45%;
 }
 
 .main-container {
@@ -162,7 +177,7 @@ html, body {
 }
 
 .btn-rna {
-    font-family: "Lucida Grande", verdana, arial, helvetica, sans-serif;
+    font-family: inherit;
     font-size: 9pt;
     margin: 0.5% 0 0 0.3%;
 }
@@ -183,15 +198,11 @@ html, body {
     color: black;
 }
 
-p {
-    margin: 0;
-}
-
 .single-interactions-info {
     padding-top: 1%;
     display: inline-block;
     width: 49%;
-    height: 68%;
+    height: 65%;
     overflow: auto;
 }
 
@@ -249,19 +260,8 @@ p {
     font-size: 13pt;
 }
 
-.samples-overlay {
-    display: none;
-    position: absolute;
-    background-color: rgba(0, 0, 0, 0.2);
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%; 
-    z-index: 1;
-}
-
-.samples-overlay > span {
-    margin-left: 45%;
+#rna-alignment-graphics1 svg, #rna-alignment-graphics2 svg {
+    margin-top: 3%;
 }
 
 .plot-loader {
@@ -283,10 +283,5 @@ p {
 .graph-error {
     margin-left: 40%;
     color: red;
-}
-
-
-#rna-alignment-graphics1 svg, #rna-alignment-graphics2 svg {
-    margin-top: 3%;
 }
 
