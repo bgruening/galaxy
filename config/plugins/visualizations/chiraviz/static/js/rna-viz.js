@@ -99,8 +99,12 @@ var RNAInteractionViewer = (function( riv ) {
         var value = e.target.value,
             url = "",
             dbQuery = "";
-        e.preventDefault(); 
-        dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], {}, "", "", value );
+        e.preventDefault();
+        orderByCol = value.split( "_" );
+        if ( orderByCol.length > 1 )
+            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], {}, "", "", orderByCol[ 0 ], orderByCol[ 1 ].toUpperCase() );
+        else
+            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ] );
         url = riv.formUrl( riv.configObject, dbQuery );
         riv.ajaxCall( url, riv.buildInteractionsPanel );
         riv.setDefaultFilters();
@@ -122,7 +126,7 @@ var RNAInteractionViewer = (function( riv ) {
         var query = e.target.value,
             dbQuery = "",
             url = "";
-        if( ( e.which === 13 || e.keyCode === 13 ) && query.length >= riv.minQueryLength ) { // search on enter click
+        if( e.which === 13 || e.keyCode === 13 ) { // search on enter click
             dbQuery = riv.getFilterQuery( query );
             if ( dbQuery !== undefined && dbQuery !== "" && dbQuery !== null ) {
                 url = riv.formUrl( riv.configObject, dbQuery );
@@ -144,16 +148,17 @@ var RNAInteractionViewer = (function( riv ) {
         $elSearchBox[ 0 ].value = "";
         filterType = $elFilter.find( ":selected" ).val();
         filterOperator = $elFilterOperator.find( ":selected" ).val();
-        
         // validations against wrong entry
         if ( filterType === "-1" || query === "" ) return;
+        
         if ( filterType === "score" && ( isNaN( query ) || filterOperator === "-1" ) ) return;
 
         if ( filterType === "score" ) {
             dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "score": parseFloat( query ) }, filterOperator );
         }
         else if( filterType === "family" ) {
-            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "type1": query, "type2": query }, "=", "OR" );
+            var queryLike = '%' + query + '%';
+            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "type1": queryLike, "type2": queryLike }, "LIKE", "OR" );
         }
         return dbQuery;
     };
@@ -545,7 +550,7 @@ var RNAInteractionViewer = (function( riv ) {
         return tableTemplate;
     };
 
-    /**Merge the families whose counts are very small to none category */
+    /**Merge the families whose counts are very small to others category */
     riv.mergeFamiliesToOthers = function( symbolsCount, interactionsCount ) {
         var otherCategoryCount = 0,
             familiesCount = {},
@@ -553,7 +558,7 @@ var RNAInteractionViewer = (function( riv ) {
         for( var item in symbolsCount ) {
             var count = symbolsCount[ item ],
                 share = count / interactionsCount;
-            // if the overall share of any family is less than 1%, then merge all these families to "none" category
+            // if the overall share of any family is less than 1%, then merge all these families to "others" category
             if( share < minShare ) {
                 otherCategoryCount += count;
             }
@@ -562,7 +567,7 @@ var RNAInteractionViewer = (function( riv ) {
             }
         }
         if ( otherCategoryCount > 0 ) {
-            familiesCount[ "none" ] = otherCategoryCount;
+            familiesCount[ "others" ] = otherCategoryCount;
         }
         return familiesCount;
     };
@@ -570,7 +575,7 @@ var RNAInteractionViewer = (function( riv ) {
     /** Set to default values */
     riv.setToDefaults = function() {
         $( '.search-gene' )[ 0 ].value = "";
-        $( '.rna-sort' ).val( "score" );
+        $( '.rna-sort' ).val( "score_desc" );
         riv.setDefaultFilters();
         riv.cleanSummary();
     };
@@ -815,7 +820,6 @@ var RNAInteractionViewer = (function( riv ) {
         alignment = VisualizeAlignment.repres( viz4d );
         return alignment;
     };
-    
     /** Construct database query using table name and clauses */
     riv.constructQuery = function( tableName, conditionValueDict={}, equalityOp="=", joinCondition="", orderByCol="score", orderByDirection="DESC" ) {
         var query = "&query=",
@@ -1074,7 +1078,7 @@ var RNAInteractionViewer = (function( riv ) {
                        '<p><b>Gene Expression </b>: ' + riv.roundPrecision( parseFloat( item[ 24 + filePos ] ), 1 ) + '</p>' +
 	               '<p><b>Score'+ ( filePos + 1) + '</b>: ' + riv.roundPrecision( parseFloat( item[ 26 + filePos ] ), 1 ) + '</p>' +
                        '<p><b>Gene Aligning Positions:</b></p><svg height="50" width="300" id="align-pos-'+ ( filePos + 1) +'" title="'+ svgTitle +'"></svg>' +
-                       '<p><b>Gene interactions graph:</b></p><div id=interaction-graph-'+ (filePos + 1) +'></div>' +
+                       '<p><b>Gene Interactions Network:</b></p><div id=interaction-graph-'+ (filePos + 1) +'></div>' +
 	        '</span>';
     },
 
@@ -1103,8 +1107,11 @@ var RNAInteractionViewer = (function( riv ) {
                        '</div>' +
                        '<div class="col-sm-2 elem-rna">' +
                            '<select name="sort" class="rna-sort elem-rna form-control elem-rna" title="Sort">' +
-	                       '<option value="score">Score</option>' +
-                               '<option value="energy">Energy</option>' +
+                               '<option value="-1">Sort by...</option>' +
+	                       '<option value="score_asc">Score asc</option>' +
+	                       '<option value="score_desc">Score desc</option>' +
+                               '<option value="energy_asc">Energy asc</option>' +
+                               '<option value="energy_desc">Energy desc</option>' +
                            '</select>' +
                        '</div>' +
                        '<div class="col-sm-6 elem-rna">' +
