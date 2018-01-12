@@ -50,6 +50,7 @@ var RNAInteractionViewer = (function( riv ) {
             $elFilterVal = $( '.filter-value' ),
             $elExport = $( '.export-results' ),
             $elResetFilters = $( '.reset-filters' ),
+            $elToggleLeftPanel = $( '.toggle-left' ),
             $elSummary = $( '.rna-summary' ),
             $elCheckAll = $( '.check-all-interactions' );
 
@@ -92,6 +93,30 @@ var RNAInteractionViewer = (function( riv ) {
         $elCheckAll.off( 'click' ).on( 'click', function( e ) {
             riv.checkAllInteractions( e );
         });
+
+        // check all event
+        $elToggleLeftPanel.off( 'click' ).on( 'click', function( e ) {
+            riv.toggleLeftPanel( e );
+        });  
+    };
+
+    // Toggle the left interactions panel and update the width
+    riv.toggleLeftPanel = function( e ) {
+        var $elLeftPanel = $( '.rna-transcriptions-container' ),
+            $elBothGenes = $( '.both-genes' ),
+            $elFirstGene = $( '.first-gene' ),
+            $elSecondGene = $( '.second-gene' );
+        if ( $elLeftPanel.is(":visible") ) {
+            $elLeftPanel.hide();
+            $elBothGenes.css( "width", "100%" );
+            $elFirstGene.css( "width", "50%" );
+            $elSecondGene.css( "width", "50%" );
+        } else {
+            $elLeftPanel.show();
+            $elBothGenes.css( "width", "78%" );
+            $elFirstGene.css( "width", "39%" );
+            $elSecondGene.css( "width", "39%" );
+        }
     };
 
     /** Event callback for sorting element */
@@ -419,12 +444,6 @@ var RNAInteractionViewer = (function( riv ) {
             autosize: true,
             margin: {
                 autoexpand: true
-            },
-            legend:{
-                xanchor: "center",
-                yanchor: "top",
-                y: 0,
-                x: 0.5
             }
         },
         labels = [],
@@ -438,7 +457,8 @@ var RNAInteractionViewer = (function( riv ) {
         var data = [{
             values: values,
             labels: labels,
-            type: 'pie'
+            type: 'pie',
+            showlegend: false
         }];
 
         Plotly.newPlot( container, data, layout );
@@ -1115,6 +1135,10 @@ var RNAInteractionViewer = (function( riv ) {
 		           '<button type="button" class="reset-filters btn btn-primary btn-rna btn-interaction"' +
                                   'title="Reset all the filters and reload original interactions">' +
 			      'Reload' +
+		           '</button>' +
+                           '<button type="button" class="toggle-left btn btn-primary btn-rna btn-interaction"' +
+                                  'title="Toggle left panel">' +
+			      'Toggle left panel' +
 		           '</button>' +
                        '</div>' +
                        '<div class="col-sm-2"></div>' +

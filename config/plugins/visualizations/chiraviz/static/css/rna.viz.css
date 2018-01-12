@@ -286,6 +286,9 @@ html, body {
     position: relative;
 }
 
+.rna-plots {
+}
+
 .graph-error {
     margin-left: 40%;
     color: red;
