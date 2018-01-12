@@ -1072,27 +1072,29 @@ var RNAInteractionViewer = (function( riv ) {
     riv.createSelectedPairInformation = function( item, id, filePos ) {
         var svgTitle = filePos == 1 ? "Gene aligning positions. The sequence as well as alignment length is scaled to 100 pixels" : "Gene aligning positions";
         return '<span id="'+ id +'" class="single-interactions-info">' +
-	               '<p><b>Geneid</b>: ' + item[ 4 + filePos ] + '</p>' +
-	               '<p><b>Symbol</b>: ' + item[ 6 + filePos ] + '</p>' +
-	               '<p><b>Type</b>: ' + item[ 8 + filePos ] + '</p>' +
-                       '<p><b>Gene Expression </b>: ' + riv.roundPrecision( parseFloat( item[ 24 + filePos ] ), 1 ) + '</p>' +
-	               '<p><b>Score'+ ( filePos + 1) + '</b>: ' + riv.roundPrecision( parseFloat( item[ 26 + filePos ] ), 1 ) + '</p>' +
-                       '<p><b>Gene Aligning Positions:</b></p><svg height="50" width="300" id="align-pos-'+ ( filePos + 1) +'" title="'+ svgTitle +'"></svg>' +
-                       '<p><b>Gene Interactions Network:</b></p><div id=interaction-graph-'+ (filePos + 1) +'></div>' +
+	           '<p><b>Geneid</b>: ' + item[ 4 + filePos ] + '</p>' +
+	           '<p><b>Symbol</b>: ' + item[ 6 + filePos ] + '</p>' +
+	           '<p><b>Type</b>: ' + item[ 8 + filePos ] + '</p>' +
+                   '<p><b>Gene Expression </b>: ' + riv.roundPrecision( parseFloat( item[ 24 + filePos ] ), 1 ) + '</p>' +
+	           '<p><b>Score'+ ( filePos + 1) + '</b>: ' + riv.roundPrecision( parseFloat( item[ 26 + filePos ] ), 1 ) + '</p>' +
+                   '<p><b>Gene Aligning Positions:</b></p><svg height="50" width="300" id="align-pos-'+ ( filePos + 1) +'" title="'+ svgTitle +'"></svg>' +
+                   '<p><b>Gene Interactions Network:</b></p><div id=interaction-graph-'+ (filePos + 1) +'></div>' +
 	        '</span>';
     },
 
     riv.createAlignmentTemplate = function( alignment, energyExpr ) {
-        return "<div class='interaction-header'>Alignment Information  <a href='#' class='download-alignment'" +
-               "title='Download the alignment as text file'><i class='fa fa-download' aria-hidden='true'></i>" +
-               "</a></div>" +
-               "<span class='alignment-energy' title='Gibbs free energy'>" + energyExpr + "</span>" +
-               "<div class='seq-alignment' title='Sequence alignment'><pre class='pre-align'>" + alignment + "</pre></div>";
+        return "<div class='interaction-header'>Alignment Information" +
+                   "<a href='#' class='download-alignment'" +
+                   "title='Download the alignment as text file'><i class='fa fa-download' aria-hidden='true'></i>" +
+                   "</a></div><span class='alignment-energy' title='Gibbs free energy'>" + energyExpr + "</span>" +
+                   "<div class='seq-alignment' title='Sequence alignment'><pre class='pre-align'>" + alignment + "</pre>" +
+               "</div>";
     };
 
     riv.createInteractionsListTemplate = function( record ) {
         return '<div class="rna-pair"><input type="checkbox" id="'+ record[ 0 ] +'" value="" class="rna-interaction" />' +
-               '<span class="rna-pair-interaction">' + record[ 2 ] + '-' + record[ 3 ]  + '</span></div>';
+                   '<span class="rna-pair-interaction">' + record[ 6 ] + '-' + record[ 7 ]  + '</span>' +
+               '</div>';
     }; 
 
     riv.createInteractionTemplate = function() {

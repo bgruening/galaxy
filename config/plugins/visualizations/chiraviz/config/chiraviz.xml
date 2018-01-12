@@ -4,8 +4,8 @@
     <data_sources>
         <data_source>
            <model_class>HistoryDatasetAssociation</model_class>
-           <test type="has_dataprovider" test_attr="datatype">sqlite</test>
-           <to_param param_attr="id">dataset_id</to_param>
+           <test type="isinstance" test_attr="datatype" result_type="datatype">binary.ChiraSQLite</test>
+            <to_param param_attr="id">dataset_id</to_param>
         </data_source>
     </data_sources>
     <params>

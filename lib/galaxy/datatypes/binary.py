@@ -1078,6 +1078,27 @@ class MzSQlite(SQlite):
         return False
 
 
+class ChiraSQLite(SQlite):
+    """Class describing a ChiRAViz Sqlite database """
+    file_ext = "chira.sqlite"
+
+    def set_meta(self, dataset, overwrite=True, **kwd):
+        super(ChiraSQLite, self).set_meta(dataset, overwrite=overwrite, **kwd)
+
+    def sniff(self, filename):
+        if super(ChiraSQLite, self).sniff(filename):
+            try:
+                conn = sqlite.connect(filename)
+                c = conn.cursor()
+                tables_query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+                result = c.execute(tables_query).fetchall()
+                result = [_[0] for _ in result]
+                return True
+            except Exception as e:
+                log.warning('%s, sniff Exception: %s', self, e)
+        return False
+
+
 class IdpDB(SQlite):
     """
     Class describing an IDPicker 3 idpDB (sqlite) database
