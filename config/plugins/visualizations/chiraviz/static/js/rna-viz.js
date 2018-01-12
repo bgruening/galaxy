@@ -845,9 +845,11 @@ var RNAInteractionViewer = (function( riv ) {
         var colNames = { "geneid1": item[ 4 ], "geneid2": item[ 5 ] },
             query = "";
         query = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "=","OR" );
-        riv.configObject.gene1 = item[ 4 ];
-        riv.configObject.gene2 = item[ 5 ];
+        //riv.configObject.gene1 = item[ 4 ];
+        //riv.configObject.gene2 = item[ 5 ];
         var url = riv.formUrl( riv.configObject, query );
+        riv.configObject.geneId1 = item[ 4 ];
+        riv.configObject.geneId2 = item[ 5 ];
         riv.ajaxCall( url, riv.separateInteractions, riv.configObject );
     };
 
@@ -856,94 +858,57 @@ var RNAInteractionViewer = (function( riv ) {
         var data = records.data,
             gene1InteractionsUnpacked = [],
             gene2InteractionsUnpacked = [];
-
-        _.each( data, function( rec ) {
-            if( rec[ 4 ] === configObject.gene1 ) {
-                gene1InteractionsUnpacked.push( rec );
-            }
-            else if( rec[ 5 ] === configObject.gene2 ) {
-                gene2InteractionsUnpacked.push( rec );
-            }
-        });
-        
-        riv.buildCytoscapeGraphData( gene1InteractionsUnpacked, gene2InteractionsUnpacked );
+        graphData = data.slice( 1, data.length );
+        riv.buildCytoscapeGraphData( graphData, configObject );
     };
     
     /** Create data for building cytoscape graphs */
-    riv.buildCytoscapeGraphData = function( interactions1, interactions2 ) {
+    riv.buildCytoscapeGraphData = function( interactions, configObject ) {
         var $elGene1 = document.getElementById( 'interaction-graph-1' ),
             $elGene2 = document.getElementById( 'interaction-graph-2' ),
             gene1Nodes = [],
             gene1Edges = [],
-            gene2Nodes = [],
             gene2Edges = [],
             cytoscapePromise = null,
             graphLoadErrorMessage = "Unable to load graph...";
 
-        if ( interactions1 && interactions1.length > 0 ) {
-            
-            var source1 = interactions1[ 0 ][ 4 ],
-                scores1 = interactions1.map( function( row ) { return row[ 28 ] } ),
-                maxScore1 = scores1.reduce( function( a, b ) { return Math.max( a, b ) } ),
-                expression1 = interactions1.map( function( row ) { return row[ 25 ] } ),
-                maxExpr1 = expression1.reduce( function( a, b ) { return Math.max( a, b ) } );
+        if ( interactions && interactions.length > 0 ) {
             
             $elGene1.style.width = "400px";
             $elGene1.style.height = "220px";
             $elGene1.style.position = "relative";
-            
-            gene1Nodes.push( {
-                data: { id: source1 }
-            });
 
-            _.each( interactions1, function( item ) {
-                var targetGeneId = item[ 5 ];
-                gene1Nodes.push( {
-                    data: { id: targetGeneId, weight: ( item[ 25 ] / maxExpr1 ) }
-                });
-                gene1Edges.push( {
-                    data: { source: source1, target: targetGeneId, weight: ( item[ 28 ] / maxScore1 ) }
-                });
-            });
-            
-            cytoscapePromise = new Promise( function( resolve, reject ) {
-                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges } ) );
-            });  
-        }
-        else {
-            $( $elGene1 ).html( "<p class='graph-error'>"+ graphLoadErrorMessage +"</p>" );
-            riv.$elLoader.hide();
-        }
-
-        if ( interactions2 && interactions2.length > 0 ) {
-        
-            var scores2 = interactions2.map( function( row ) { return row[ 28 ] } ),
-                maxScore2 = scores2.reduce( function( a, b ) { return Math.max( a, b ) } ),
-                expression2 = interactions2.map( function( row ) { return row[ 24 ] } ),
-                maxExpr2 = expression2.reduce( function(a, b) { return Math.max( a, b ) } ),
-                source2 = interactions2[ 0 ][ 5 ];
-                
             $elGene2.style.width = "400px";
             $elGene2.style.height = "220px";
             $elGene2.style.position = "relative";
             
-            gene2Nodes.push( {
-                data: { id: source2 }
-            });
-            _.each( interactions2, function( item ) {
-                var targetGeneId = item[ 4 ];
-                gene2Nodes.push( {
-                    data: { id: targetGeneId, weight: ( item[ 24 ] / maxExpr2 ) }
-                });
-                gene2Edges.push( {
-                    data: { source: source2, target: targetGeneId, weight: ( item[ 28 ] / maxScore2 ) }
-                });
+            _.each( interactions, function( item ) {
+                var score = parseFloat( item[ 28 ] );
+                // consider only those scores whose interaction score is 1
+                if ( score > 0 ) {
+                    gene1Nodes.push({
+                        data: { id: item[ 4 ] }
+                    });
+                    gene1Nodes.push({
+                        data: { id: item[ 5 ] }
+                    });
+                    gene1Edges.push({
+                        data: { source: item[ 4 ], target: item[ 5 ] }
+                    });
+                    gene2Edges.push({
+                        data: { source: item[ 5 ] , target: item[ 4 ] }
+                    });
+                }
             });
 
             // make call to cytoscape to generate graphs
             cytoscapePromise = new Promise( function( resolve, reject ) {
-                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene2Nodes, edges: gene2Edges } ) );
+                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges, geneId: configObject.geneId1 } ) );
             });
+
+            cytoscapePromise = new Promise( function( resolve, reject ) {
+                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene1Nodes, edges: gene2Edges, geneId: configObject.geneId2 } ) );
+            }); 
         }
         else {
             $( $elGene2 ).html( "<p class='graph-error'>" + graphLoadErrorMessage + "</p>" );
@@ -982,7 +947,6 @@ var RNAInteractionViewer = (function( riv ) {
                         'font-family': '"Lucida Grande", verdana, arial, helvetica, sans-serif'
                     }
                 },
-
                 {
                     selector: 'edge',
                     style: {
@@ -996,6 +960,12 @@ var RNAInteractionViewer = (function( riv ) {
                 }
             ]
         });
+
+        // color the source node differently
+        var $graphElem = graph.$( "#" + data.geneId );
+        $graphElem.style( "backgroundColor","green" );
+        $graphElem.style( "height","40px" );
+        $graphElem.style( "width","40px" );
 
         // when a node is tapped, make a search with the node's text
         graph.on( 'tap', 'node', function( ev ) {
