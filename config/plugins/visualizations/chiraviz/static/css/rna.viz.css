@@ -280,6 +280,12 @@ html, body {
     margin-left: 36%;
 }
 
+.graph-size {
+    width: 400px;
+    height: 220px;
+    position: relative;
+}
+
 .graph-error {
     margin-left: 40%;
     color: red;

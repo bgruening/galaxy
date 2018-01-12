@@ -843,11 +843,9 @@ var RNAInteractionViewer = (function( riv ) {
     /** Create Cytoscape graphs */
     riv.fetchRNAPairGraphInformation = function( item ) {
         var colNames = { "geneid1": item[ 4 ], "geneid2": item[ 5 ] },
-            query = "";
+            query = "", url = "";
         query = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "=","OR" );
-        //riv.configObject.gene1 = item[ 4 ];
-        //riv.configObject.gene2 = item[ 5 ];
-        var url = riv.formUrl( riv.configObject, query );
+        url = riv.formUrl( riv.configObject, query );
         riv.configObject.geneId1 = item[ 4 ];
         riv.configObject.geneId2 = item[ 5 ];
         riv.ajaxCall( url, riv.separateInteractions, riv.configObject );
@@ -866,49 +864,25 @@ var RNAInteractionViewer = (function( riv ) {
     riv.buildCytoscapeGraphData = function( interactions, configObject ) {
         var $elGene1 = document.getElementById( 'interaction-graph-1' ),
             $elGene2 = document.getElementById( 'interaction-graph-2' ),
-            gene1Nodes = [],
+            geneNodes = [],
             gene1Edges = [],
             gene2Edges = [],
             cytoscapePromise = null,
             graphLoadErrorMessage = "Unable to load graph...";
 
         if ( interactions && interactions.length > 0 ) {
-            
-            $elGene1.style.width = "400px";
-            $elGene1.style.height = "220px";
-            $elGene1.style.position = "relative";
-
-            $elGene2.style.width = "400px";
-            $elGene2.style.height = "220px";
-            $elGene2.style.position = "relative";
-            
             _.each( interactions, function( item ) {
-                var score = parseFloat( item[ 28 ] );
-                // consider only those scores whose interaction score is 1
-                if ( score > 0 ) {
-                    gene1Nodes.push({
-                        data: { id: item[ 4 ] }
-                    });
-                    gene1Nodes.push({
-                        data: { id: item[ 5 ] }
-                    });
-                    gene1Edges.push({
-                        data: { source: item[ 4 ], target: item[ 5 ] }
-                    });
-                    gene2Edges.push({
-                        data: { source: item[ 5 ] , target: item[ 4 ] }
-                    });
-                }
+                geneNodes.push({data: { id: item[ 4 ] }});
+                geneNodes.push({data: { id: item[ 5 ] }});
+                gene1Edges.push({ data: { source: item[ 4 ], target: item[ 5 ] }});
+                gene2Edges.push({ data: { source: item[ 5 ], target: item[ 4 ] }});
             });
 
             // make call to cytoscape to generate graphs
             cytoscapePromise = new Promise( function( resolve, reject ) {
-                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges, geneId: configObject.geneId1 } ) );
+                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: geneNodes, edges: gene1Edges, geneId: configObject.geneId1 } ) );
+                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: geneNodes, edges: gene2Edges, geneId: configObject.geneId2 } ) );
             });
-
-            cytoscapePromise = new Promise( function( resolve, reject ) {
-                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene1Nodes, edges: gene2Edges, geneId: configObject.geneId2 } ) );
-            }); 
         }
         else {
             $( $elGene2 ).html( "<p class='graph-error'>" + graphLoadErrorMessage + "</p>" );
@@ -983,9 +957,10 @@ var RNAInteractionViewer = (function( riv ) {
         });
 
         $( window ).resize(function( e ) {
+            e.preventDefault();
             graph.resize();
         });
-
+        graph.resize();
         return graph;
     };
 
@@ -1048,7 +1023,7 @@ var RNAInteractionViewer = (function( riv ) {
                    '<p><b>Gene Expression </b>: ' + riv.roundPrecision( parseFloat( item[ 24 + filePos ] ), 1 ) + '</p>' +
 	           '<p><b>Score'+ ( filePos + 1) + '</b>: ' + riv.roundPrecision( parseFloat( item[ 26 + filePos ] ), 1 ) + '</p>' +
                    '<p><b>Gene Aligning Positions:</b></p><svg height="50" width="300" id="align-pos-'+ ( filePos + 1) +'" title="'+ svgTitle +'"></svg>' +
-                   '<p><b>Gene Interactions Network:</b></p><div id=interaction-graph-'+ (filePos + 1) +'></div>' +
+                   '<p><b>Gene Interactions Network:</b></p><div id=interaction-graph-'+ (filePos + 1) +' class="graph-size"></div>' +
 	        '</span>';
     },
 
@@ -1071,7 +1046,7 @@ var RNAInteractionViewer = (function( riv ) {
         return '<div class="container one-sample">' +
                    '<div class="row">' +
                        '<div class="col-sm-2 elem-rna">' +
-                           '<div class="sample-name">' + riv.configObject.dataName +'</div>' +
+                           '<div class="sample-name" title="'+riv.configObject.dataName+'">'+ riv.configObject.dataName.substring(0, 20) + '...' +'</div>' +
                            '<div class="sample-current-size"></div>' +
                        '</div>' +
                        '<div class="col-sm-2 elem-rna">' +
