@@ -1000,7 +1000,6 @@ var RNAInteractionViewer = (function( riv ) {
             e.preventDefault();
             graph.resize();
         });
-        graph.resize();
         return graph;
     };
 

@@ -8,7 +8,6 @@
     <link href="/plugins/visualizations/chiraviz/static/css/font-awesome.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/plugins/visualizations/chiraviz/static/css/jquery.mCustomScrollbar.min.css">
     <link rel="stylesheet" href="/plugins/visualizations/chiraviz/static/css/rna.viz.css">
-    
 </head>
 <body class="body-rna-viz">
     <div class="main-container">
@@ -20,7 +19,6 @@
     <script src="/plugins/visualizations/chiraviz/static/js/lib/underscore.min.js"></script>
     <script src="/plugins/visualizations/chiraviz/static/js/lib/cytoscape.min.js"></script>
     <script src="/plugins/visualizations/chiraviz/static/js/lib/jquery.mCustomScrollbar.concat.min.js"></script>
-
     <script>
         $(document).ready(function () {
             var config = {
