@@ -633,8 +633,8 @@ var RNAInteractionViewer = (function( riv ) {
         if ( recordsData && recordsData.length > 1 ) {
             // set the models
             riv.modelHeaders = recordsData[ 0 ];
-            recordsData = recordsData.slice( 1, recordsData.length );
-            riv.model = recordsData.slice( 1, riv.showRecords + 1 );
+            recordsData = recordsData.slice( 1, );
+            riv.model = recordsData.slice( 0, riv.showRecords );
             modelLength = recordsData.length;
             // show how many records being shown
             if( modelLength >= riv.showRecords ) {
@@ -980,8 +980,6 @@ var RNAInteractionViewer = (function( riv ) {
         // color the source node differently
         let $graphElem = graph.$( "#" + data.symbol );
         $graphElem.style( "backgroundColor","green" );
-        $graphElem.style( "height","40px" );
-        $graphElem.style( "width","40px" );
 
         // when a node is tapped, make a search with the node's text
         graph.on( 'tap', 'node', function( ev ) {
