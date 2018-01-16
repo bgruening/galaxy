@@ -31,7 +31,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Create the UI when a sqlite file is clicked */
     riv.createUI = function( data  ) {
-        var templateText = "",
+        let templateText = "",
             $elContainer = $( ".main-container" );
  
         templateText = riv.createInteractionTemplate();
@@ -44,7 +44,7 @@ var RNAInteractionViewer = (function( riv ) {
     
     /** Register events for UI elements */
     riv.registerPageEvents = function() {
-        var $elSearchGene = $( '.search-gene' ),
+        let $elSearchGene = $( '.search-gene' ),
             $elSort = $( '.rna-sort' ),
             $elFilter = $( '.rna-filter' ),
             $elFilterVal = $( '.filter-value' ),
@@ -102,7 +102,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     // Toggle the left interactions panel and update the width
     riv.toggleLeftPanel = function( e ) {
-        var $elLeftPanel = $( '.rna-transcriptions-container' ),
+        let $elLeftPanel = $( '.rna-transcriptions-container' ),
             $elBothGenes = $( '.both-genes' ),
             $elFirstGene = $( '.first-gene' ),
             $elSecondGene = $( '.second-gene' );
@@ -121,7 +121,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Event callback for sorting element */
     riv.sortInteractions = function( e ) {
-        var value = e.target.value,
+        let value = e.target.value,
             url = "",
             dbQuery = "";
         e.preventDefault();
@@ -139,7 +139,7 @@ var RNAInteractionViewer = (function( riv ) {
     /** Callback to show operator select or not */
     riv.filterInteractions = function( e ) {
         e.preventDefault();
-        var value = e.target.value,
+        let value = e.target.value,
             $elFilterOperator = $( '.filter-operator' );
         // if the selected filter is 'score', show the selectbox for operators
         value === "score" ? $elFilterOperator.show() : $elFilterOperator.hide();
@@ -148,7 +148,7 @@ var RNAInteractionViewer = (function( riv ) {
     /** Execute filter with the correct query */
     riv.setFilterValue = function( e ) {
         e.preventDefault();
-        var query = e.target.value,
+        let query = e.target.value,
             dbQuery = "",
             url = "";
         if( e.which === 13 || e.keyCode === 13 ) { // search on enter click
@@ -163,7 +163,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Return a query for the selected filter */
     riv.getFilterQuery = function( query ) {
-        var filterType = "",
+        let filterType = "",
             filterOperator = "",
             $elFilter = $( '.rna-filter' ),
             $elFilterOperator = $( '.filter-operator' ),
@@ -182,7 +182,7 @@ var RNAInteractionViewer = (function( riv ) {
             dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "score": parseFloat( query ) }, filterOperator );
         }
         else if( filterType === "family" ) {
-            var queryLike = '%' + query + '%';
+            let queryLike = '%' + query + '%';
             dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "type1": queryLike, "type2": queryLike }, "LIKE", "OR" );
         }
         return dbQuery;
@@ -196,7 +196,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Select all the interactions in the left panel */
     riv.checkAllInteractions = function( e ) {
-        var $elInteractionsChecked = $( '.rna-interaction' ),
+        let $elInteractionsChecked = $( '.rna-interaction' ),
             checkallStatus = e.target.checked;
         _.each( $elInteractionsChecked, function( item ) {
             item.checked = checkallStatus ? true : false;
@@ -206,10 +206,10 @@ var RNAInteractionViewer = (function( riv ) {
     /** Callback for searching interactions */ 
     riv.searchGene = function( e ) {
         e.preventDefault();
-        var query = e.target.value;
+        let query = e.target.value;
         if( query.length >= riv.minQueryLength ) {
             if( e.which === 13 || e.keyCode == 13 ) {
-                var url = riv.makeSearchURL( query );
+                let url = riv.makeSearchURL( query );
                 riv.ajaxCall( url, riv.buildInteractionsPanel );
                 riv.setDefaultFilters();
                 riv.cleanSummary();
@@ -222,7 +222,7 @@ var RNAInteractionViewer = (function( riv ) {
     
     /** Prepare url for searching taking multiple columns from the database table */
     riv.makeSearchURL = function( query ) {
-        var queryLike = "%" + query + "%",
+        let queryLike = "%" + query + "%",
             colNames = { "txid1": queryLike, "txid2": queryLike, "geneid1": queryLike,
                 "geneid2": queryLike, "symbol1":queryLike, "symbol2": queryLike,
                 "type1":queryLike, "type2": queryLike },
@@ -233,7 +233,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Callback event for exporting data using export button */ 
     riv.createExportData = function( records ) {
-        var inte_records = [],
+        let inte_records = [],
             tsv_data = null,
             data = records.data,
             link = document.createElement( 'a' ),
@@ -255,14 +255,14 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Slice off the first row containing table headers */
     riv.createSummaryDB = function( summaryItems ) {
-        var records = summaryItems.data;
+        let records = summaryItems.data;
         records = records.slice( 1, records.length );
         riv.createSummary( records );
     };
 
     /** Create summary plots */ 
     riv.createSummary = function( summaryItems ) {
-        var summaryResultType2 = {},
+        let summaryResultType2 = {},
             summaryResultScore = [],
             summaryResultScore1 = [],
             summaryResultScore2 = [],
@@ -286,7 +286,7 @@ var RNAInteractionViewer = (function( riv ) {
             summaryResultSymbol1[ item[ 6 ] ] = ( summaryResultSymbol1[ item[ 6 ] ] || 0 ) + 1;
 
             // select only unique gene ids
-            var presentGene1 = _.findWhere( summaryResultAlignment1, { geneid: item[ 4 ] } );
+            let presentGene1 = _.findWhere( summaryResultAlignment1, { geneid: item[ 4 ] } );
             if( !presentGene1 ) {
                 summaryResultAlignment1.push({
                     startPos: item[ 10 ],
@@ -296,7 +296,7 @@ var RNAInteractionViewer = (function( riv ) {
                     symbol: item[ 6 ]
                 });
             }
-            var presentGene2 = _.findWhere( summaryResultAlignment2, { geneid: item[ 5 ] } );
+            let presentGene2 = _.findWhere( summaryResultAlignment2, { geneid: item[ 5 ] } );
             if( !presentGene2 ) {
                 summaryResultAlignment2.push({
                     startPos: item[ 13 ],
@@ -312,7 +312,7 @@ var RNAInteractionViewer = (function( riv ) {
         summaryResultAlignment1 = _.sortBy( summaryResultAlignment1, 'symbol' );
         summaryResultAlignment2 = _.sortBy( summaryResultAlignment2, 'symbol' );
             
-        var plottingData = {
+        let plottingData = {
             'family_names_count': summaryResultType2,
             'score': summaryResultScore,
             'score1': summaryResultScore1,
@@ -331,7 +331,7 @@ var RNAInteractionViewer = (function( riv ) {
         plottingData.family_names_count = riv.mergeFamiliesToOthers( plottingData.family_names_count, summaryResultScore2.length );
 
         riv.cleanSummary();
-        var plotPromise = new Promise( function( resolve, reject ) {
+        let plotPromise = new Promise( function( resolve, reject ) {
             resolve( riv.plotInteractions( plottingData ) );
             resolve( riv.makeAlignmentSummary( summaryResultAlignment1, summaryResultAlignment2 ) );
         });
@@ -345,27 +345,28 @@ var RNAInteractionViewer = (function( riv ) {
     /** Prepare summary of interactions either from the selected ones or taken from the file */
     riv.getInteractionsSummary = function( e ) {
         e.preventDefault();
-        var checkedIds = "",
+        let checkedIds = [],
             checkboxes = $( '.rna-interaction' ),
             summaryItems = [];
 
         riv.showHideGeneSections( true );
         _.each( checkboxes, function( item ) {
             if( item.checked ) {
-                checkedIds = ( checkedIds === "" ) ? item.id : checkedIds + ',' + item.id;
+                if( !checkedIds.includes( item.id ) ) {
+                    checkedIds.push( item.id );
+                }
             }
         });
-        checkedIds = checkedIds.split( "," );
         // if there are no checked interactions, then summary is computed over
         // server for all the interactions for that sample (or filtered interactions)
         $( '.rna-pair' ).removeClass( 'selected-item' );
-        if( checkedIds && checkedIds[ 0 ] === "" ) {
+        if( checkedIds.length === 0 ) {
             riv.fetchSummaryAllInteractions( e );
         }
         else { // summary for all the selected/checked ones
             _.each( checkedIds, function( id ) {
-                for( var ctr = 0, len = riv.model.length; ctr < len; ctr++ ) {
-                    var item = riv.model[ ctr ];
+                for( let ctr = 0, len = riv.model.length; ctr < len; ctr++ ) {
+                    let item = riv.model[ ctr ];
                     if ( id.toString() === item[ 0 ].toString() ) {
                         summaryItems.push( item );
                         break;
@@ -388,7 +389,7 @@ var RNAInteractionViewer = (function( riv ) {
     
     /** Select records from file with or without filters for summary and exports */
     riv.fetchInteractionsSummaryExport = function( callBack ) {
-        var url = "",
+        let url = "",
             searchQuery = "",
             filterQuery = "",
             dbQuery = "",
@@ -421,7 +422,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Send data for summary plotting */
     riv.plotInteractions = function( data ) {
-        var fileName = riv.configObject.tableNames[ "name" ];
+        let fileName = riv.configObject.tableNames[ "name" ];
         // build scrolls
         riv.createFancyScroll( "first-gene" );
         riv.createFancyScroll( "second-gene" );
@@ -439,7 +440,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Plot pie chart for interactions chosen for summary */
     riv.plotPieChart = function( dict, container, name ) {
-        var layout = {
+        let layout = {
             title: name,
             autosize: true,
             margin: {
@@ -454,7 +455,7 @@ var RNAInteractionViewer = (function( riv ) {
             values.push( value ); 
         });
 
-        var data = [{
+        let data = [{
             values: values,
             labels: labels,
             type: 'pie',
@@ -466,7 +467,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Plot histogram for interactions chosen for summary */
     riv.plotHistogram = function( data, container, name, xTitle, yTitle ) {
-	var trace = {
+	let trace = {
 	    x: data,
 	    type: 'histogram',
         }, 
@@ -483,13 +484,13 @@ var RNAInteractionViewer = (function( riv ) {
                 title: yTitle
             },
         }; 
-        var plot_data = [ trace ];
+        let plot_data = [ trace ];
 	Plotly.newPlot( container, plot_data, layout );
     };
 
     /** Plot bar for interactions chosen for summary */
     riv.plotBar = function( data, container, name, xTitle, yTitle ) {
-	var trace = [
+	let trace = [
             {
                 x: data,
 	        type: 'bar'
@@ -513,7 +514,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Make alignment graphics summary for all checked items*/
     riv.makeAlignmentSummary = function( alignment1, alignment2 ) {
-        var scale = 100,
+        let scale = 100,
             ratio = 0,
             scaledBegin = 0,
             scaledEnd = 0,
@@ -535,7 +536,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Build SVG graphics  */
     riv.buildSVGgraphics = function( alignmentCollection, geneType ) {
-        var tableTemplate = "",
+        let tableTemplate = "",
             scale = 100,
             heightDiff = 8,
             alignmentHeight = 30,
@@ -554,7 +555,7 @@ var RNAInteractionViewer = (function( riv ) {
 	    scaledEnd = parseInt( ratio * item.endPos ) + xOffset,
             barLength = ( item.endPos - item.startPos ),
             seqEndPos = scaledBegin + barLength + ratio * ( item.seqLength - item.endPos );
-            symbolSearchUrl = 'https://www.google.com/search?q=' + ( geneType === 'gene1' ? item.symbol : item.geneid );
+            symbolSearchUrl = 'https://www.google.com/search?q=' + item.symbol;
 
             tableTemplate += '<line x1="'+ xOffset +'" y1="'+ heightDiff +'" x2="'+ scaledBegin +'" y2="'+ heightDiff +'" style="stroke:black;stroke-width:2" />' +
                 '<rect x="'+ scaledBegin +'" y="'+ (heightDiff - 5) +'" width="'+ barLength +'" height="10" style="fill:green" />' +
@@ -572,11 +573,11 @@ var RNAInteractionViewer = (function( riv ) {
 
     /**Merge the families whose counts are very small to others category */
     riv.mergeFamiliesToOthers = function( symbolsCount, interactionsCount ) {
-        var otherCategoryCount = 0,
+        let otherCategoryCount = 0,
             familiesCount = {},
             minShare = 0.01;
-        for( var item in symbolsCount ) {
-            var count = symbolsCount[ item ],
+        for( let item in symbolsCount ) {
+            let count = symbolsCount[ item ],
                 share = count / interactionsCount;
             // if the overall share of any family is less than 1%, then merge all these families to "others" category
             if( share < minShare ) {
@@ -606,12 +607,14 @@ var RNAInteractionViewer = (function( riv ) {
         $( '.filter-operator' ).hide();
         $( '.filter-operator' ).val( "-1" );
         $( '.filter-value' )[ 0 ].value = "";
+        $( '.rna-pair' ).remove();
+        $( '.rna-interaction' ).remove();
         $( '.check-all-interactions' )[ 0 ].checked = false;
     };
 
     /** Create a list of interactions panel */
     riv.buildInteractionsPanel = function( records ) {
-        var $elParentInteractionIds = $( ".rna-transcriptions-container" ),
+        let $elParentInteractionIds = $( ".rna-transcriptions-container" ),
             $elShowModelSizeText = $( ".sample-current-size" ),
             $elInteractionsList = null,
             sizeText = "",
@@ -620,19 +623,19 @@ var RNAInteractionViewer = (function( riv ) {
             interactions = null,
             configObject = riv.configObject,
             modelLength = 0,
-            records = records.data;
+            recordsData = records.data;
 
         $( '.transcriptions-ids' ).remove();
         $elShowModelSizeText.empty();
         $elParentInteractionIds.append( '<div class="transcriptions-ids"></div>' );
         $elInteractionsList = $( ".transcriptions-ids" );
 
-        if ( records && records.length > 1 ) {
+        if ( recordsData && recordsData.length > 1 ) {
             // set the models
-            riv.modelHeaders = records[ 0 ];
-            records = records.slice( 1, records.length );
-            riv.model = records.slice( 1, riv.showRecords + 1 );
-            modelLength = records.length;
+            riv.modelHeaders = recordsData[ 0 ];
+            recordsData = recordsData.slice( 1, recordsData.length );
+            riv.model = recordsData.slice( 1, riv.showRecords + 1 );
+            modelLength = recordsData.length;
             // show how many records being shown
             if( modelLength >= riv.showRecords ) {
                 sizeText = "Showing <b>" + riv.showRecords + "</b> of <b>" + modelLength + " </b>interactions";
@@ -657,7 +660,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Register events for the items in the interactions list */
     riv.registerEventsInteractions = function() {
-        var $elRNAPair = $( '.rna-pair' );
+        let $elRNAPair = $( '.rna-pair' );
 
         // highlight the transaction pair
         $elRNAPair.off( 'mouseenter' ).on( 'mouseenter', function() {
@@ -671,7 +674,7 @@ var RNAInteractionViewer = (function( riv ) {
 
         // fire when one interaction is selected
         $elRNAPair.off( 'click' ).on( 'click', function( e ) {
-            var interactionId = "",
+            let interactionId = "",
                 records = riv.model;
             if ( e.target.tagName !== "INPUT" ) {
                 if( e.target.childElementCount > 0 ) {
@@ -681,8 +684,8 @@ var RNAInteractionViewer = (function( riv ) {
                     interactionId = e.target.parentElement.children[ 0 ].id;
                 }
                 $elRNAPair.removeClass( 'selected-item' );
-                for( var ctr = 0, len = records.length; ctr < len; ctr++ ) {
-                    var item = records[ ctr ];
+                for( let ctr = 0, len = records.length; ctr < len; ctr++ ) {
+                    let item = records[ ctr ];
                     if( item[ 0 ].toString() === interactionId.toString() ) {
                         $( this ).addClass( ' selected-item' );
                         riv.buildRNAPairInformation( item );
@@ -696,7 +699,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Create a UI for summary when an interacting pair is selected */
     riv.buildRNAPairInformation = function( item ) {
-        var $elBothGenes = $( ".both-genes" ),
+        let $elBothGenes = $( ".both-genes" ),
             energyClass = parseFloat( item[ 32 ] ) <= 0 ? "energy-negative" : "energy-positive",
             energyExpr = window.decodeURI("\u0394") + "G" + " = " + "<span class=" + energyClass + ">" + item[ 32 ] + "</span> kcal/mol",
             alignment = "",
@@ -733,7 +736,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Round off to a certain precision */
     riv.roundPrecision = function( number, precision ) {
-        var factor = Math.pow( 10, precision ),
+        let factor = Math.pow( 10, precision ),
             numberFac = number * factor,
             roundedNum = Math.round( numberFac );
         return roundedNum / factor;
@@ -741,7 +744,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Export alignment */
     riv.exportAlignment = function() {
-        var data = "",
+        let data = "",
             link = document.createElement( 'a' );
         data = $( '.pre-align' ).text();
         data = window.encodeURIComponent( data );
@@ -753,7 +756,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Draw graphics for alignment */
     riv.buildAligmentGraphics = function( item ) {
-        var dataGene = {};
+        let dataGene = {};
         // first gene
         dataGene = {
             startPos: item[ 10 ],
@@ -775,7 +778,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Draw SVG graphics */
     riv.drawSingleSvg = function( data ) {
-        var scale = data.seqLength < data.scale ? data.seqLength : data.scale,
+        let scale = data.seqLength < data.scale ? data.seqLength : data.scale,
             ratio = scale / data.seqLength,
             xOffset = 10,
             scaledBegin = parseInt( ratio * data.startPos ) + xOffset,
@@ -795,7 +798,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Fetch alignment between two sequences */
     riv.fetchAlignment = function( sequenceInfo ) {
-        var sequences = sequenceInfo.sequences;
+        let sequences = sequenceInfo.sequences;
             dotBrackets = sequenceInfo.dotbrackets,
             startIndices = sequenceInfo.startindices,
             dotbracket1 = [],
@@ -819,12 +822,12 @@ var RNAInteractionViewer = (function( riv ) {
         // find corresponding alignment positions using dotbracket notations
         // look for corresponding opening and closing brackets in both sequences
         // having second sequence in the reverse order
-        for( var dotbrac1Ctr = 0; dotbrac1Ctr < dotbracket1Length; dotbrac1Ctr++ ) {
+        for( let dotbrac1Ctr = 0; dotbrac1Ctr < dotbracket1Length; dotbrac1Ctr++ ) {
             if ( dotbracket1[ dotbrac1Ctr ] === '(' ) {
-                var alignPos = [];
+                let alignPos = [];
                 alignPos.push( dotbrac1Ctr + 1 );
                 dotbracket1[ dotbrac1Ctr ] = ".";
-                for( var dotbrac2Ctr = dotbracket2Length - 1; dotbrac2Ctr >= 0; dotbrac2Ctr-- ) {
+                for( let dotbrac2Ctr = dotbracket2Length - 1; dotbrac2Ctr >= 0; dotbrac2Ctr-- ) {
                     if( dotbracket2[ dotbrac2Ctr ] === ')' ) {
                         alignPos.push( dotbrac2Ctr + 1 );
                         alignmentPositions.push( alignPos );
@@ -842,13 +845,13 @@ var RNAInteractionViewer = (function( riv ) {
     };
     /** Construct database query using table name and clauses */
     riv.constructQuery = function( tableName, conditionValueDict={}, equalityOp="=", joinCondition="", orderByCol="score", orderByDirection="DESC" ) {
-        var query = "&query=",
+        let query = "&query=",
             colsNum = Object.keys( conditionValueDict ).length;
         query = query + "SELECT * FROM " + tableName;
         if( Object.keys( conditionValueDict ) && Object.keys( conditionValueDict ).length > 0 ) {
             query = query + " WHERE ";
-            var colsCounter = 0;
-            for( var item in conditionValueDict ) {
+            let colsCounter = 0;
+            for( let item in conditionValueDict ) {
                 query = query + tableName + "." + item + " " + equalityOp + " " + "'" + conditionValueDict[ item ] + "'";
                 if( colsCounter < colsNum - 1 ) {
                     query = query + " " + joinCondition + " ";
@@ -862,18 +865,18 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Create Cytoscape graphs */
     riv.fetchRNAPairGraphInformation = function( item ) {
-        var colNames = { "geneid1": item[ 4 ], "geneid2": item[ 5 ] },
+        let colNames = { "symbol1": item[ 6 ], "symbol2": item[ 7 ] },
             query = "", url = "";
         query = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "=","OR" );
         url = riv.formUrl( riv.configObject, query );
-        riv.configObject.geneId1 = item[ 4 ];
-        riv.configObject.geneId2 = item[ 5 ];
+        riv.configObject.symbol1 = item[ 6 ];
+        riv.configObject.symbol2 = item[ 7 ];
         riv.ajaxCall( url, riv.separateInteractions, riv.configObject );
     };
 
     /** Separate the records based on geneids for creating two cytoscape graphs */
     riv.separateInteractions = function( records, configObject ) {
-        var data = records.data,
+        let data = records.data,
             gene1InteractionsUnpacked = [],
             gene2InteractionsUnpacked = [];
         graphData = data.slice( 1, data.length );
@@ -882,26 +885,45 @@ var RNAInteractionViewer = (function( riv ) {
     
     /** Create data for building cytoscape graphs */
     riv.buildCytoscapeGraphData = function( interactions, configObject ) {
-        var $elGene1 = document.getElementById( 'interaction-graph-1' ),
+        let $elGene1 = document.getElementById( 'interaction-graph-1' ),
             $elGene2 = document.getElementById( 'interaction-graph-2' ),
             geneNodes = [],
             gene1Edges = [],
             gene2Edges = [],
             cytoscapePromise = null,
+            scores = [],
+            maxScore = 0,
+            geneExpr1 = [],
+            maxGeneExpr1 = 0,
+            geneExpr2 = [],
+            maxGeneExpr2 = 0,
             graphLoadErrorMessage = "Unable to load graph...";
+
+        // define expressions for weighing the edges and nodes of the graphs
+        scores = interactions.map( function( row ) { return row[ 28 ] } )
+        maxScore = scores.reduce( function( a, b ) { return Math.max( a, b ) } );
+        maxScore = ( maxScore === 0 ) ? 1 : maxScore;
+
+        geneExpr1 = interactions.map( function( row ) { return row[ 24 ] } );
+        maxGeneExpr1 = geneExpr1.reduce( function( a, b ) { return Math.max( a, b ) } );
+        maxGeneExpr1 = ( maxGeneExpr1 === 0 ) ? 1 : maxGeneExpr1;
+
+        geneExpr2 = interactions.map( function( row ) { return row[ 25 ] } );
+        maxGeneExpr2 = geneExpr2.reduce( function( a, b ) { return Math.max( a, b ) } );
+        maxGeneExpr2 = ( maxGeneExpr2 === 0 ) ? 1 : maxGeneExpr2;
 
         if ( interactions && interactions.length > 0 ) {
             _.each( interactions, function( item ) {
-                geneNodes.push({data: { id: item[ 4 ] }});
-                geneNodes.push({data: { id: item[ 5 ] }});
-                gene1Edges.push({ data: { source: item[ 4 ], target: item[ 5 ] }});
-                gene2Edges.push({ data: { source: item[ 5 ], target: item[ 4 ] }});
+                geneNodes.push({ data: { id: item[ 6 ], weight: ( item[ 24 ] / maxGeneExpr1 ) } });
+                geneNodes.push({ data: { id: item[ 7 ], weight: ( item[ 25 ] / maxGeneExpr2 ) } });
+                gene1Edges.push({ data: { source: item[ 6 ], target: item[ 7 ], weight: ( item[ 28 ] / maxScore ) }});
+                gene2Edges.push({ data: { source: item[ 7 ], target: item[ 6 ], weight: ( item[ 28 ] / maxScore ) }});
             });
 
             // make call to cytoscape to generate graphs
             cytoscapePromise = new Promise( function( resolve, reject ) {
-                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: geneNodes, edges: gene1Edges, geneId: configObject.geneId1 } ) );
-                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: geneNodes, edges: gene2Edges, geneId: configObject.geneId2 } ) );
+                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: geneNodes, edges: gene1Edges, symbol: configObject.symbol1 } ) );
+                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: geneNodes, edges: gene2Edges, symbol: configObject.symbol2 } ) );
             });
         }
         else {
@@ -916,7 +938,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Create cytoscape graph */
     riv.makeCytoGraph = function( data ) {
-        var graph = null;
+        let graph = null;
         graph = cytoscape({
             container: data.elem,
             elements: {
@@ -956,14 +978,14 @@ var RNAInteractionViewer = (function( riv ) {
         });
 
         // color the source node differently
-        var $graphElem = graph.$( "#" + data.geneId );
+        let $graphElem = graph.$( "#" + data.symbol );
         $graphElem.style( "backgroundColor","green" );
         $graphElem.style( "height","40px" );
         $graphElem.style( "width","40px" );
 
         // when a node is tapped, make a search with the node's text
         graph.on( 'tap', 'node', function( ev ) {
-            var query = this.id(),
+            let query = this.id(),
                 conf = window.confirm( "Do you want to make a search for geneid - " + query );
             if ( conf && conf === true ) {
                 riv.ajaxCall( riv.makeSearchURL( query ), riv.buildInteractionsPanel );
@@ -1017,7 +1039,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Load sqlite dataset records on first load of the visualization */
     riv.loadData = function( configObject ) {
-        var query = '&query=SELECT * FROM ' + configObject.tableNames[ "name" ],
+        let query = '&query=SELECT * FROM ' + configObject.tableNames[ "name" ],
             urlValue = riv.formUrl( configObject, query );
         riv.configObject = configObject;
         riv.$elLoader.show();
@@ -1035,7 +1057,7 @@ var RNAInteractionViewer = (function( riv ) {
     };
 
     riv.createSelectedPairInformation = function( item, id, filePos ) {
-        var svgTitle = filePos == 1 ? "Gene aligning positions. The sequence as well as alignment length is scaled to 100 pixels" : "Gene aligning positions";
+        let svgTitle = filePos == 1 ? "Gene aligning positions. The sequence as well as alignment length is scaled to 100 pixels" : "Gene aligning positions";
         return '<span id="'+ id +'" class="single-interactions-info">' +
 	           '<p><b>Geneid</b>: ' + item[ 4 + filePos ] + '</p>' +
 	           '<p><b>Symbol</b>: ' + item[ 6 + filePos ] + '</p>' +
@@ -1049,9 +1071,8 @@ var RNAInteractionViewer = (function( riv ) {
 
     riv.createAlignmentTemplate = function( alignment, energyExpr ) {
         return "<div class='interaction-header'>Alignment Information" +
-                   "<a href='#' class='download-alignment'" +
-                   "title='Download the alignment as text file'><i class='fa fa-download' aria-hidden='true'></i>" +
-                   "</a></div><span class='alignment-energy' title='Gibbs free energy'>" + energyExpr + "</span>" +
+                   "<a href='#' class='download-alignment' title='Download the alignment as text file'>" +
+                   "Download alignment</a></div><span class='alignment-energy' title='Gibbs free energy'>" + energyExpr + "</span>" +
                    "<div class='seq-alignment' title='Sequence alignment'><pre class='pre-align'>" + alignment + "</pre>" +
                "</div>";
     };
