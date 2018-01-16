@@ -463,6 +463,9 @@ var RNAInteractionViewer = (function( riv ) {
         }];
 
         Plotly.newPlot( container, data, layout );
+        window.onresize = function () {
+            Plotly.Plots.resize( container );
+        };
     };
 
     /** Plot histogram for interactions chosen for summary */
@@ -486,6 +489,9 @@ var RNAInteractionViewer = (function( riv ) {
         }; 
         let plot_data = [ trace ];
 	Plotly.newPlot( container, plot_data, layout );
+	window.onresize = function () {
+            Plotly.Plots.resize( container );
+        };
     };
 
     /** Plot bar for interactions chosen for summary */
@@ -510,6 +516,9 @@ var RNAInteractionViewer = (function( riv ) {
             },
         };
 	Plotly.newPlot( container, trace, layout );
+	window.onresize = function () {
+            Plotly.Plots.resize( container );
+        };
     };
 
     /** Make alignment graphics summary for all checked items*/
@@ -561,7 +570,7 @@ var RNAInteractionViewer = (function( riv ) {
                 '<rect x="'+ scaledBegin +'" y="'+ (heightDiff - 5) +'" width="'+ barLength +'" height="10" style="fill:green" />' +
                 '<line x1="'+ (scaledBegin + barLength) +'" y1="'+ heightDiff +'" x2="'+ seqEndPos +'" y2="'+ heightDiff +'" style="stroke:black;stroke-width:2" />' +
                 '<text x="'+ seqLengthXPos +'" y="'+ (heightDiff + yOffset) +'" fill="black">'+ item.seqLength +'</text>' +
-                '<a xlink:href="'+ symbolSearchUrl +'" target="_blank">' +
+                '<a xlink:href="'+ symbolSearchUrl +'" target="_blank" class="symbol-link" title="Search for this gene">' +
                     '<text x="'+ symbolXPos +'" y="'+ (heightDiff + yOffset) +'" fill="black">'+ item.symbol +'</text>' +
                 '</a>';
 
@@ -1082,7 +1091,7 @@ var RNAInteractionViewer = (function( riv ) {
 
     riv.createInteractionTemplate = function() {
         return '<div class="container one-sample">' +
-                   '<div class="row">' +
+                   '<div class="row top-row">' +
                        '<div class="col-sm-2 elem-rna">' +
                            '<div class="sample-name" title="'+riv.configObject.dataName+'">'+ riv.configObject.dataName.substring(0, 20) + '...' +'</div>' +
                            '<div class="sample-current-size"></div>' +
@@ -1138,7 +1147,7 @@ var RNAInteractionViewer = (function( riv ) {
                            '<div id="rna-alignment-graphics2"></div>' +
                        '</div>' +
                    '</div>' +
-                   '<div class="row">' +
+                   '<div class="row footer-row">' +
                        '<div class="col-sm-10">' +
                            '<input id="check_all_interactions" type="checkbox" class="check-all-interactions"' +
                                'value="false" title="Check all displayed interactions" />' +

@@ -28,10 +28,11 @@ html, body {
 
 .main-container {
     height: 100%;
+    width: 100%;
 }
 
 .row {
-    margin: 0 -5% 0 -5%;
+    margin: 0;
 }
 
 .col-sm-1, .col-sm-2, .col-sm-3, .col-sm-4,
@@ -56,6 +57,13 @@ html, body {
 .sample-ids {
     display: none;
     height: 100%;
+    width: 100%;
+    margin: 0 1% 0 1%;
+}
+
+.top-row {
+    height: 8%;
+    width: 100%;
 }
 
 .heading {
@@ -91,7 +99,7 @@ html, body {
 }
 
 #samples-plot {
-    margin-left: 7%;
+    margin-left: 7.5%;
 }
 
 .rna-results {
@@ -100,11 +108,17 @@ html, body {
     border-bottom: 1px solid black;
     background-color: white;
     height: 84%;
+    width: 100%;
+}
+
+.footer-row {
+    height: 8%;
+    width: 100%;
 }
 
 .sample-ids, .transcriptions-ids {
     overflow-y: visible;
-    padding-top: 1%;
+    padding-top: 0.5%;
     height: 100%;
     font-size: 8pt;
 }
@@ -187,9 +201,10 @@ html, body {
 }
 
 .interaction-header {
-    margin: 1% 0 0 1%;
+    margin: 0.5% 0 0 1%;
     background-color: #f8f8f8;
     font-weight: bold;
+    height: 3%;
 }
 
 .interaction-header a {
@@ -199,10 +214,10 @@ html, body {
 }
 
 .single-interactions-info {
-    padding-top: 1%;
+    padding-top: 0.5%;
     display: inline-block;
     width: 49%;
-    height: 69%;
+    height: 66%;
     overflow: auto;
 }
 
@@ -239,6 +254,7 @@ html, body {
     padding: 1% 0 0 40%;
     color: black;
     font-size: 9pt;
+    height: 3%;
 }
 
 .energy-negative {
@@ -292,5 +308,9 @@ html, body {
 .graph-error {
     margin-left: 40%;
     color: red;
+}
+
+.symbol-link {
+    cursor: pointer;
 }
 
