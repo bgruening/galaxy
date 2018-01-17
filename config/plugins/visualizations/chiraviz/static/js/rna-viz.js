@@ -46,7 +46,6 @@ var RNAInteractionViewer = (function( riv ) {
     riv.registerPageEvents = function() {
         let $elSearchGene = $( '.search-gene' ),
             $elSort = $( '.rna-sort' ),
-            $elFilter = $( '.rna-filter' ),
             $elFilterVal = $( '.filter-value' ),
             $elExport = $( '.export-results' ),
             $elResetFilters = $( '.reset-filters' ),
@@ -62,11 +61,6 @@ var RNAInteractionViewer = (function( riv ) {
         // onchange for sort
         $elSort.off( 'change' ).on( 'change', function( e ) {
             riv.sortInteractions( e );
-        });
-
-        // onchange for filter
-        $elFilter.off( 'change' ).on( 'change', function( e ) {
-            riv.filterInteractions( e );
         });
 
         // fetch records using filter's value
@@ -134,15 +128,6 @@ var RNAInteractionViewer = (function( riv ) {
         riv.ajaxCall( url, riv.buildInteractionsPanel );
         riv.setDefaultFilters();
         riv.cleanSummary();
-    };
-
-    /** Callback to show operator select or not */
-    riv.filterInteractions = function( e ) {
-        e.preventDefault();
-        let value = e.target.value,
-            $elFilterOperator = $( '.filter-operator' );
-        // if the selected filter is 'score', show the selectbox for operators
-        value === "score" ? $elFilterOperator.show() : $elFilterOperator.hide();
     };
 
     /** Execute filter with the correct query */
@@ -613,7 +598,6 @@ var RNAInteractionViewer = (function( riv ) {
     /** Set the filters to their default values */
     riv.setDefaultFilters = function() {
         $( '.rna-filter' ).val( "-1" );
-        $( '.filter-operator' ).hide();
         $( '.filter-operator' ).val( "-1" );
         $( '.filter-value' )[ 0 ].value = "";
         $( '.rna-pair' ).remove();
@@ -1056,8 +1040,9 @@ var RNAInteractionViewer = (function( riv ) {
     riv.createFancyScroll = function ( className ) {
         $( '.' + className ).mCustomScrollbar({
             theme:"minimal",
-            scrollInertia: 1,
-            mouseWheel: { enable: false }
+            scrollInertia: 5,
+            axis:"yx",
+            mouseWheel: { enable: true }
         });
         $( '.' + className + ' .mCSB_dragger_bar' ).css( 'background-color', 'black' );
     };
@@ -1108,12 +1093,14 @@ var RNAInteractionViewer = (function( riv ) {
                                '<option value="energy_desc">Energy desc</option>' +
                            '</select>' +
                        '</div>' +
-                       '<div class="col-sm-6 elem-rna">' +
+                       '<div class="col-sm-2 elem-rna">' +
 	                   '<select name="filter" class="rna-filter form-control elem-rna" title="Filter">' +
 		               '<option value="-1">Filter by...</option>' +
 		               '<option value="score">Score</option>' +
 		               '<option value="family">RNA Family</option>' +
 	                   '</select>' +
+                        '</div>' +
+                        '<div class="col-sm-2 elem-rna">' +
                            '<select name="filter-operator" class="filter-operator form-control elem-rna" title="Filter operator">' +
         	               '<option value="-1">Choose operator...</option>' +
 	                       '<option value="=">=</option>' +
@@ -1123,6 +1110,8 @@ var RNAInteractionViewer = (function( riv ) {
                                '<option value=">=">>=</option>' +
                                '<option value="<>"><></option>' +
                            '</select>' +
+                        '</div>' +
+                        '<div class="col-sm-2 elem-rna">' +
                          '<input type="text" class="filter-value form-control elem-rna" title="Enter the selected filter value"' +
                              'value="" placeholder="Enter the selected filters value..." />' +
                        '</div>' +

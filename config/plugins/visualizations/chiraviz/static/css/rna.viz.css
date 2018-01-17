@@ -128,10 +128,6 @@ html, body {
     font-weight: bold;
 }
 
-.rna-filter, .filter-operator {
-    display: inline-block;
-    width:29%;
-}
 
 .file-sample {
     cursor: pointer;
@@ -147,7 +143,7 @@ html, body {
     font-size: 8pt;
 }
 
-.filter-operator, .matrix-loader {
+.matrix-loader {
     display: none;
 }
 
@@ -157,11 +153,6 @@ html, body {
 
 .interactions-loader {
     margin: 1% 0 0 24%;
-}
-
-.filter-value {
-    display: inline-block;
-    width: 40%;
 }
 
 .first-gene {
@@ -217,7 +208,7 @@ html, body {
     padding-top: 0.5%;
     display: inline-block;
     width: 49%;
-    height: 66%;
+    height: 68%;
     overflow: auto;
 }
 
@@ -299,7 +290,8 @@ html, body {
 .graph-size {
     width: 400px;
     height: 220px;
-    position: relative;
+    resize: both;
+    overflow: auto;
 }
 
 .rna-plots {
