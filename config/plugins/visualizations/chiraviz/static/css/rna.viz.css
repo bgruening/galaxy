@@ -288,8 +288,9 @@ html, body {
 }
 
 .graph-size {
-    width: 400px;
-    height: 220px;
+    width: 100%;
+    height: 200px;
+    position: relative;
     resize: both;
     overflow: auto;
     display: none;
