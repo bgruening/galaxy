@@ -556,7 +556,7 @@ var RNAInteractionViewer = (function( riv ) {
             values: values,
             labels: labels,
             type: 'pie',
-            showlegend: false
+            showlegend: true
         }];
 
         Plotly.newPlot( container, data, layout );
