@@ -727,14 +727,6 @@ var RNAInteractionViewer = (function( riv ) {
         });
     };
 
-    /** Round off to a certain precision */
-    riv.roundPrecision = function( number, precision ) {
-        let factor = Math.pow( 10, precision ),
-            numberFac = number * factor,
-            roundedNum = Math.round( numberFac );
-        return roundedNum / factor;
-    };
-
     /** Export alignment */
     riv.exportAlignment = function() {
         let data = "",
@@ -880,44 +872,86 @@ var RNAInteractionViewer = (function( riv ) {
     riv.buildCytoscapeGraphData = function( interactions, configObject ) {
         let $elGene1 = document.getElementById( 'interaction-graph-1' ),
             $elGene2 = document.getElementById( 'interaction-graph-2' ),
-            geneNodes = [],
+            gene1Nodes = [],
+            gene2Nodes = [],
             gene1Edges = [],
             gene2Edges = [],
             cytoscapePromise = null,
-            scores = [],
-            maxScore = 0,
+            scores1 = [],
+            scores2 = [],
+            maxScore1 = 0,
+            maxScore2 = 0,
             geneExpr1 = [],
             maxGeneExpr1 = 0,
             geneExpr2 = [],
             maxGeneExpr2 = 0,
-            graphLoadErrorMessage = "Unable to load graph...";
+            graphLoadErrorMessage = "Unable to load graph...",
+            interactions1 = [],
+            interactions2 = [],
+            source1 = null,
+            source2 = null;
 
-        // define expressions for weighing the edges and nodes of the graphs
-        scores = interactions.map( function( row ) { return row[ 28 ] } )
-        maxScore = scores.reduce( function( a, b ) { return Math.max( a, b ) } );
-        maxScore = ( maxScore === 0 ) ? 1 : maxScore;
+        _.each( interactions, function( item ) {
+             if ( item[ 6 ] === configObject.symbol1 ) {
+                 interactions1.push( item );
+             }
 
-        geneExpr1 = interactions.map( function( row ) { return row[ 24 ] } );
-        maxGeneExpr1 = geneExpr1.reduce( function( a, b ) { return Math.max( a, b ) } );
-        maxGeneExpr1 = ( maxGeneExpr1 === 0 ) ? 1 : maxGeneExpr1;
+             if ( item[ 7 ] === configObject.symbol2 ) {
+                 interactions2.push( item );
+             }
+        });
 
-        geneExpr2 = interactions.map( function( row ) { return row[ 25 ] } );
-        maxGeneExpr2 = geneExpr2.reduce( function( a, b ) { return Math.max( a, b ) } );
-        maxGeneExpr2 = ( maxGeneExpr2 === 0 ) ? 1 : maxGeneExpr2;
+        if ( interactions1 && interactions1.length > 0 ) {
+            // define expressions for weighing the edges and nodes of the graphs
+            scores1 = interactions1.map( function( row ) { return row[ 28 ] } )
+            maxScore1 = scores1.reduce( function( a, b ) { return Math.max( a, b ) } );
+            maxScore1 = ( maxScore1 === 0 ) ? 1 : maxScore1;
 
-        if ( interactions && interactions.length > 0 ) {
-            _.each( interactions, function( item ) {
-                geneNodes.push({ data: { id: item[ 6 ], weight: ( item[ 24 ] / maxGeneExpr1 ) } });
-                geneNodes.push({ data: { id: item[ 7 ], weight: ( item[ 25 ] / maxGeneExpr2 ) } });
-                gene1Edges.push({ data: { source: item[ 6 ], target: item[ 7 ], weight: ( item[ 28 ] / maxScore ) }});
-                gene2Edges.push({ data: { source: item[ 7 ], target: item[ 6 ], weight: ( item[ 28 ] / maxScore ) }});
+            geneExpr1 = interactions1.map( function( row ) { return row[ 25 ] } );
+            maxGeneExpr1 = geneExpr1.reduce( function( a, b ) { return Math.max( a, b ) } );
+            maxGeneExpr1 = ( maxGeneExpr1 === 0 ) ? 1 : maxGeneExpr1;
+
+            source1 = interactions1[ 0 ][ 6 ];
+            gene1Nodes.push({ data: { id: source1 }});
+            
+            _.each( interactions1, function( item ) {
+                gene1Nodes.push({ data: { id: item[ 7 ], weight: ( item[ 25 ] / maxGeneExpr1 ) } });
+                gene1Edges.push({ data: { source: source1, target: item[ 7 ], weight: ( item[ 28 ] / maxScore1 ) }});
             });
 
             // make call to cytoscape to generate graphs
             cytoscapePromise = new Promise( function( resolve, reject ) {
-                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: geneNodes, edges: gene1Edges, symbol: configObject.symbol1 } ) );
-                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: geneNodes, edges: gene2Edges, symbol: configObject.symbol2 } ) );
+                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges, symbol: configObject.symbol1 } ) );
             });
+        }
+        else {
+            $( $elGene1 ).html( "<p class='graph-error'>" + graphLoadErrorMessage + "</p>" );
+            riv.$elLoader.hide();
+        }
+
+        if ( interactions2 && interactions2.length > 0 ) {
+            // define expressions for weighing the edges and nodes of the graphs
+            scores2 = interactions2.map( function( row ) { return row[ 28 ] } )
+            maxScore2 = scores2.reduce( function( a, b ) { return Math.max( a, b ) } );
+            maxScore2 = ( maxScore2 === 0 ) ? 1 : maxScore2;
+
+            geneExpr2 = interactions2.map( function( row ) { return row[ 24 ] } );
+            maxGeneExpr2 = geneExpr2.reduce( function( a, b ) { return Math.max( a, b ) } );
+            maxGeneExpr2 = ( maxGeneExpr2 === 0 ) ? 1 : maxGeneExpr2;
+
+            source2 = interactions2[ 0 ][ 7 ];
+            gene2Nodes.push({ data: { id: source2 }});
+            
+            _.each( interactions2, function( item ) {
+                gene2Nodes.push({ data: { id: item[ 6 ], weight: ( item[ 24 ] / maxGeneExpr2 ) } });
+                gene2Edges.push({ data: { source: source2, target: item[ 6 ], weight: ( item[ 28 ] / maxScore2 ) }});
+            });
+
+            // make call to cytoscape to generate graphs
+            cytoscapePromise = new Promise( function( resolve, reject ) {
+                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene2Nodes, edges: gene2Edges, symbol: configObject.symbol2 } ) );
+            });
+            
         }
         else {
             $( $elGene2 ).html( "<p class='graph-error'>" + graphLoadErrorMessage + "</p>" );
@@ -1048,13 +1082,18 @@ var RNAInteractionViewer = (function( riv ) {
     };
 
     riv.createSelectedPairInformation = function( item, id, filePos ) {
-        let svgTitle = filePos == 1 ? "Gene aligning positions. The sequence as well as alignment length is scaled to 100 pixels" : "Gene aligning positions";
+        let svgTitle = filePos == 1 ? "Gene aligning positions. The sequence as well as alignment length is scaled to 100 pixels" : "Gene aligning positions",
+            geneExpr = parseFloat( item[ 24 + filePos ] ),
+            score = parseFloat( item[ 26 + filePos ] );
+        geneExpr = geneExpr.toFixed( 2 );
+        score = score.toFixed( 4 );
+        
         return '<span id="'+ id +'" class="single-interactions-info">' +
 	           '<p><b>Geneid</b>: ' + item[ 4 + filePos ] + '</p>' +
 	           '<p><b>Symbol</b>: ' + item[ 6 + filePos ] + '</p>' +
 	           '<p><b>Type</b>: ' + item[ 8 + filePos ] + '</p>' +
-                   '<p><b>Gene Expression </b>: ' + riv.roundPrecision( parseFloat( item[ 24 + filePos ] ), 1 ) + '</p>' +
-	           '<p><b>Score'+ ( filePos + 1) + '</b>: ' + riv.roundPrecision( parseFloat( item[ 26 + filePos ] ), 1 ) + '</p>' +
+                   '<p><b>Gene Expression </b>: ' + geneExpr + ' Transcripts Per Kilobase Million (TPM)</p>' +
+	           '<p><b>Score'+ ( filePos + 1) + '</b>: ' + score + '</p>' +
                    '<p><b>Gene Aligning Positions:</b></p><svg height="50" width="300" id="align-pos-'+ ( filePos + 1) +'" title="'+ svgTitle +'"></svg>' +
                    '<p><b>Gene Interactions Network:</b></p><div id=interaction-graph-'+ (filePos + 1) +' class="graph-size"></div>' +
 	        '</span>';
