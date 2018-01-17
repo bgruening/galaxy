@@ -822,7 +822,7 @@ var RNAInteractionViewer = (function( riv ) {
         };
 
         alignment = ( sequenceInfo.dotbrackets.indexOf( ")" ) === -1 ) ? noAlignmentTemplate : riv.fetchAlignment( sequenceInfo );
-        $elBothGenes.append( riv.createAlignmentTemplate( alignment, energyExpr ) );
+        $elBothGenes.append( riv.createAlignmentTemplate( alignment, energyExpr, item[ 0 ] ) );
 
         $elBothGenes.append( "<div class='interaction-header'>Genes Information </div>" );
         $elBothGenes.append( riv.createSelectedPairInformation( item, "info-gene1", 0 ) );
@@ -835,17 +835,34 @@ var RNAInteractionViewer = (function( riv ) {
         $( '.download-alignment' ).off( 'click' ).on( 'click', function( e ) {
             e.preventDefault();
             e.stopPropagation();
-            riv.exportAlignment();
+            let rowId = e.target.attributes[ "data-id" ].value;
+            riv.exportAlignment( rowId );
         });
     };
 
     /** Export alignment */
-    riv.exportAlignment = function() {
-        let data = "",
-            link = document.createElement( 'a' );
-        data = $( '.pre-align' ).text();
-        data = window.encodeURIComponent( data );
-        link.setAttribute( 'href', 'data:application/octet-stream,' + data );
+    riv.exportAlignment = function( rowId ) {
+        let link = document.createElement( 'a' ),
+            downloadData = "";
+        for( let ctr = 0, len = riv.model.length; ctr < len; ctr++ ) {
+            let item = riv.model[ ctr ];
+            if ( item[ 0 ].toString() === rowId.toString() ) {
+                let sequence = item[ 29 ];
+                sequence = sequence.split( "&" );
+                if ( sequence.length > 1 ) {
+                    downloadData = "Sequence 1: " + sequence[ 0 ] + "\n";
+                    downloadData += "Sequence 2: " + sequence[ 1 ] + "\n";
+                    downloadData += "Alignment energy: " + item[ 32 ] + " kcal/mol " + "\n";
+                }
+                else {
+                   downloadData = "No sequences available \n";
+                }
+                break;
+            }
+        }
+        downloadData += "Alignment: " + $( '.pre-align' ).text();
+        let encodedData = window.encodeURIComponent( downloadData );
+        link.setAttribute( 'href', 'data:application/octet-stream,' + encodedData );
         link.setAttribute( 'download', Date.now().toString( 16 ) + '_seq_alignment.txt' );
         document.body.appendChild( link );
         linkClick = link.click();
@@ -1216,9 +1233,9 @@ var RNAInteractionViewer = (function( riv ) {
 	        '</span>';
     },
 
-    riv.createAlignmentTemplate = function( alignment, energyExpr ) {
+    riv.createAlignmentTemplate = function( alignment, energyExpr, id ) {
         return "<div class='interaction-header'>Alignment Information" +
-                   "<a href='#' class='download-alignment' title='Download the alignment as text file'>" +
+                   "<a data-id='"+ id +"' href='#' class='download-alignment' title='Download the alignment as text file'>" +
                    "Download alignment</a></div><span class='alignment-energy' title='Gibbs free energy'>" + energyExpr + "</span>" +
                    "<div class='seq-alignment' title='Sequence alignment'><pre class='pre-align'>" + alignment + "</pre>" +
                "</div>";
