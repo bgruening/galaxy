@@ -82,7 +82,7 @@ html, body {
 .samples-container,
 .rna-transcriptions-container {
     padding-left: 0;
-    width: 22%;
+    width: 16%;
     height: 100%;
     border-right: 1px solid black;
     overflow: hidden;
@@ -157,21 +157,21 @@ html, body {
 
 .first-gene {
     height: 100%;
-    width: 39%;
+    width: 42%;
     border-right: 1px solid black;
     overflow: auto;
 }
 
 .second-gene {
     height: 100%;
-    width: 39%;
+    width: 42%;
     overflow: auto;
 }
 
 .both-genes {
     display: none;
     height: 100%;
-    width: 78%;
+    width: 84%;
 }
 
 .pair-mouseenter, .selected-item {
@@ -292,6 +292,7 @@ html, body {
     height: 220px;
     resize: both;
     overflow: auto;
+    display: none;
 }
 
 .rna-plots {
@@ -306,3 +307,6 @@ html, body {
     cursor: pointer;
 }
 
+.search-input { position: relative;}
+.search-input input { border:none: background:#fff; display:block; width: 100%; box-sizing: border-box }
+.search-input img { position: absolute; top: 6px; right: 20px; cursor: pointer }

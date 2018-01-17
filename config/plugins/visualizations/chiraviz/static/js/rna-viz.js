@@ -51,7 +51,24 @@ var RNAInteractionViewer = (function( riv ) {
             $elResetFilters = $( '.reset-filters' ),
             $elToggleLeftPanel = $( '.toggle-left' ),
             $elSummary = $( '.rna-summary' ),
-            $elCheckAll = $( '.check-all-interactions' );
+            $elCheckAll = $( '.check-all-interactions' ),
+            $elSearchGeneImage = $( '.search-gene-image' ),
+            $elFilterValueImage = $( '.filter-value-image' );
+
+
+        $elSearchGeneImage.off( 'click' ).on( 'click', function( e ) {
+            let query = $elSearchGene.val();
+            if ( query.length >= riv.minQueryLength ) {
+                riv.searchQuery( query );
+            }
+        });
+
+        $elFilterValueImage.off( 'click' ).on( 'click', function( e ) {
+            let query = $elFilterVal.val();
+            if ( query.length > 0 ) {
+                riv.searchFilterQuery( query );
+            }
+        });
 
         // search query event
         $elSearchGene.off( 'keyup' ).on( 'keyup', function( e ) {
@@ -137,12 +154,16 @@ var RNAInteractionViewer = (function( riv ) {
             dbQuery = "",
             url = "";
         if( e.which === 13 || e.keyCode === 13 ) { // search on enter click
-            dbQuery = riv.getFilterQuery( query );
-            if ( dbQuery !== undefined && dbQuery !== "" && dbQuery !== null ) {
-                url = riv.formUrl( riv.configObject, dbQuery );
-                riv.ajaxCall( url, riv.buildInteractionsPanel );
-                riv.cleanSummary();
-            }
+            riv.searchFilterQuery( query );
+        }
+    };
+
+    riv.searchFilterQuery = function( query ) {
+        let dbQuery = riv.getFilterQuery( query );
+        if ( dbQuery !== undefined && dbQuery !== "" && dbQuery !== null ) {
+            url = riv.formUrl( riv.configObject, dbQuery );
+            riv.ajaxCall( url, riv.buildInteractionsPanel );
+            riv.cleanSummary();
         }
     };
 
@@ -194,15 +215,19 @@ var RNAInteractionViewer = (function( riv ) {
         let query = e.target.value;
         if( query.length >= riv.minQueryLength ) {
             if( e.which === 13 || e.keyCode == 13 ) {
-                let url = riv.makeSearchURL( query );
-                riv.ajaxCall( url, riv.buildInteractionsPanel );
-                riv.setDefaultFilters();
-                riv.cleanSummary();
+                riv.searchQuery( query );
             }
         }
         else {
             return false;
         }
+    };
+
+    riv.searchQuery = function( query ) {
+        let url = riv.makeSearchURL( query );
+        riv.ajaxCall( url, riv.buildInteractionsPanel );
+        riv.setDefaultFilters();
+        riv.cleanSummary();
     };
     
     /** Prepare url for searching taking multiple columns from the database table */
@@ -240,9 +265,16 @@ var RNAInteractionViewer = (function( riv ) {
 
     /** Slice off the first row containing table headers */
     riv.createSummaryDB = function( summaryItems ) {
-        let records = summaryItems.data;
+        let records = summaryItems.data,
+            symbol1Coll = [],
+            symbol2Coll = [];
         records = records.slice( 1, records.length );
         riv.createSummary( records );
+        _.each( records, function( item ) {
+            symbol1Coll.push( item[ 6 ] );
+            symbol2Coll.push( item[ 7 ] );
+        });
+        riv.createGeneNetworkInfo( records, { "symbol1": symbol1Coll, "symbol2": symbol2Coll } );
     };
 
     /** Create summary plots */ 
@@ -257,7 +289,7 @@ var RNAInteractionViewer = (function( riv ) {
             summaryResultGeneExpr1 = [],
             summaryResultGeneExpr2 = [],
             summaryResultSymbol1 = [];
- 
+
         // summary fields - geneid (1 and 2) and type (1 and 2)
         _.each( summaryItems, function( item ) {
 
@@ -322,8 +354,8 @@ var RNAInteractionViewer = (function( riv ) {
         });
 
         plotPromise.then( function() {
-            riv.$elLoader.hide();
-            $( '.plot-loader' ).remove();
+            //riv.$elLoader.hide();
+            //$( '.plot-loader' ).remove();
         });
     };
 
@@ -359,8 +391,88 @@ var RNAInteractionViewer = (function( riv ) {
                 }
             });
             riv.createSummary( summaryItems );
+            riv.formQuerySummary( summaryItems );
         }
     };
+
+    riv.formQuerySummary = function( items ) {
+        let symbol1Coll = [],
+            symbol2Coll = [],
+            symbol1 = "",
+            symbol2 = "",
+            url = "",
+            tableName = riv.configObject.tableNames[ "name" ],
+            columnName1 = tableName + "." + "symbol1",
+            columnName2 = tableName + "." + "symbol2",
+            query = "";
+
+        riv.$elLoader.show();
+        _.each( items, function( item ) {
+            symbol1Coll.push( item[ 6 ] );
+            symbol2Coll.push( item[ 7 ] );
+            if ( symbol1 === "" ) {
+                symbol1 = "'" + item[ 6 ] + "'";
+                symbol2 = "'" + item[ 7 ] + "'";
+            }
+            else {
+                symbol1 += "," + "'" + item[ 6 ] + "'";
+                symbol2 += "," + "'" + item[ 7 ] + "'";
+            }
+        });
+        query = "SELECT * FROM " + tableName + " WHERE " + tableName + "." + "symbol1 IN (" + symbol1 + ") OR " + tableName + "." + "symbol2 IN (" + symbol2 + ")";
+        query = "&query=" + query;
+        url = riv.formUrl( riv.configObject, query );
+        riv.ajaxCall( url, riv.createGeneNetworkInfo, { "query": query, "symbol1": symbol1Coll, "symbol2": symbol2Coll } );
+    };
+
+    riv.createGeneNetworkInfo = function( records, symList ) {
+        let recordsData = records.data.slice( 1, ),
+            interactions1 = [],
+            interactions2 = [],
+            symbol1List = symList.symbol1,
+            symbol2List = symList.symbol2,
+            gene1Nodes = [],
+            gene2Nodes = [],
+            gene1Edges = [],
+            gene2Edges = [],
+            $elGene1 = document.getElementById( 'gene1-network' ),
+            $elGene2 = document.getElementById( 'gene2-network' );
+            
+        _.each( recordsData, function( item ) {
+             let symbol1 = item[ 6 ],
+                 symbol2 = item[ 7 ];
+
+             if ( symbol1List.includes( symbol1 ) ) {
+                 interactions1.push( item );
+             }
+
+             if ( symbol2List.includes( symbol2 ) ) {
+                 interactions2.push( item );
+             }
+        });
+        
+        _.each( interactions1, function( item ) {
+            gene1Nodes.push({ data: { id: item[ 6 ] } });
+            gene1Nodes.push({ data: { id: item[ 7 ] } });
+            gene1Edges.push({ data: { source: item[ 6 ] , target: item[ 7 ] }});
+        });
+
+        _.each( interactions2, function( item ) {
+            gene2Nodes.push({ data: { id: item[ 7 ] } });
+            gene2Nodes.push({ data: { id: item[ 6 ] } });
+            gene2Edges.push({ data: { source: item[ 7 ] , target: item[ 6 ] }});
+        });
+
+        cytoscapePromise = new Promise( function( resolve, reject ) {
+            resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges, symbol: symbol1List } ) );
+            resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene2Nodes, edges: gene2Edges, symbol: symbol2List } ) );
+        });
+
+        cytoscapePromise.then( function() {
+            riv.$elLoader.hide();
+        });
+    };
+    
 
     /** Fetch all the records from file for showing summary (with or without filter) */
     riv.fetchSummaryAllInteractions = function( e ) {
@@ -641,7 +753,7 @@ var RNAInteractionViewer = (function( riv ) {
                 interactionsTemplate = interactionsTemplate + riv.createInteractionsListTemplate( item );
             });
             $elInteractionsList.empty().append( interactionsTemplate )
-            riv.createFancyScroll( 'transcriptions-ids' );
+            riv.createFancyScroll( 'transcriptions-ids', "transcriptions" );
             riv.registerEventsInteractions();
         }
         else {
@@ -921,7 +1033,7 @@ var RNAInteractionViewer = (function( riv ) {
 
             // make call to cytoscape to generate graphs
             cytoscapePromise = new Promise( function( resolve, reject ) {
-                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges, symbol: configObject.symbol1 } ) );
+                resolve( riv.makeCytoGraph( { elem: $elGene1, nodes: gene1Nodes, edges: gene1Edges, symbol: [ configObject.symbol1 ] } ) );
             });
         }
         else {
@@ -949,7 +1061,7 @@ var RNAInteractionViewer = (function( riv ) {
 
             // make call to cytoscape to generate graphs
             cytoscapePromise = new Promise( function( resolve, reject ) {
-                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene2Nodes, edges: gene2Edges, symbol: configObject.symbol2 } ) );
+                resolve( riv.makeCytoGraph( { elem: $elGene2, nodes: gene2Nodes, edges: gene2Edges, symbol: [ configObject.symbol2 ] } ) );
             });
             
         }
@@ -1005,8 +1117,10 @@ var RNAInteractionViewer = (function( riv ) {
         });
 
         // color the source node differently
-        let $graphElem = graph.$( "#" + data.symbol );
-        $graphElem.style( "backgroundColor","green" );
+        _.each( data.symbol, function( item ) {
+            let $graphElem = graph.$( "#" + item );
+            $graphElem.style( "backgroundColor","green" );
+        });
 
         // when a node is tapped, make a search with the node's text
         graph.on( 'tap', 'node', function( ev ) {
@@ -1027,6 +1141,7 @@ var RNAInteractionViewer = (function( riv ) {
             e.preventDefault();
             graph.resize();
         });
+        $( ".graph-size" ).show();
         return graph;
     };
 
@@ -1059,6 +1174,8 @@ var RNAInteractionViewer = (function( riv ) {
         $( "#rna-symbol1" ).empty();
         $( "#interaction-graph-1" ).empty();
         $( "#interaction-graph-2" ).empty();
+        $( "#gene1-network" ).empty();
+        $( "#gene2-network" ).empty();
     };
 
     /** Load sqlite dataset records on first load of the visualization */
@@ -1071,12 +1188,12 @@ var RNAInteractionViewer = (function( riv ) {
     };
 
     /** Create fancy scrollbars */
-    riv.createFancyScroll = function ( className ) {
+    riv.createFancyScroll = function ( className, type ) {
         $( '.' + className ).mCustomScrollbar({
             theme:"minimal",
             scrollInertia: 5,
             axis:"yx",
-            mouseWheel: { enable: true }
+            mouseWheel: { enable: ( type ) ? true : false }
         });
         $( '.' + className + ' .mCSB_dragger_bar' ).css( 'background-color', 'black' );
     };
@@ -1120,8 +1237,9 @@ var RNAInteractionViewer = (function( riv ) {
                            '<div class="sample-name" title="'+riv.configObject.dataName+'">'+ riv.configObject.dataName.substring(0, 20) + '...' +'</div>' +
                            '<div class="sample-current-size"></div>' +
                        '</div>' +
-                       '<div class="col-sm-2 elem-rna">' +
+                       '<div class="col-sm-2 elem-rna search-input">' +
                            '<input type="text" class="search-gene form-control elem-rna" value="" placeholder="Search..." title="Search">' +
+                           '<img class="search-gene-image" src="https://www.naphix.com.au/clients/luxe-wall/wp-content/uploads/2017/05/search-icon-png-18.png" width=20 />' +
                        '</div>' +
                        '<div class="col-sm-2 elem-rna">' +
                            '<select name="sort" class="rna-sort elem-rna form-control elem-rna" title="Sort">' +
@@ -1150,9 +1268,10 @@ var RNAInteractionViewer = (function( riv ) {
                                '<option value="<>"><></option>' +
                            '</select>' +
                         '</div>' +
-                        '<div class="col-sm-2 elem-rna">' +
+                        '<div class="col-sm-2 elem-rna search-input">' +
                          '<input type="text" class="filter-value form-control elem-rna" title="Enter the selected filter value"' +
-                             'value="" placeholder="Enter the selected filters value..." />' +
+                             'value="" placeholder="Enter value..." />' +
+                         '<img class="filter-value-image" src="https://www.naphix.com.au/clients/luxe-wall/wp-content/uploads/2017/05/search-icon-png-18.png" width=20 />' +
                        '</div>' +
                    '</div>' +
                    '<div class="row rna-results">' +
@@ -1167,12 +1286,14 @@ var RNAInteractionViewer = (function( riv ) {
                            '<div id="rna-energy"></div>' +
                            '<div id="rna-expr1"></div>' +
                            '<div id="rna-alignment-graphics1"></div>' +
+                           '<div id="gene1-network" class="graph-size"></div>' +
                        '</div>' +
                        '<div class="col-sm-5 second-gene">' +
                            '<div id="rna-type2"></div>' +
                            '<div id="rna-score2"></div>' +
                            '<div id="rna-expr2"></div>' +
                            '<div id="rna-alignment-graphics2"></div>' +
+                           '<div id="gene2-network" class="graph-size"></div>' +
                        '</div>' +
                    '</div>' +
                    '<div class="row footer-row">' +
@@ -1204,3 +1325,4 @@ var RNAInteractionViewer = (function( riv ) {
 
     return riv;
 }( RNAInteractionViewer || {} ) );
+
