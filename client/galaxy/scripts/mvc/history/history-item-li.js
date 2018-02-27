@@ -1,5 +1,5 @@
 function _templateNametag(tag) {
-    return `<span class="label label-info">${_.escape(tag.slice(5))}</span>`;
+    return `<span class="dropdown tag-dropdown"><span class="label label-info dropbtn" data-toggle="dropdown">${_.escape(tag.slice(5))}</span><span class="dropdown-content"><a href="#">Add to child datasets</a><a href="#">Add to parents datasets</a><a href="#">Add to both</a></span></span>`;
 }
 
 function nametagTemplate(historyItem) {
@@ -11,6 +11,17 @@ function nametagTemplate(historyItem) {
         </div>`;
 }
 
+function stopClickPropagation(){
+    window.setTimeout(() => {
+        $(".tag-dropdown .label-info").on("click", (e) => {
+            e.stopPropagation();
+            $(e.target.nextSibling).toggle();
+        });
+    }, 2000);
+    
+}
+
 export default {
-    nametagTemplate: nametagTemplate
+    nametagTemplate: nametagTemplate,
+    stopClickPropagation: stopClickPropagation
 };

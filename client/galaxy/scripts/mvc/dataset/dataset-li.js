@@ -46,6 +46,7 @@ var DatasetListItemView = _super.extend(
             // re-rendering on any model changes
             return self.listenTo(self.model, {
                 change: function(model) {
+                    
                     // if the model moved into the ready state and is expanded without details, fetch those details now
                     if (
                         self.model.changedAttributes().state &&
@@ -60,11 +61,17 @@ var DatasetListItemView = _super.extend(
                             self.render();
                         });
                     } else {
-                        if (_.has(model.changed, "tags") && _.keys(model.changed).length === 1) {
+                        if (_.has(model.changed, "tags") && _.has(model.changed, "update_time")) {
                             // If only the tags have changed, rerender specifically
                             // the titlebar region.  Otherwise default to the full
                             // render.
                             self.$(".nametags").html(self._renderNametags());
+                            //window.setTimeout(() => {
+                            self.$(".tag-dropdown .label-info").on("click", (e) => {
+                                e.stopPropagation();
+                                $(e.target.nextSibling).toggle();
+                            });
+                            //});
                         } else {
                             self.render();
                         }
@@ -326,7 +333,10 @@ var DatasetListItemView = _super.extend(
                 [
                     "<% _.each(_.sortBy(_.uniq(tags), function(x) { return x }), function(tag){ %>",
                     '<% if (tag.indexOf("name:") == 0){ %>',
+                    '<span class="dropdown tag-dropdown">',
                     '<span class="label label-info"><%- tag.slice(5) %></span>',
+                    '<span class="dropdown-content"><a href="#">Add to child datasets</a><a href="#">Add to parents datasets</a><a href="#">Add to both</a></span>',
+                    '</span>',
                     "<% } %>",
                     "<% }); %>"
                 ].join("")
