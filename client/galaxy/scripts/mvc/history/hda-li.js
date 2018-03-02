@@ -41,7 +41,7 @@ HDAListItemView.prototype.templates = (() => {
             ${HISTORY_ITEM_LI.nametagTemplate(dataset)}
         </div>
     `;
-    // add clicks for each history tags and remove default click
+    // add clicks for each HDA hash tags and remove default click
     HISTORY_ITEM_LI.stopClickPropagation();
     var warnings = _.extend({}, _super.prototype.templates.warnings, {
         hidden: BASE_MVC.wrapTemplate(

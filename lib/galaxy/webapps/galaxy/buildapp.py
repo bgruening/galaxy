@@ -353,6 +353,8 @@ def populate_api_routes(webapp, app):
                           "/api/histories/{id}/exports/{jeha_id}", controller="histories",
                           action="archive_download", conditions=dict(method=["GET"]))
 
+    webapp.mapper.connect('/api/histories/{history_id}/contents/{id}/propagate_history_tags',
+                          controller='history_contents', action='propagate_history_tags')
     webapp.mapper.connect('/api/histories/{history_id}/contents/archive',
                           controller='history_contents', action='archive')
     webapp.mapper.connect('/api/histories/{history_id}/contents/archive/{filename}{.format}',

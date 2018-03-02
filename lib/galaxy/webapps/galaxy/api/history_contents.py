@@ -936,3 +936,25 @@ class HistoryContentsController(BaseAPIController, UsesLibraryMixin, UsesLibrary
         archive.wsgi_status = trans.response.wsgi_status()
         archive.wsgi_headeritems = trans.response.wsgi_headeritems()
         return archive.stream
+
+    @expose_api_raw
+    def propagate_history_tags(self, trans, history_id, id, payload, **kwd):
+        """
+        propagate_history_tags( self, trans, history_id, id, propagation_type, **kwd )
+        * PUT /api/histories/{history_id}/contents/{id}/propagate_history_tags
+
+        :type   history_id: str
+        :param  history_id: encoded id string of the HDA's History
+
+        :type   id: str
+        :param  id: encoded id string of the HDA
+
+        :type   payload: a dictionary
+        :param  payload: contains the type of tag propagation (towards derived HDAs, parent HDAs or both) and
+                the name of the tag to be propagated
+
+        :returns: none
+        """
+        print history_id
+        print id
+        print payload

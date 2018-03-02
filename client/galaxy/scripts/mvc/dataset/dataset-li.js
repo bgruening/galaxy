@@ -3,6 +3,8 @@ import STATES from "mvc/dataset/states";
 import faIconButton from "ui/fa-icon-button";
 import BASE_MVC from "mvc/base-mvc";
 import _l from "utils/localization";
+import HISTORY_ITEM_LI from "mvc/history/history-item-li";
+import Utils from "utils/utils";
 
 var logNamespace = "dataset";
 /*==============================================================================
@@ -66,12 +68,10 @@ var DatasetListItemView = _super.extend(
                             // the titlebar region.  Otherwise default to the full
                             // render.
                             self.$(".nametags").html(self._renderNametags());
-                            //window.setTimeout(() => {
                             self.$(".tag-dropdown .label-info").on("click", (e) => {
                                 e.stopPropagation();
                                 $(e.target.nextSibling).toggle();
                             });
-                            //});
                         } else {
                             self.render();
                         }
@@ -335,7 +335,7 @@ var DatasetListItemView = _super.extend(
                     '<% if (tag.indexOf("name:") == 0){ %>',
                     '<span class="dropdown tag-dropdown">',
                     '<span class="label label-info"><%- tag.slice(5) %></span>',
-                    '<span class="dropdown-content"><a href="#">Add to child datasets</a><a href="#">Add to parents datasets</a><a href="#">Add to both</a></span>',
+                    '<span class="dropdown-content"><a href="#" id="propagate-to-child" class="propagate-tag">Add to child datasets</a><a href="#" class="propagate-tag" id="propagate-to-parent">Add to parents datasets</a><a href="#" class="propagate-tag" id="propagate-to-both">Add to both</a></span>',
                     '</span>',
                     "<% } %>",
                     "<% }); %>"
@@ -354,6 +354,12 @@ var DatasetListItemView = _super.extend(
             },
             "click .download-btn": function(ev) {
                 this.trigger("download", this, ev);
+            },
+            "click .propagate-tag": function(ev) {
+                let historyId = "",
+                    datasetId = "",
+                    tagName = "";
+                HISTORY_ITEM_LI.updateTagsAsyncCall(historyId, datasetId, tagName);
             }
         }),
 

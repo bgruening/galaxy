@@ -1,5 +1,7 @@
+import Utils from "utils/utils";
+
 function _templateNametag(tag) {
-    return `<span class="dropdown tag-dropdown"><span class="label label-info dropbtn" data-toggle="dropdown">${_.escape(tag.slice(5))}</span><span class="dropdown-content"><a href="#">Add to child datasets</a><a href="#">Add to parents datasets</a><a href="#">Add to both</a></span></span>`;
+    return `<span class="dropdown tag-dropdown"><span class="label label-info dropbtn" data-toggle="dropdown">${_.escape(tag.slice(5))}</span><span class="dropdown-content"><a href="#" class="propagate-tag" id="propagate-to-child">Add to child datasets</a><a href="#" class="propagate-tag" id="propagate-to-parent">Add to parents datasets</a><a href="#" class="propagate-tag" id="propagate-to-both">Add to both</a></span></span>`;
 }
 
 function nametagTemplate(historyItem) {
@@ -17,11 +19,33 @@ function stopClickPropagation(){
             e.stopPropagation();
             $(e.target.nextSibling).toggle();
         });
-    }, 2000);
-    
+        $(".tag-dropdown .propagate-tag").on("click", (e) => {
+            e.stopPropagation();
+            let historyId = "",
+                datasetId = "",
+                tagName = "";
+            updateTagsAsyncCall(historyId, datasetId, tagName);
+        });
+    }, 2000); 
+}
+
+function updateTagsAsyncCall(historyId, datasetId, tagName){
+    let asyncUrl = Galaxy.root + 'api/histories/' + historyId + '/contents/' + datasetId + '/propagate_history_tags';
+    Utils.request({
+        type: "PUT",
+        url: asyncUrl,
+        data: {"history_id": historyId, "id": datasetId, "tag_name": tagName},
+        success: function(response) {
+            console.log("Async call success");
+        },
+        error: function(response) {
+            console.error("Async call error");
+        }
+    });
 }
 
 export default {
     nametagTemplate: nametagTemplate,
-    stopClickPropagation: stopClickPropagation
+    stopClickPropagation: stopClickPropagation,
+    updateTagsAsyncCall: updateTagsAsyncCall
 };
