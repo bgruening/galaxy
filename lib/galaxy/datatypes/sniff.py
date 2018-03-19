@@ -14,6 +14,7 @@ import tempfile
 import zipfile
 
 from six import text_type
+from six.moves.urllib.request import urlopen
 
 from galaxy import util
 from galaxy.util import compression_utils
@@ -37,6 +38,12 @@ def get_test_fname(fname):
     path, name = os.path.split(__file__)
     full_path = os.path.join(path, 'test', fname)
     return full_path
+
+
+def stream_url_to_file(path):
+    page = urlopen(path)  # page will be .close()ed in stream_to_file
+    temp_name = stream_to_file(page, prefix='url_paste', source_encoding=util.get_charset_from_http_headers(page.headers))
+    return temp_name
 
 
 def stream_to_open_named_file(stream, fd, filename, source_encoding=None, source_error='strict', target_encoding=None, target_error='strict'):
@@ -93,14 +100,12 @@ def check_newlines(fname, bytes_to_read=52428800):
     number_of_bytes (by default, 50MB) of the file.
     """
     CHUNK_SIZE = 2 ** 20
-    f = open(fname, 'r')
-    for chunk in f.read(CHUNK_SIZE):
-        if f.tell() > bytes_to_read:
-            break
-        if chunk.count('\r'):
-            f.close()
-            return True
-    f.close()
+    with open(fname, 'r') as f:
+        for chunk in f.read(CHUNK_SIZE):
+            if f.tell() > bytes_to_read:
+                break
+            if chunk.count('\r'):
+                return True
     return False
 
 
@@ -117,11 +122,10 @@ def convert_newlines(fname, in_place=True, tmp_dir=None, tmp_prefix="gxupload"):
     '1 2\\n3 4\\n'
     """
     fd, temp_name = tempfile.mkstemp(prefix=tmp_prefix, dir=tmp_dir)
-    fp = os.fdopen(fd, "wt")
-    i = None
-    for i, line in enumerate(open(fname, "U")):
-        fp.write("%s\n" % line.rstrip("\r\n"))
-    fp.close()
+    with os.fdopen(fd, "wt") as fp:
+        i = None
+        for i, line in enumerate(open(fname, "U")):
+            fp.write("%s\n" % line.rstrip("\r\n"))
     if i is None:
         i = 0
     else:
@@ -134,7 +138,7 @@ def convert_newlines(fname, in_place=True, tmp_dir=None, tmp_prefix="gxupload"):
         return (i, temp_name)
 
 
-def sep2tabs(fname, in_place=True, patt="\\s+"):
+def sep2tabs(fname, in_place=True, patt="\\s+", tmp_dir=None, tmp_prefix="gxupload"):
     """
     Transforms in place a 'sep' separated file to a tab separated one
 
@@ -146,14 +150,18 @@ def sep2tabs(fname, in_place=True, patt="\\s+"):
     '1\\t2\\n3\\t4\\n'
     """
     regexp = re.compile(patt)
-    fd, temp_name = tempfile.mkstemp()
-    fp = os.fdopen(fd, "wt")
-    i = None
-    for i, line in enumerate(open(fname)):
-        line = line.rstrip('\r\n')
-        elems = regexp.split(line)
-        fp.write("%s\n" % '\t'.join(elems))
-    fp.close()
+    fd, temp_name = tempfile.mkstemp(prefix=tmp_prefix, dir=tmp_dir)
+    with os.fdopen(fd, "wt") as fp:
+        i = None
+        for i, line in enumerate(open(fname)):
+            if line.endswith("\r"):
+                line = line.rstrip('\r')
+                elems = regexp.split(line)
+                fp.write("%s\r" % '\t'.join(elems))
+            else:
+                line = line.rstrip('\n')
+                elems = regexp.split(line)
+                fp.write("%s\n" % '\t'.join(elems))
     if i is None:
         i = 0
     else:
@@ -180,12 +188,11 @@ def convert_newlines_sep2tabs(fname, in_place=True, patt="\\s+", tmp_dir=None, t
     """
     regexp = re.compile(patt)
     fd, temp_name = tempfile.mkstemp(prefix=tmp_prefix, dir=tmp_dir)
-    fp = os.fdopen(fd, "wt")
-    for i, line in enumerate(open(fname, "U")):
-        line = line.rstrip('\r\n')
-        elems = regexp.split(line)
-        fp.write("%s\n" % '\t'.join(elems))
-    fp.close()
+    with os.fdopen(fd, "wt") as fp:
+        for i, line in enumerate(open(fname, "U")):
+            line = line.rstrip('\r\n')
+            elems = regexp.split(line)
+            fp.write("%s\n" % '\t'.join(elems))
     if in_place:
         shutil.move(temp_name, fname)
         # Return number of lines in file.
@@ -337,7 +344,7 @@ def guess_ext(fname, sniff_order):
     'bam'
     >>> fname = get_test_fname('3unsorted.bam')
     >>> guess_ext(fname, sniff_order)
-    'bam'
+    'unsorted.bam'
     >>> fname = get_test_fname('test.idpDB')
     >>> guess_ext(fname, sniff_order)
     'idpdb'
@@ -487,7 +494,7 @@ def handle_uploaded_dataset_file(filename, datatypes_registry, ext='auto'):
 AUTO_DETECT_EXTENSIONS = ['auto']  # should 'data' also cause auto detect?
 DECOMPRESSION_FUNCTIONS = dict(gzip=gzip.GzipFile, bz2=bz2.BZ2File)
 COMPRESSION_CHECK_FUNCTIONS = [('gzip', is_gzip), ('bz2', is_bz2)]
-COMPRESSION_DATATYPES = dict(gzip=['bam', 'fastq.gz', 'fastqsanger.gz', 'fastqillumina.gz', 'fastqsolexa.gz', 'fastqcssanger.gz'], bz2=['fastq.bz2', 'fastqsanger.bz2', 'fastqillumina.bz2', 'fastqsolexa.bz2', 'fastqcssanger.bz2'])
+COMPRESSION_DATATYPES = dict(gzip=['bam', 'fasta.gz', 'fastq.gz', 'fastqsanger.gz', 'fastqillumina.gz', 'fastqsolexa.gz', 'fastqcssanger.gz'], bz2=['fastq.bz2', 'fastqsanger.bz2', 'fastqillumina.bz2', 'fastqsolexa.bz2', 'fastqcssanger.bz2'])
 COMPRESSED_EXTENSIONS = []
 for exts in COMPRESSION_DATATYPES.values():
     COMPRESSED_EXTENSIONS.extend(exts)
