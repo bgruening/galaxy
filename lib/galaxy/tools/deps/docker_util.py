@@ -155,7 +155,9 @@ def build_docker_run_command(
     if terminal:
         command_parts.append("-t")
     for env_directive in env_directives:
-        command_parts.extend(["-e", shlex_quote(env_directive)])
+        # e.g. -e "GALAXY_SLOTS=$GALAXY_SLOTS"
+        # These are environment variable expansions so we don't quote these.
+        command_parts.extend(["-e", env_directive])
     for volume in volumes:
         command_parts.extend(["-v", shlex_quote(str(volume))])
     if volumes_from:
@@ -175,8 +177,13 @@ def build_docker_run_command(
     if set_user:
         user = set_user
         if set_user == DEFAULT_SET_USER:
-            user = str(os.geteuid())
-        command_parts.extend(["-u", user])
+            # If future-us is ever in here and fixing this for docker-machine just
+            # use cwltool.docker_id - it takes care of this default nicely.
+            euid = os.geteuid()
+            egid = os.getgid()
+
+            user = "%d:%d" % (euid, egid)
+        command_parts.extend(["--user", user])
     full_image = image
     if tag:
         full_image = "%s:%s" % (full_image, tag)
@@ -194,8 +201,13 @@ def command_list(command, command_args=[], **kwds):
 
 
 def command_shell(command, command_args=[], **kwds):
-    """Return Docker command as a string for a shell."""
-    return argv_to_str(command_list(command, command_args, **kwds))
+    """Return Docker command as a string for a shell or command-list."""
+    cmd = command_list(command, command_args, **kwds)
+    to_str = kwds.get("to_str", True)
+    if to_str:
+        return argv_to_str(cmd)
+    else:
+        return cmd
 
 
 def _docker_prefix(
