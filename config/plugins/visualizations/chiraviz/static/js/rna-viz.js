@@ -661,8 +661,13 @@ var RNAInteractionViewer = (function( riv ) {
 	    scaledEnd = parseInt( ratio * item.endPos ) + xOffset,
             barLength = ( item.endPos - item.startPos ),
             seqEndPos = scaledBegin + barLength + ratio * ( item.seqLength - item.endPos );
-            symbolSearchUrl = 'https://www.google.com/search?q=' + item.symbol;
-
+            if( geneType === "gene1" ) {
+                let geneId = item.geneid.split( "_" )[ 1 ];
+                symbolSearchUrl = "https://www.ncbi.nlm.nih.gov/gene/?term=" + geneId;
+            }
+            else {
+                symbolSearchUrl = "http://www.ensembl.org/id/" + item.geneid;
+            }
             tableTemplate += '<line x1="'+ xOffset +'" y1="'+ heightDiff +'" x2="'+ scaledBegin +'" y2="'+ heightDiff +'" style="stroke:black;stroke-width:2" />' +
                 '<rect x="'+ scaledBegin +'" y="'+ (heightDiff - 5) +'" width="'+ barLength +'" height="10" style="fill:green" />' +
                 '<line x1="'+ (scaledBegin + barLength) +'" y1="'+ heightDiff +'" x2="'+ seqEndPos +'" y2="'+ heightDiff +'" style="stroke:black;stroke-width:2" />' +
@@ -1256,7 +1261,7 @@ var RNAInteractionViewer = (function( riv ) {
                        '</div>' +
                        '<div class="col-sm-2 elem-rna search-input">' +
                            '<input type="text" class="search-gene form-control elem-rna" value="" placeholder="Search..." title="Search">' +
-                           '<img class="search-gene-image" src="https://www.naphix.com.au/clients/luxe-wall/wp-content/uploads/2017/05/search-icon-png-18.png" width=20 />' +
+                           '<img class="search-gene-image" src="/plugins/visualizations/chiraviz/static/images/search-icon.png" width=20 />' +
                        '</div>' +
                        '<div class="col-sm-2 elem-rna">' +
                            '<select name="sort" class="rna-sort elem-rna form-control elem-rna" title="Sort">' +
@@ -1288,7 +1293,7 @@ var RNAInteractionViewer = (function( riv ) {
                         '<div class="col-sm-2 elem-rna search-input">' +
                          '<input type="text" class="filter-value form-control elem-rna" title="Enter the selected filter value"' +
                              'value="" placeholder="Enter value..." />' +
-                         '<img class="filter-value-image" src="https://www.naphix.com.au/clients/luxe-wall/wp-content/uploads/2017/05/search-icon-png-18.png" width=20 />' +
+                         '<img class="filter-value-image" src="/plugins/visualizations/chiraviz/static/images/search-icon.png" width=20 />' +
                        '</div>' +
                    '</div>' +
                    '<div class="row rna-results">' +
