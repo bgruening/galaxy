@@ -59,7 +59,7 @@ var RNAInteractionViewer = (function( riv ) {
         $elSearchGeneImage.off( 'click' ).on( 'click', function( e ) {
             let query = $elSearchGene.val();
             if ( query.length >= riv.minQueryLength ) {
-                riv.searchQuery( query );
+                riv.searchQuery();
             }
         });
 
@@ -77,7 +77,8 @@ var RNAInteractionViewer = (function( riv ) {
 
         // onchange for sort
         $elSort.off( 'change' ).on( 'change', function( e ) {
-            riv.sortInteractions( e );
+            //riv.sortInteractions( e );
+            riv.makeSearchURL();
         });
 
         // fetch records using filter's value
@@ -154,7 +155,8 @@ var RNAInteractionViewer = (function( riv ) {
             dbQuery = "",
             url = "";
         if( e.which === 13 || e.keyCode === 13 ) { // search on enter click
-            riv.searchFilterQuery( query );
+            //riv.searchFilterQuery( query );
+            riv.makeSearchURL();
         }
     };
 
@@ -187,10 +189,10 @@ var RNAInteractionViewer = (function( riv ) {
         if ( filterType === "score" ) {
             dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "score": parseFloat( query ) }, filterOperator );
         }
-        else if( filterType === "family" ) {
+        /*else if( filterType === "family" ) {
             let queryLike = '%' + query + '%';
             dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], { "type1": queryLike, "type2": queryLike }, "LIKE", "OR" );
-        }
+        }*/
         return dbQuery;
     };
 
@@ -215,7 +217,7 @@ var RNAInteractionViewer = (function( riv ) {
         let query = e.target.value;
         if( query.length >= riv.minQueryLength ) {
             if( e.which === 13 || e.keyCode == 13 ) {
-                riv.searchQuery( query );
+                riv.searchQuery();
             }
         }
         else {
@@ -223,21 +225,69 @@ var RNAInteractionViewer = (function( riv ) {
         }
     };
 
-    riv.searchQuery = function( query ) {
-        let url = riv.makeSearchURL( query );
+    riv.searchQuery = function() {
+        let url = riv.makeSearchURL();
         riv.ajaxCall( url, riv.buildInteractionsPanel );
         riv.setDefaultFilters();
         riv.cleanSummary();
     };
-    
+
     /** Prepare url for searching taking multiple columns from the database table */
-    riv.makeSearchURL = function( query ) {
-        let queryLike = "%" + query + "%",
-            colNames = { "txid1": queryLike, "txid2": queryLike, "geneid1": queryLike,
-                "geneid2": queryLike, "symbol1":queryLike, "symbol2": queryLike,
-                "type1":queryLike, "type2": queryLike },
-            dbQuery = riv.constructQuery( riv.configObject.tableNames[ "name" ], colNames, "LIKE", "OR" ),
-            url = riv.formUrl( riv.configObject, dbQuery );
+    riv.makeSearchURL = function() {
+        let searchQuery = $( '.search-gene' ).val(),
+            filterOperator = $( '.filter-operator' ).find( ":selected" ).val(),
+            filterType = $( '.rna-filter' ).find( ":selected" ).val(),
+            filterQuery = $( '.filter-value' ).val(),
+            sortByVal = $( '.rna-sort' ).find( ":selected" ).val(),
+            colNames = {},
+            dbQuery = "",
+            url = "",
+            searchClause = "",
+            filterClause = "",
+            sortClause = "",
+            tableName = riv.configObject.tableNames[ "name" ];
+            
+        dbQuery = "SELECT * FROM " + tableName;
+        if( filterQuery.length > 0 ) {
+            filterClause = tableName + "." + "score" + " " + filterOperator + " " + filterQuery;
+        }
+        else {
+            filterClause = tableName + "." + "score BETWEEN 0.0 AND 1.0 ";
+        }
+        
+        if( sortByVal.length > 1 ) {
+            sortByVal = sortByVal.split( "_" );
+            sortClause = " ORDER BY " + tableName + "." + sortByVal[ 0 ] + " " + sortByVal[ 1 ].toUpperCase();
+        }
+        else {
+            sortClause = " ORDER BY " + tableName + ".score DESC";
+        }
+        
+        if( searchQuery.length > riv.minQueryLength ) {
+            let queryLike = "%" + searchQuery + "%",
+                colNames = { "txid1": queryLike, "txid2": queryLike, "geneid1": queryLike,
+                    "geneid2": queryLike, "symbol1": queryLike, "symbol2": queryLike,
+                    "type1": queryLike, "type2": queryLike },
+                colsNum = Object.keys( colNames ).length,
+                colsCounter = 0;
+            for( let item in colNames ) {
+                searchClause += tableName + "." + item + " LIKE " + "'" + colNames[ item ] + "'";
+                if( colsCounter < colsNum - 1 ) {
+                    dbQuery += " OR ";
+                }
+                colsCounter++;
+            }
+        }
+        
+        if( searchClause.length !== ""  ) {
+            dbQuery += dbQuery + " WHERE " + "( " + filterClause + " ) AND ( " + searchClause + " ) " + sortClause;
+        }
+        else {
+            dbQuery += " WHERE " + filterClause + sortClause;
+        }
+        dbQuery = "&query=" + dbQuery
+        window.console.log(dbQuery);
+        url = riv.formUrl( riv.configObject, dbQuery );
         return url;
     };
 
@@ -254,7 +304,7 @@ var RNAInteractionViewer = (function( riv ) {
         _.each( data, function( item ) {
             tsv_data = tsv_data + item.join( "\t" ) + "\n";
         });
-          
+
         tsv_data = window.encodeURIComponent( tsv_data );
         link.setAttribute( 'href', 'data:application/octet-stream,' + tsv_data );
         link.setAttribute( 'download', file_name );
@@ -502,7 +552,7 @@ var RNAInteractionViewer = (function( riv ) {
         // any filter active. If it is fetch only those records which satisfy
         // the conditions of the filter
         if ( searchQuery !== "" ) {
-            url = riv.makeSearchURL( searchQuery );
+            url = riv.makeSearchURL();
         }
         else if( filterQuery.length > 0 ) {
             dbQuery = riv.getFilterQuery( filterQuery );
@@ -1149,7 +1199,7 @@ var RNAInteractionViewer = (function( riv ) {
             let query = this.id(),
                 conf = window.confirm( "Do you want to make a search for geneid - " + query );
             if ( conf && conf === true ) {
-                riv.ajaxCall( riv.makeSearchURL( query ), riv.buildInteractionsPanel );
+                riv.ajaxCall( riv.makeSearchURL(), riv.buildInteractionsPanel );
                 riv.setDefaultFilters();
                 riv.cleanSummary();
                 $( ".search-gene" ).val( query );
@@ -1276,7 +1326,7 @@ var RNAInteractionViewer = (function( riv ) {
 	                   '<select name="filter" class="rna-filter form-control elem-rna" title="Filter">' +
 		               '<option value="-1">Filter by...</option>' +
 		               '<option value="score">Score</option>' +
-		               '<option value="family">RNA Family</option>' +
+		               //'<option value="family">RNA Family</option>' +
 	                   '</select>' +
                         '</div>' +
                         '<div class="col-sm-2 elem-rna">' +
