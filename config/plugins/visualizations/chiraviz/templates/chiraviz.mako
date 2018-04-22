@@ -1,24 +1,29 @@
+<%
+    app_root = h.url_for("/static/plugins/visualizations/chiraviz/static/")
+%>
+
 <!DOCTYPE html>
 <html>
 <head lang="en">
     <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1"/>
     <title>Galaxy SQLite Data Viewer</title>
-
-    <link rel="stylesheet" href="/plugins/visualizations/chiraviz/static/css/bootstrap.min.css">
-    <link href="/plugins/visualizations/chiraviz/static/css/font-awesome.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/plugins/visualizations/chiraviz/static/css/jquery.mCustomScrollbar.min.css">
-    <link rel="stylesheet" href="/plugins/visualizations/chiraviz/static/css/rna.viz.css">
+    ${h.stylesheet_link(app_root + 'css/bootstrap.min.css' )}
+    ${h.stylesheet_link(app_root + 'css/font-awesome.min.css' )}
+    ${h.stylesheet_link(app_root + 'css/jquery.mCustomScrollbar.min.css' )}
+    ${h.stylesheet_link(app_root + 'css/rna.viz.css' )}
 </head>
 <body class="body-rna-viz">
     <div class="main-container">
         <div class="samples-overlay loader"><span> loading... </span></div>
     </div>
-    <script src="/plugins/visualizations/chiraviz/static/js/lib/jquery-3.2.1.min.js"></script>
-    <script src="/plugins/visualizations/chiraviz/static/js/lib/plotly.min.js"></script>
-    <script src="/plugins/visualizations/chiraviz/static/js/lib/bootstrap.min.js"></script>
-    <script src="/plugins/visualizations/chiraviz/static/js/lib/underscore.min.js"></script>
-    <script src="/plugins/visualizations/chiraviz/static/js/lib/cytoscape.min.js"></script>
-    <script src="/plugins/visualizations/chiraviz/static/js/lib/jquery.mCustomScrollbar.concat.min.js"></script>
+    
+    ${h.javascript_link( app_root +  "js/jquery-3.2.1.min.js" )}
+    ${h.javascript_link( app_root +  "js/plotly.min.js" )}
+    ${h.javascript_link( app_root +  "js/bootstrap.min.js" )}
+    ${h.javascript_link( app_root +  "js/underscore.min.js" )}
+    ${h.javascript_link( app_root +  "js/cytoscape.min.js" )}
+    ${h.javascript_link( app_root +  "js/jquery.mCustomScrollbar.concat.min.js" )}
+    
     <script>
         $(document).ready(function () {
             var config = {
@@ -34,9 +39,8 @@
             RNAInteractionViewer.loadData( config );
         });
     </script>
-  
-    <script src="/plugins/visualizations/chiraviz/static/js/visualize-alignment.js"></script>
-    <script src="/plugins/visualizations/chiraviz/static/js/rna-viz.js"></script>
 
+    ${h.javascript_link( app_root +  "js/visualize-alignment.js" )}
+    ${h.javascript_link( app_root +  "js/rna-viz.js" )}
 </body>
 </html>
