@@ -249,6 +249,42 @@ var RNAInteractionViewer = (function( riv ) {
         });
         riv.createGeneNetworkInfo( records, { "symbol1": symbol1Coll, "symbol2": symbol2Coll } );
     };
+    
+    /** Create heatmaps for the left alignment */
+    riv.createHeatMaps = function( records ) {
+        let data = records.data ? records.data : records,
+            structs = [],
+            structsBinary = [],
+            maxLen = 0,
+            padVal = -10;
+        _.each( data, function( item ) {
+            let leftAlignment = item[ 30 ].split( "&" )[ 0 ];
+            if ( maxLen < leftAlignment.length ) {
+                maxLen = leftAlignment.length;
+            }
+            structs.push( leftAlignment );
+        });
+        
+        _.each( structs, function( item ) {
+            let dotBrackets = item.split( "" ),
+                binarySpread = [];
+            for( let ctr = 0; ctr < maxLen; ctr++ ) {
+                binarySpread.push( padVal );
+            }
+            _.each( dotBrackets, function( dB, index ) {
+                if ( dB === "." ) {
+                    binarySpread[ index ] = 0;
+                }
+                else if( dB === "(" ) {
+                    binarySpread[ index ] = 1;
+                }
+            });
+            structsBinary.push( binarySpread );
+        });
+        console.log( structsBinary );
+        let clusters = clusterfck.hcluster( structsBinary, clusterfck.EUCLIDEAN_DISTANCE, clusterfck.AVERAGE_LINKAGE, 3 );
+        console.log( clusters );
+    };
 
     /** Create summary plots */ 
     riv.createSummary = function( summaryItems ) {
@@ -262,7 +298,8 @@ var RNAInteractionViewer = (function( riv ) {
             summaryResultGeneExpr1 = [],
             summaryResultGeneExpr2 = [],
             summaryResultSymbol1 = [];
-
+            
+        riv.createHeatMaps( summaryItems );
         // summary fields - geneid (1 and 2) and type (1 and 2)
         _.each( summaryItems, function( item ) {
 

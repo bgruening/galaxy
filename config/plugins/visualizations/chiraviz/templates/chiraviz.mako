@@ -23,6 +23,7 @@
     ${h.javascript_link( app_root +  "js/underscore.min.js" )}
     ${h.javascript_link( app_root +  "js/cytoscape.min.js" )}
     ${h.javascript_link( app_root +  "js/jquery.mCustomScrollbar.concat.min.js" )}
+    ${h.javascript_link( app_root +  "js/clusterfck.js" )}
     
     <script>
         $(document).ready(function () {
