@@ -281,9 +281,10 @@ var RNAInteractionViewer = (function( riv ) {
             });
             structsBinary.push( binarySpread );
         });
-        console.log( structsBinary );
-        let clusters = clusterfck.hcluster( structsBinary, clusterfck.EUCLIDEAN_DISTANCE, clusterfck.AVERAGE_LINKAGE, 3 );
-        console.log( clusters );
+        //console.log( structsBinary );
+        //console.log( kMeansClustering );
+        //let clusters = kMeansClustering.clusters( 3, 100, structsBinary);
+        //console.log(clusters);
     };
 
     /** Create summary plots */ 
