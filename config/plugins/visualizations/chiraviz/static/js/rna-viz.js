@@ -250,16 +250,21 @@ var RNAInteractionViewer = (function( riv ) {
         riv.createGeneNetworkInfo( records, { "symbol1": symbol1Coll, "symbol2": symbol2Coll } );
     };
     
-    /** Create heatmaps for the left alignment */
-    riv.createHeatMaps = function( records ) {
+    /** Compute clusters for the left alignment */
+    riv.computeClusters = function( records ) {
         let data = records.data ? records.data : records,
             structs = [],
             structsBinary = [],
             maxLen = 0,
-            padVal = -10,
+            padVal = -5,
             numClusters = 3,
-            iterations = 100,
-            clusters = null;
+            iterations = 25,
+            clusters = null,
+            centroids = [],
+            clusterPoints = [];
+        // empty the placeholders for heatmaps
+        $( "#rna-alignment-cluster" ).empty();
+        $( "#rna-alignment-cluster-points" ).empty();
         _.each( data, function( item ) {
             let leftAlignment = item[ 30 ].split( "&" )[ 0 ];
             if ( maxLen < leftAlignment.length ) {
@@ -279,18 +284,45 @@ var RNAInteractionViewer = (function( riv ) {
                     binarySpread[ index ] = 0;
                 }
                 else if( dB === "(" ) {
-                    binarySpread[ index ] = 1;
+                    binarySpread[ index ] = 5;
                 }
             });
             structsBinary.push( binarySpread );
         });
-        console.log( structsBinary );
-        console.log( kMeansClustering );
         kMeansClustering.k( numClusters );
         kMeansClustering.iterations( iterations );
         kMeansClustering.data( structsBinary );
         clusters = kMeansClustering.clusters();
-        console.log(clusters);
+        _.each( clusters, function( cluster ) {
+            centroids.push( cluster.centroid );
+            _.each( cluster.points, function( point ) {
+                clusterPoints.push( point );
+            });
+        });
+        riv.plotHeatmap( "rna-alignment-cluster", centroids, "Heatmap for cluster centroids using kmeans", "Clusters" );
+        riv.plotHeatmap( "rna-alignment-cluster-points", clusterPoints, "Heatmap for cluster points using kmeans", "Cluster points" );
+    };
+
+    /** Plot heatmap for clusters */
+    riv.plotHeatmap = function( plotContainer, clusterData, title, yTitle ) {
+        let trace = {
+               z: clusterData,
+	       type: 'heatmap',
+            },
+            layout = {
+                autosize: true,
+                margin: {
+                    autoexpand: true
+                },
+                title: title,
+                xaxis: {
+                    title: "Nucleotides positions"
+                },
+                yaxis: {
+                    title: yTitle
+                },
+            };
+	Plotly.newPlot( plotContainer, [ trace ] , layout );
     };
 
     /** Create summary plots */ 
@@ -306,7 +338,7 @@ var RNAInteractionViewer = (function( riv ) {
             summaryResultGeneExpr2 = [],
             summaryResultSymbol1 = [];
             
-        riv.createHeatMaps( summaryItems );
+        riv.computeClusters( summaryItems );
         // summary fields - geneid (1 and 2) and type (1 and 2)
         _.each( summaryItems, function( item ) {
 
@@ -503,7 +535,6 @@ var RNAInteractionViewer = (function( riv ) {
             dbQuery = "",
             $elSearchGene = $( '.search-gene' ),
             $elFilterValue = $( '.filter-value' );
-    
         // take into account if the filters are active while fetching 
         // summary data and build url accordingly
         searchQuery = $elSearchGene.val();
@@ -1303,6 +1334,8 @@ var RNAInteractionViewer = (function( riv ) {
                            '<div id="rna-energy"></div>' +
                            '<div id="rna-expr1"></div>' +
                            '<div id="rna-alignment-graphics1"></div>' +
+                           '<div id="rna-alignment-cluster"></div>' +
+                           '<div id="rna-alignment-cluster-points"></div>' +
                            '<div id="gene1-network" class="graph-size"></div>' +
                        '</div>' +
                        '<div class="col-sm-5 second-gene">' +
