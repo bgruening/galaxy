@@ -256,7 +256,10 @@ var RNAInteractionViewer = (function( riv ) {
             structs = [],
             structsBinary = [],
             maxLen = 0,
-            padVal = -10;
+            padVal = -10,
+            numClusters = 3,
+            iterations = 100,
+            clusters = null;
         _.each( data, function( item ) {
             let leftAlignment = item[ 30 ].split( "&" )[ 0 ];
             if ( maxLen < leftAlignment.length ) {
@@ -281,10 +284,13 @@ var RNAInteractionViewer = (function( riv ) {
             });
             structsBinary.push( binarySpread );
         });
-        //console.log( structsBinary );
-        //console.log( kMeansClustering );
-        //let clusters = kMeansClustering.clusters( 3, 100, structsBinary);
-        //console.log(clusters);
+        console.log( structsBinary );
+        console.log( kMeansClustering );
+        kMeansClustering.k( numClusters );
+        kMeansClustering.iterations( iterations );
+        kMeansClustering.data( structsBinary );
+        clusters = kMeansClustering.clusters();
+        console.log(clusters);
     };
 
     /** Create summary plots */ 
