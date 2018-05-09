@@ -1033,8 +1033,9 @@ const collectionCreatorModalSetup = function _collectionCreatorModalSetup(option
         modal.show({
             title: options.title || _l("Create a collection"),
             body: el,
-            width: "80%",
+            width: "85%",
             height: "100%",
+            xlarge: true,
             closing_events: true
         });
     };
@@ -1068,8 +1069,10 @@ var ruleBasedCollectionCreatorModal = function _ruleBasedCollectionCreatorModal(
     let title;
     if (importType == "datasets") {
         title = _l("Build Rules for Uploading Datasets");
-    } else if (elementsType == "datasets") {
-        title = _l("Build Rules for Creating Collection");
+    } else if (elementsType == "collection_contents") {
+        title = _l("Build Rules for Applying to Existing Collection");
+    } else if (elementsType == "datasets" || elementsType == "library_datasets") {
+        title = _l("Build Rules for Creating Collection(s)");
     } else {
         title = _l("Build Rules for Uploading Collections");
     }
@@ -1089,7 +1092,9 @@ var ruleBasedCollectionCreatorModal = function _ruleBasedCollectionCreatorModal(
             creationFn: options.creationFn,
             oncancel: options.oncancel,
             oncreate: options.oncreate,
-            defaultHideSourceItems: options.defaultHideSourceItems
+            defaultHideSourceItems: options.defaultHideSourceItems,
+            saveRulesFn: options.saveRulesFn,
+            initialRules: options.initialRules
         }
     }).$mount(vm);
     return deferred;
@@ -1127,7 +1132,8 @@ function createListCollection(contents, defaultHideSourceItems) {
 
 function createCollectionViaRules(selection, defaultHideSourceItems) {
     let elements, elementsType, importType;
-    if (!selection.selectionType) {
+    const selectionType = selection.selectionType;
+    if (!selectionType) {
         // Have HDAs from the history panel.
         elements = selection.toJSON();
         elementsType = "datasets";
@@ -1170,5 +1176,6 @@ export default {
     collectionCreatorModal: collectionCreatorModal,
     listCollectionCreatorModal: listCollectionCreatorModal,
     createListCollection: createListCollection,
-    createCollectionViaRules: createCollectionViaRules
+    createCollectionViaRules: createCollectionViaRules,
+    ruleBasedCollectionCreatorModal: ruleBasedCollectionCreatorModal
 };

@@ -4,6 +4,7 @@ Basic tool parameters.
 from __future__ import print_function
 
 import cgi
+import json
 import logging
 import os
 import os.path
@@ -23,17 +24,17 @@ from galaxy.util import (
 from galaxy.util.bunch import Bunch
 from galaxy.util.dictifiable import Dictifiable
 from galaxy.util.expressions import ExpressionContext
+from galaxy.util.rules_dsl import RuleSet
 from galaxy.web import url_for
-from . import validation
+from . import (
+    dynamic_options,
+    history_query,
+    validation
+)
 from .dataset_matcher import (
-    DatasetCollectionMatcher,
-    DatasetMatcher
+    get_dataset_matcher_factory,
 )
 from .sanitize import ToolParameterSanitizer
-from ..parameters import (
-    dynamic_options,
-    history_query
-)
 from ..parser import get_input_source as ensure_input_source
 
 log = logging.getLogger(__name__)
@@ -1506,15 +1507,16 @@ class BaseDataToolParameter(ToolParameter):
             return None
         history = trans.history
         if history is not None:
-            dataset_matcher = DatasetMatcher(trans, self, None, other_values)
+            dataset_matcher_factory = get_dataset_matcher_factory(trans)
+            dataset_matcher = dataset_matcher_factory.dataset_matcher(self, other_values)
             if isinstance(self, DataToolParameter):
-                for hda in reversed(history.active_datasets_and_roles):
-                    match = dataset_matcher.hda_match(hda, check_security=False)
+                for hda in reversed(history.active_visible_datasets_and_roles):
+                    match = dataset_matcher.hda_match(hda)
                     if match:
                         return match.hda
             else:
-                dataset_collection_matcher = DatasetCollectionMatcher(dataset_matcher)
-                for hdca in reversed(history.active_dataset_collections):
+                dataset_collection_matcher = dataset_matcher_factory.dataset_collection_matcher(dataset_matcher)
+                for hdca in reversed(history.active_visible_dataset_collections):
                     if dataset_collection_matcher.hdca_match(hdca, reduction=self.multiple):
                         return hdca
 
@@ -1625,13 +1627,6 @@ class DataToolParameter(BaseDataToolParameter):
                     raise ValueError("Datatype class not found for extension '%s', which is used as 'type' attribute in conversion of data parameter '%s'" % (conv_type, self.name))
                 self.conversions.append((name, conv_extension, [conv_type]))
 
-    def match_collections(self, history, dataset_matcher, reduction=True):
-        dataset_collection_matcher = DatasetCollectionMatcher(dataset_matcher)
-
-        for history_dataset_collection in history.active_dataset_collections:
-            if dataset_collection_matcher.hdca_match(history_dataset_collection, reduction=reduction):
-                yield history_dataset_collection
-
     def from_json(self, value, trans, other_values={}):
         if trans.workflow_building_mode is workflow_building_modes.ENABLED:
             return None
@@ -1688,7 +1683,8 @@ class DataToolParameter(BaseDataToolParameter):
         else:
             rval = trans.sa_session.query(trans.app.model.HistoryDatasetAssociation).get(value)
         values = util.listify(rval)
-        dataset_matcher = DatasetMatcher(trans, self, None, other_values)
+        dataset_matcher_factory = get_dataset_matcher_factory(trans)
+        dataset_matcher = dataset_matcher_factory.dataset_matcher(self, other_values)
         for v in values:
             if v:
                 if v.deleted:
@@ -1696,7 +1692,7 @@ class DataToolParameter(BaseDataToolParameter):
                 elif hasattr(v, "dataset") and v.dataset.state in [galaxy.model.Dataset.states.ERROR, galaxy.model.Dataset.states.DISCARDED]:
                     raise ValueError("The previously selected dataset has entered an unusable state")
                 elif hasattr(v, "dataset"):
-                    match = dataset_matcher.hda_match(v, check_security=False)
+                    match = dataset_matcher.hda_match(v)
                     if match and match.implicit_conversion:
                         v.implicit_conversion = True
         if not self.multiple:
@@ -1821,7 +1817,8 @@ class DataToolParameter(BaseDataToolParameter):
             return d
 
         # prepare dataset/collection matching
-        dataset_matcher = DatasetMatcher(trans, self, None, other_values)
+        dataset_matcher_factory = get_dataset_matcher_factory(trans)
+        dataset_matcher = dataset_matcher_factory.dataset_matcher(self, other_values)
         multiple = self.multiple
 
         # build and append a new select option
@@ -1835,8 +1832,9 @@ class DataToolParameter(BaseDataToolParameter):
 
         # add datasets
         hda_list = util.listify(other_values.get(self.name))
-        for hda in history.active_datasets_and_roles:
-            match = dataset_matcher.hda_match(hda, check_security=False)
+        # Prefetch all at once, big list of visible, non-deleted datasets.
+        for hda in history.active_visible_datasets_and_roles:
+            match = dataset_matcher.hda_match(hda)
             if match:
                 m = match.hda
                 hda_list = [h for h in hda_list if h != m and h != hda]
@@ -1853,8 +1851,8 @@ class DataToolParameter(BaseDataToolParameter):
                 append(d['options']['hda'], hda, '(%s) %s' % (hda_state, hda.name), 'hda', True)
 
         # add dataset collections
-        dataset_collection_matcher = DatasetCollectionMatcher(dataset_matcher)
-        for hdca in history.active_dataset_collections:
+        dataset_collection_matcher = dataset_matcher_factory.dataset_collection_matcher(dataset_matcher)
+        for hdca in history.active_visible_dataset_collections:
             if dataset_collection_matcher.hdca_match(hdca, reduction=multiple):
                 append(d['options']['hdca'], hdca, hdca.name, 'hdca')
 
@@ -1890,19 +1888,16 @@ class DataCollectionToolParameter(BaseDataToolParameter):
         dataset_collection_type_descriptions = trans.app.dataset_collections_service.collection_type_descriptions
         return history_query.HistoryQuery.from_parameter(self, dataset_collection_type_descriptions)
 
-    def match_collections(self, trans, history, dataset_matcher):
+    def match_collections(self, trans, history, dataset_collection_matcher):
         dataset_collections = trans.app.dataset_collections_service.history_dataset_collections(history, self._history_query(trans))
-        dataset_collection_matcher = DatasetCollectionMatcher(dataset_matcher)
 
         for dataset_collection_instance in dataset_collections:
             if not dataset_collection_matcher.hdca_match(dataset_collection_instance):
                 continue
             yield dataset_collection_instance
 
-    def match_multirun_collections(self, trans, history, dataset_matcher):
-        dataset_collection_matcher = DatasetCollectionMatcher(dataset_matcher)
-
-        for history_dataset_collection in history.active_dataset_collections:
+    def match_multirun_collections(self, trans, history, dataset_collection_matcher):
+        for history_dataset_collection in history.active_visible_dataset_collections:
             if not self._history_query(trans).can_map_over(history_dataset_collection):
                 continue
 
@@ -1978,10 +1973,12 @@ class DataCollectionToolParameter(BaseDataToolParameter):
             return d
 
         # prepare dataset/collection matching
-        dataset_matcher = DatasetMatcher(trans, self, None, other_values)
+        dataset_matcher_factory = get_dataset_matcher_factory(trans)
+        dataset_matcher = dataset_matcher_factory.dataset_matcher(self, other_values)
+        dataset_collection_matcher = dataset_matcher_factory.dataset_collection_matcher(dataset_matcher)
 
         # append directly matched collections
-        for hdca in self.match_collections(trans, history, dataset_matcher):
+        for hdca in self.match_collections(trans, history, dataset_collection_matcher):
             d['options']['hdca'].append({
                 'id'   : trans.security.encode_id(hdca.id),
                 'hid'  : hdca.hid,
@@ -1991,7 +1988,7 @@ class DataCollectionToolParameter(BaseDataToolParameter):
             })
 
         # append matching subcollections
-        for hdca in self.match_multirun_collections(trans, history, dataset_matcher):
+        for hdca in self.match_multirun_collections(trans, history, dataset_collection_matcher):
             subcollection_type = self._history_query(trans).can_map_over(hdca).collection_type
             d['options']['hdca'].append({
                 'id'   : trans.security.encode_id(hdca.id),
@@ -2111,6 +2108,68 @@ class LibraryDatasetToolParameter(ToolParameter):
         return d
 
 
+class BaseJsonToolParameter(ToolParameter):
+    """
+    Class of parameter that tries to keep values as close to JSON as possible.
+    In particular value_to_basic is overloaded to prevent params_to_strings from
+    double encoding JSON and to_python using loads to produce values.
+    """
+
+    def value_to_basic(self, value, app, use_security=False):
+        if is_runtime_value(value):
+            return {'__class__': 'RuntimeValue'}
+        return value
+
+    def to_json(self, value, app, use_security):
+        """Convert a value to a string representation suitable for persisting"""
+        return json.dumps(value)
+
+    def to_python(self, value, app):
+        """Convert a value created with to_json back to an object representation"""
+        return json.loads(value)
+
+
+class RulesListToolParameter(BaseJsonToolParameter):
+    """
+    Parameter that allows for the creation of a list of rules using the Galaxy rules DSL.
+    """
+
+    def __init__(self, tool, input_source, context=None):
+        input_source = ensure_input_source(input_source)
+        BaseJsonToolParameter.__init__(self, tool, input_source)
+        self.data_ref = input_source.get("data_ref", None)
+
+    def to_dict(self, trans, other_values={}):
+        d = ToolParameter.to_dict(self, trans)
+        target_name = self.data_ref
+        if target_name in other_values:
+            target = other_values[target_name]
+            if not is_runtime_value(target):
+                d["target"] = {
+                    "src": "hdca" if hasattr(target, "collection") else "hda",
+                    "id": trans.app.security.encode_id(target.id),
+                }
+        return d
+
+    def validate(self, value, trans=None):
+        super(RulesListToolParameter, self).validate(value, trans=trans)
+        if not isinstance(value, dict):
+            raise ValueError("No rules specified for rules parameter.")
+
+        if "rules" not in value:
+            raise ValueError("No rules specified for rules parameter")
+        mappings = value.get("mapping", None)
+        if not mappings:
+            raise ValueError("No column definitions defined for rules parameter.")
+
+    def to_text(self, value):
+        if value:
+            rule_set = RuleSet(value)
+            return rule_set.display
+        else:
+            return ""
+
+
 parameter_types = dict(
     text=TextToolParameter,
     integer=IntegerToolParameter,
@@ -2129,6 +2188,7 @@ parameter_types = dict(
     data=DataToolParameter,
     data_collection=DataCollectionToolParameter,
     library_data=LibraryDatasetToolParameter,
+    rules=RulesListToolParameter,
     drill_down=DrillDownSelectToolParameter
 )
 
