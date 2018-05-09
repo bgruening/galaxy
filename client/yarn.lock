@@ -10602,15 +10602,6 @@ vue-docgen-api@^2.3.4:
 vue-functional-data-merge@^2.0.5:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/vue-functional-data-merge/-/vue-functional-data-merge-2.0.6.tgz#f08055adfb92458debcf2ad10c3aa712277f7fc2"
-<<<<<<< HEAD
-
-vue-handsontable-official@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/vue-handsontable-official/-/vue-handsontable-official-1.0.0.tgz#d943c192a3a7725153186c682d6aef9e2955bff2"
-  dependencies:
-    handsontable "^0.33.0"
-=======
->>>>>>> c67c4b4b82dd4280e9fcef4003a9956c6c0ca062
 
 vue-hot-reload-api@^2.2.0:
   version "2.2.3"

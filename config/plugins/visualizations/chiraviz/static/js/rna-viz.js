@@ -1217,6 +1217,8 @@ var RNAInteractionViewer = (function( riv ) {
         $( ".both-genes" ).empty();
         $( "#rna-alignment-graphics1" ).empty();
         $( "#rna-alignment-graphics2" ).empty();
+        //$( "#rna-alignment-cluster" ).empty();
+        //$( "#rna-alignment-cluster-points" ).empty();
         $( "#rna-expr1" ).empty();
         $( "#rna-expr2" ).empty();
         $( "#rna-symbol1" ).empty();
