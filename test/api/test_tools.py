@@ -1396,8 +1396,11 @@ class ToolsTestCase(api.ApiTestCase):
         }
         self.dataset_populator.wait_for_history(history_id, assert_ok=True)
         create = self._run("identifier_source", history_id, inputs, assert_ok=True)
-        assert create['implicit_collections'][0]['elements'][0]['element_identifier'] == 'B'
-        assert create['implicit_collections'][1]['elements'][0]['element_identifier'] == 'A'
+        for implicit_collection in create['implicit_collections']:
+            if implicit_collection['output_name'] == 'outputA':
+                assert implicit_collection['elements'][0]['element_identifier'] == 'A'
+            else:
+                assert implicit_collection['elements'][0]['element_identifier'] == 'B'
 
     @skip_without_tool("collection_creates_pair")
     def test_map_over_collection_output(self):
@@ -1716,6 +1719,71 @@ class ToolsTestCase(api.ApiTestCase):
 
         tool_ids = [_["id"] for _ in tools]
         return tool_ids
+
+    def test_group_tag_selection(self):
+        with self.dataset_populator.test_history() as history_id:
+            input_hdca_id = self.__build_group_list(history_id)
+            inputs = {
+                "input1": {"src": "hdca", "id": input_hdca_id},
+                "group": "condition:treated",
+            }
+            self.dataset_populator.wait_for_history(history_id, assert_ok=True)
+            response = self._run("collection_cat_group_tag", history_id, inputs, assert_ok=True)
+            outputs = response["outputs"]
+            self.assertEquals(len(outputs), 1)
+            output = outputs[0]
+            output_content = self.dataset_populator.get_history_dataset_content(history_id, dataset=output)
+            self.assertEquals(output_content.strip(), "123\n456")
+
+    def test_group_tag_selection_multiple(self):
+        with self.dataset_populator.test_history() as history_id:
+            input_hdca_id = self.__build_group_list(history_id)
+            inputs = {
+                "input1": {"src": "hdca", "id": input_hdca_id},
+                "groups": "condition:treated,type:single",
+            }
+            self.dataset_populator.wait_for_history(history_id, assert_ok=True)
+            response = self._run("collection_cat_group_tag_multiple", history_id, inputs, assert_ok=True)
+            outputs = response["outputs"]
+            self.assertEquals(len(outputs), 1)
+            output = outputs[0]
+            output_content = self.dataset_populator.get_history_dataset_content(history_id, dataset=output)
+            self.assertEquals(output_content.strip(), "123\n456\n456\n0ab")
+
+    def __build_group_list(self, history_id):
+        response = self.dataset_collection_populator.upload_collection(history_id, "list", elements=[
+            {
+                "name": "test0",
+                "src": "pasted",
+                "paste_content": "123\n",
+                "ext": "txt",
+                "tags": ["group:type:paired-end", "group:condition:treated"],
+            },
+            {
+                "name": "test1",
+                "src": "pasted",
+                "paste_content": "456\n",
+                "ext": "txt",
+                "tags": ["group:type:single", "group:condition:treated"],
+            },
+            {
+                "name": "test2",
+                "src": "pasted",
+                "paste_content": "789\n",
+                "ext": "txt",
+                "tags": ["group:type:paired-end", "group:condition:untreated"],
+            },
+            {
+                "name": "test3",
+                "src": "pasted",
+                "paste_content": "0ab\n",
+                "ext": "txt",
+                "tags": ["group:type:single", "group:condition:untreated"],
+            }
+        ])
+        self._assert_status_code_is(response, 200)
+        hdca_list_id = response.json()["outputs"][0]["id"]
+        return hdca_list_id
 
     def __build_nested_list(self, history_id):
         response = self.dataset_collection_populator.upload_collection(history_id, "list:paired", elements=[
