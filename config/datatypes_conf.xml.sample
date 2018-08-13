@@ -233,6 +233,7 @@
     <datatype extension="fast5.tar" type="galaxy.datatypes.binary:Fast5Archive" display_in_upload="true"/>
     <datatype extension="fast5.tar.gz" type="galaxy.datatypes.binary:Fast5ArchiveGz" display_in_upload="true"/>
     <datatype extension="fast5.tar.bz2" type="galaxy.datatypes.binary:Fast5ArchiveBz2" display_in_upload="true"/>
+    <datatype extension="fcs" type="galaxy.datatypes.flow:FCS" display_in_upload="true"/>
     <datatype extension="peptideshaker_archive" type="galaxy.datatypes.binary:CompressedArchive" subclass="true" display_in_upload="true"/>
     <datatype extension="percin" type="galaxy.datatypes.tabular:Tabular" subclass="true"/>
     <datatype extension="percout" type="galaxy.datatypes.xml:GenericXml" subclass="true"/>
@@ -729,6 +730,7 @@
     <sniffer type="galaxy.datatypes.binary:Fast5ArchiveGz"/>
     <sniffer type="galaxy.datatypes.binary:Fast5ArchiveBz2"/>
     <sniffer type="galaxy.datatypes.binary:Fast5Archive"/>
+    <sniffer type="galaxy.datatypes.flow:FCS"/>
     <sniffer type="galaxy.datatypes.binary:PostgresqlArchive"/>
     <sniffer type="galaxy.datatypes.binary:ICM"/>
     <sniffer type="galaxy.datatypes.binary:Idat"/>
