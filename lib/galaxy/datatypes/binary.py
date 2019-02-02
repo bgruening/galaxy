@@ -2252,7 +2252,7 @@ class BafTar(CompressedArchive):
     """
     #edam_data = "data_2536" # mass spectrometry data
     #edam_format = "format_3712" TODO: add more raw formats to EDAM?
-    file_ext = "d.tar"
+    file_ext = "brukerbaf.tar"
 
     def get_signature_file(self):
         return "analysis.baf"
@@ -2294,7 +2294,7 @@ class BafTar(CompressedArchive):
 
 class YepTar(BafTar):
     """ A tar'd up .d directory containing Agilent/Bruker YEP format data """
-    file_ext = "d.tar"
+    file_ext = "agilentbrukeryep.tar"
     def get_signature_file(self):
         return "analysis.yep"
     def get_type(self):
@@ -2302,7 +2302,7 @@ class YepTar(BafTar):
 
 class TdfTar(BafTar):
     """ A tar'd up .d directory containing Bruker TDF format data """
-    file_ext = "d.tar"
+    file_ext = "brukertdf.tar"
     def get_signature_file(self):
         return "analysis.tdf"
     def get_type(self):
@@ -2310,7 +2310,7 @@ class TdfTar(BafTar):
 
 class MassHunterTar(BafTar):
     """ A tar'd up .d directory containing Agilent MassHunter format data """
-    file_ext = "d.tar"
+    file_ext = "agilentmasshunter.tar"
     def get_signature_file(self):
         return "msscan.bin"
     def get_type(self):
@@ -2318,7 +2318,7 @@ class MassHunterTar(BafTar):
 
 class MassLynxTar(BafTar):
     """ A tar'd up .d directory containing Waters MassLynx format data """
-    file_ext = "raw.tar"
+    file_ext = "watersmasslynxraw.tar"
     def get_signature_file(self):
         return "_FUNC001.DAT"
     def get_type(self):
