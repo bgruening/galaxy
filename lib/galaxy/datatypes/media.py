@@ -156,6 +156,9 @@ Binary.register_sniffable_binary_format('mp3', 'mp3', Mp3)
 class WAV(Binary):
     """Class that reads WAV audio file
     >>> from galaxy.datatypes.sniff import get_test_fname
+    >>> fname = get_test_fname('hello.wav')
+    >>> WAV().sniff(fname)
+    True
     >>> fname = get_test_fname('audio_1.wav')
     >>> WAV().sniff(fname)
     True
