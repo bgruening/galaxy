@@ -181,7 +181,7 @@ class LocalJobRunner(BaseJobRunner):
                 return
         else:
             log.warning("stop_job(): %s: PID %d refuses to die after signaling TERM/KILL" % (job.id, pid))
-        self.__kill_container(job_wrapper)
+        self._kill_container(job_wrapper)
 
     def recover(self, job, job_wrapper):
         # local jobs can't be recovered
@@ -282,7 +282,6 @@ class LocalJobRunner(BaseJobRunner):
                                 t = 2 * i
                                 log.debug("Container not found during port check, sleeping for %s seconds.", t)
                                 sleep(t)
-
                         if ports_raw is not None:
                             self.app.realtime_manager.configure_entry_points_raw_docker_ports(job, ports_raw)
                         else:
