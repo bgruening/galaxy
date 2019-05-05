@@ -220,7 +220,7 @@ For more information, see https://planemo.readthedocs.io/en/latest/writing_advan
     <xs:annotation>
       <xs:documentation xml:lang="en"><![CDATA[
 
-This is a container tag set for the ``port`` and ``url`` tags
+This is a container tag set for the ``port`` and ``url_entry_point`` tags
 described in greater detail below. ``ports``s describe RealTimeTool entry points
 to a tool.
 
@@ -241,7 +241,7 @@ to provide access to graphical tools in real time.
 
 ```xml
 <ports>
-    <port name="Example name">80<url>landing/index.html</url></port>
+    <port name="Example name" url_entry_point="landing/index.html">80</port>
 </ports>
 ```
 
@@ -255,15 +255,11 @@ to provide access to graphical tools in real time.
             <xs:documentation xml:lang="en">This value defines the name of the entry point.</xs:documentation>
           </xs:annotation>
         </xs:attribute>
-  </xs:complexType>
-  <xs:complexType name="PortURL">
-    <xs:annotation>
-      <xs:documentation xml:lang="en"><![CDATA[
-
-This tag set is contained within the ``<port>`` tag set. It contains the entry URL.
-
-]]></xs:documentation>
-    </xs:annotation>
+        <xs:attribute name="url_entry_point" type="xs:string" use="optional">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">This value defines the URL entry point of a service. This is the last part after the port number, e.g. a landing page.</xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
   </xs:complexType>
 
   <xs:complexType name="ToolAction">

@@ -200,9 +200,10 @@ class XmlToolSource(ToolSource):
             return ports
         for port_el in ports_el.findall("port"):
             port = port_el.text.strip()
-            url = port_el.find("url")
+            url = port_el.get("url_entry_point")
+            #url = port_el.find("url")
             if url is not None:
-                url = url.text.strip()
+                url = url.strip()
             name = port_el.get('name', None)
             if name:
                 name = name.strip()
