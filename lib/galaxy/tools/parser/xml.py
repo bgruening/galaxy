@@ -210,7 +210,16 @@ class XmlToolSource(ToolSource):
             name = ep_el.get('name', None)
             if name:
                 name = name.strip()
-            rtt.append(dict(port=port, url=url, name=name))
+            infrastructure_url = ep_el.find('infrastructure_url')
+            if infrastructure_url is not None:
+                infrastructure_url = string_as_bool(infrastructure_url.text.strip())
+            api_key = ep_el.find('api_key')
+            if api_key is not None:
+                api_key = string_as_bool(api_key.text.strip())
+            history_id = ep_el.find('history_id')
+            if history_id is not None:
+                history_id = string_as_bool(history_id.text.strip())
+            rtt.append(dict(port=port, url=url, name=name, history_id=history_id, api_key=api_key, infrastructure_url=infrastructure_url))
         return rtt
 
     def parse_hidden(self):

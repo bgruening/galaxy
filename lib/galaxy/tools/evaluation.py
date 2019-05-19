@@ -413,16 +413,19 @@ class ToolEvaluator(object):
         rtt = []
         for ep in getattr(self.tool, 'ports', []):
             ep_dict = {}
-            for key in 'port', 'name', 'url':
-                val = ep.get(key, None)
-                if val is not None:
-                    val = fill_template(val, context=param_dict, python_template_version=self.tool.python_template_version)
-                    clean_val = []
-                    for line in val.split('\n'):
-                        clean_val.append(line.strip())
-                    val = '\n'.join(clean_val)
-                    val = val.replace("\n", " ").replace("\r", " ").strip()
-                ep_dict[key] = val
+            for key, value in ep.items():
+                if key in ['port', 'name', 'url']:
+                    val = ep.get(key, None)
+                    if val is not None:
+                        val = fill_template(val, context=param_dict, python_template_version=self.tool.python_template_version)
+                        clean_val = []
+                        for line in val.split('\n'):
+                            clean_val.append(line.strip())
+                        val = '\n'.join(clean_val)
+                        val = val.replace("\n", " ").replace("\r", " ").strip()
+                    ep_dict[key] = val
+                else:
+                    ep_dict[key] = value
             rtt.append(ep_dict)
         self.realtimetools = rtt
         rtt_man = getattr(self.app, "realtime_manager", None)

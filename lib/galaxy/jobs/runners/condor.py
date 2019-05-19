@@ -27,6 +27,7 @@ from galaxy.jobs.runners.util.condor import (
     submission_params,
     summarize_condor_log
 )
+from galaxy.managers import api_keys
 from galaxy.util import asbool
 
 log = logging.getLogger(__name__)
@@ -57,14 +58,39 @@ class CondorJobRunner(AsynchronousJobRunner):
         super(CondorJobRunner, self).__init__(app, nworkers)
         self._init_monitor_thread()
         self._init_worker_threads()
+        self.app = app
 
     def queue_job(self, job_wrapper):
         """Create job script and submit it to the DRM"""
+
+        if job_wrapper.tool.tool_type == 'realtime':
+            # collect API-Key, History-ID and other resources to pass them into the RealTime container
+            job = job_wrapper.get_job()
+            history_id = self.app.security.encode_id(job.history.id)
+            if job.user is not None:
+                api_key = api_keys.ApiKeyManager(self.app).get_or_create_api_key(job.user)
+            else:
+                api_key = None
+            galaxy_url = self.app.config.galaxy_infrastructure_url
+            # this needs to happen before the job is prepared
+            job_wrapper.tool.docker_env_pass_through.extend({'HISTORY_ID': str(history_id), 'API_KEY': api_key, 'GALAXY_URL': galaxy_url})
 
         # prepare the job
         include_metadata = asbool(job_wrapper.job_destination.params.get("embed_metadata_in_job", True))
         if not self.prepare_job(job_wrapper, include_metadata=include_metadata):
             return
+
+        if job_wrapper.realtimetools:
+            container_env_vars = list()
+            for entry_point in job_wrapper.realtimetools:
+                if entry_point.get('history_id', False):
+                    container_env_vars.append(dict(name='HISTORY_ID', value=str(history_id)))
+                if entry_point.get('api_key', False):
+                    container_env_vars.append(dict(name='API_KEY', value=api_key))
+                if entry_point.get('infrastructure_url', False):
+                    container_env_vars.append(dict(name='GALAXY_URL', value=galaxy_url))
+            if container_env_vars:
+                job_wrapper.environment_variables.extend(container_env_vars)
 
         # get configured job destination
         job_destination = job_wrapper.job_destination
@@ -179,7 +205,6 @@ class CondorJobRunner(AsynchronousJobRunner):
         for cjs in self.watched:
             job_id = cjs.job_id
             galaxy_id_tag = cjs.job_wrapper.get_id_tag()
-            log.debug("### (%s/%s) whats-up" % (galaxy_id_tag, job_id))
             try:
                 if os.stat(cjs.user_log).st_size == cjs.user_log_size:
                     new_watched.append(cjs)
