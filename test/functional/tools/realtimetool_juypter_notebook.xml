@@ -5,7 +5,10 @@
     <realtime>
         <entry_point name="Jypter Interactive Environment">
             <port>8888</port>
-            <url>ipython/tree</url>
+            <url>$mode.notebook_entry_point</url>
+            <api_key>true</api_key>
+            <history_id>true</history_id>
+            <infrastructure_url>true</infrastructure_url>
         </entry_point>
     </realtime>
     <command detect_errors="aggressive"><![CDATA[
@@ -49,8 +52,11 @@
                 <option value="scratch">Start with a fresh notebook</option>
                 <option value="previous">Load a previous notebook</option>
             </param>
-            <when value="scratch"/>
+            <when value="scratch">
+                <param name="notebook_entry_point" type="hidden" value="ipython/notebooks/ipython_galaxy_notebook.ipynb" />
+            </when>
             <when value="previous">
+                <param name="notebook_entry_point" type="hidden" value="ipython/tree" />
                 <param name="ipynbs" type="data" format="ipynb" multiple="true" label="IPython Notebook"/>
                 <param name="run_it" type="boolean" truevalue="true" falsevalue="false" label="Execute notebook and return a new one."
                     help="This option is useful in workflows when you just want to execute a notebook and not dive into the webfrontend."/>
