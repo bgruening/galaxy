@@ -9,26 +9,40 @@ from tool_shed.util import basic_util
 
 log = logging.getLogger(__name__)
 
-INITIAL_CHANGELOG_HASH = '000000000000'
+INITIAL_CHANGELOG_HASH = "000000000000"
 
 
 def add_changeset(repo_path, path_to_filename_in_archive):
     try:
-        subprocess.check_output(['hg', 'add', path_to_filename_in_archive], stderr=subprocess.STDOUT, cwd=repo_path)
+        subprocess.check_output(
+            ["hg", "add", path_to_filename_in_archive],
+            stderr=subprocess.STDOUT,
+            cwd=repo_path,
+        )
     except Exception as e:
-        error_message = "Error adding '%s' to repository: %s" % (path_to_filename_in_archive, e)
+        error_message = "Error adding '%s' to repository: %s" % (
+            path_to_filename_in_archive,
+            e,
+        )
         if isinstance(e, subprocess.CalledProcessError):
             error_message += "\nOutput was:\n%s" % e.output
         raise Exception(error_message)
 
 
 def archive_repository_revision(app, repository, archive_dir, changeset_revision):
-    '''Create an un-versioned archive of a repository.'''
+    """Create an un-versioned archive of a repository."""
     repo_path = repository.repo_path(app)
     try:
-        subprocess.check_output(['hg', 'archive', '-r', changeset_revision, archive_dir], stderr=subprocess.STDOUT, cwd=repo_path)
+        subprocess.check_output(
+            ["hg", "archive", "-r", changeset_revision, archive_dir],
+            stderr=subprocess.STDOUT,
+            cwd=repo_path,
+        )
     except Exception as e:
-        error_message = "Error attempting to archive revision '%s' of repository '%s': %s" % (changeset_revision, repository.name, e)
+        error_message = (
+            "Error attempting to archive revision '%s' of repository '%s': %s"
+            % (changeset_revision, repository.name, e)
+        )
         if isinstance(e, subprocess.CalledProcessError):
             error_message += "\nOutput was:\n%s" % e.output
         log.exception(error_message)
@@ -40,9 +54,9 @@ def clone_repository(repository_clone_url, repository_file_dir, ctx_rev=None):
     Clone the repository up to the specified changeset_revision.  No subsequent revisions will be
     present in the cloned repository.
     """
-    cmd = ['hg', 'clone']
+    cmd = ["hg", "clone"]
     if ctx_rev:
-        cmd.extend(['-r', ctx_rev])
+        cmd.extend(["-r", ctx_rev])
     cmd.extend([repository_clone_url, repository_file_dir])
     # Make sure the destination path actually exists before attempting to clone
     if not os.path.exists(repository_file_dir):
@@ -51,7 +65,7 @@ def clone_repository(repository_clone_url, repository_file_dir, ctx_rev=None):
         subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         return True, None
     except Exception as e:
-        error_message = 'Error cloning repository: %s' % e
+        error_message = "Error cloning repository: %s" % e
         if isinstance(e, subprocess.CalledProcessError):
             error_message += "\nOutput was:\n%s" % e.output
         log.error(error_message)
@@ -60,11 +74,18 @@ def clone_repository(repository_clone_url, repository_file_dir, ctx_rev=None):
 
 def commit_changeset(repo_path, full_path_to_changeset, username, message):
     try:
-        subprocess.check_output(['hg', 'commit', '-u', username, '-m', message, full_path_to_changeset], stderr=subprocess.STDOUT, cwd=repo_path)
+        subprocess.check_output(
+            ["hg", "commit", "-u", username, "-m", message, full_path_to_changeset],
+            stderr=subprocess.STDOUT,
+            cwd=repo_path,
+        )
     except Exception as e:
-        error_message = "Error committing '%s' to repository: %s" % (full_path_to_changeset, e)
+        error_message = "Error committing '%s' to repository: %s" % (
+            full_path_to_changeset,
+            e,
+        )
         if isinstance(e, subprocess.CalledProcessError):
-            if e.returncode == 1 and 'nothing changed' in e.output:
+            if e.returncode == 1 and "nothing changed" in e.output:
                 return
             error_message += "\nOutput was:\n%s" % e.output
         raise Exception(error_message)
@@ -78,9 +99,9 @@ def copy_file_from_manifest(repo, changeset_revision, filename, dir):
     for changeset in reversed_upper_bounded_changelog(repo, changeset_revision):
         changeset_ctx = repo.changectx(changeset)
         fctx = get_file_context_from_ctx(changeset_ctx, filename)
-        if fctx and fctx not in ['DELETED']:
+        if fctx and fctx not in ["DELETED"]:
             file_path = os.path.join(dir, filename)
-            fh = open(file_path, 'wb')
+            fh = open(file_path, "wb")
             fh.write(fctx.data())
             fh.close()
             return file_path
@@ -95,17 +116,17 @@ def create_hgrc_file(app, repository):
     # empty directories. This is not currently used because it is not supported
     # in the Mercurial API.
     repo_path = repository.repo_path(app)
-    hgrc_path = os.path.join(repo_path, '.hg', 'hgrc')
-    with open(hgrc_path, 'wb') as fp:
-        fp.write('[paths]\n')
-        fp.write('default = .\n')
-        fp.write('default-push = .\n')
-        fp.write('[web]\n')
-        fp.write('allow_push = %s\n' % repository.user.username)
-        fp.write('name = %s\n' % repository.name)
-        fp.write('push_ssl = false\n')
-        fp.write('[extensions]\n')
-        fp.write('hgext.purge=')
+    hgrc_path = os.path.join(repo_path, ".hg", "hgrc")
+    with open(hgrc_path, "wb") as fp:
+        fp.write("[paths]\n")
+        fp.write("default = .\n")
+        fp.write("default-push = .\n")
+        fp.write("[web]\n")
+        fp.write("allow_push = %s\n" % repository.user.username)
+        fp.write("name = %s\n" % repository.name)
+        fp.write("push_ssl = false\n")
+        fp.write("[extensions]\n")
+        fp.write("hgext.purge=")
 
 
 def get_changectx_for_changeset(repo, changeset_revision, **kwd):
@@ -119,7 +140,7 @@ def get_changectx_for_changeset(repo, changeset_revision, **kwd):
 
 def get_config_from_disk(config_file, relative_install_dir):
     for root, dirs, files in os.walk(relative_install_dir):
-        if root.find('.hg') < 0:
+        if root.find(".hg") < 0:
             for name in files:
                 if name == config_file:
                     return os.path.abspath(os.path.join(root, name))
@@ -161,7 +182,7 @@ def get_file_context_from_ctx(ctx, filename):
                 # Set deleted for now, and continue looking in case the file was moved instead of deleted.
                 deleted = True
     if deleted:
-        return 'DELETED'
+        return "DELETED"
     return None
 
 
@@ -182,10 +203,12 @@ def get_named_tmpfile_from_ctx(ctx, filename, dir):
                 fctx = None
                 continue
             if fctx:
-                fh = tempfile.NamedTemporaryFile('wb', prefix="tmp-toolshed-gntfc", dir=dir)
+                fh = tempfile.NamedTemporaryFile(
+                    "wb", prefix="tmp-toolshed-gntfc", dir=dir
+                )
                 tmp_filename = fh.name
                 fh.close()
-                fh = open(tmp_filename, 'wb')
+                fh = open(tmp_filename, "wb")
                 fh.write(fctx.data())
                 fh.close()
                 return tmp_filename
@@ -202,10 +225,8 @@ def get_readable_ctx_date(ctx):
 
 def get_repo_for_repository(app, repository=None, repo_path=None):
     # Import from mercurial here to let Galaxy start under Python 3
-    from mercurial import (
-        hg,
-        ui
-    )
+    from mercurial import hg, ui
+
     if repository is not None:
         return hg.repository(ui.ui(), repository.repo_path(app))
     if repo_path is not None:
@@ -226,7 +247,9 @@ def get_reversed_changelog_changesets(repo):
     return reversed_changelog
 
 
-def get_revision_label(app, repository, changeset_revision, include_date=True, include_hash=True):
+def get_revision_label(
+    app, repository, changeset_revision, include_date=True, include_hash=True
+):
     """
     Return a string consisting of the human read-able changeset rev and the changeset revision string
     which includes the revision date if the receive include_date is True.
@@ -234,7 +257,9 @@ def get_revision_label(app, repository, changeset_revision, include_date=True, i
     repo = get_repo_for_repository(app, repository=repository)
     ctx = get_changectx_for_changeset(repo, changeset_revision)
     if ctx:
-        return get_revision_label_from_ctx(ctx, include_date=include_date, include_hash=include_hash)
+        return get_revision_label_from_ctx(
+            ctx, include_date=include_date, include_hash=include_hash
+        )
     else:
         if include_hash:
             return "-1:%s" % changeset_revision
@@ -242,19 +267,24 @@ def get_revision_label(app, repository, changeset_revision, include_date=True, i
             return "-1"
 
 
-def get_rev_label_changeset_revision_from_repository_metadata(app, repository_metadata, repository=None,
-                                                              include_date=True, include_hash=True):
+def get_rev_label_changeset_revision_from_repository_metadata(
+    app, repository_metadata, repository=None, include_date=True, include_hash=True
+):
     if repository is None:
         repository = repository_metadata.repository
     repo = get_repo_for_repository(app, repository=repository)
     changeset_revision = repository_metadata.changeset_revision
     ctx = get_changectx_for_changeset(repo, changeset_revision)
     if ctx:
-        rev = '%04d' % ctx.rev()
+        rev = "%04d" % ctx.rev()
         if include_date:
             changeset_revision_date = get_readable_ctx_date(ctx)
             if include_hash:
-                label = "%s:%s (%s)" % (str(ctx.rev()), changeset_revision, changeset_revision_date)
+                label = "%s:%s (%s)" % (
+                    str(ctx.rev()),
+                    changeset_revision,
+                    changeset_revision_date,
+                )
             else:
                 label = "%s (%s)" % (str(ctx.rev()), changeset_revision_date)
         else:
@@ -263,7 +293,7 @@ def get_rev_label_changeset_revision_from_repository_metadata(app, repository_me
             else:
                 label = "%s" % str(ctx.rev())
     else:
-        rev = '-1'
+        rev = "-1"
         if include_hash:
             label = "-1:%s" % changeset_revision
         else:
@@ -274,29 +304,36 @@ def get_rev_label_changeset_revision_from_repository_metadata(app, repository_me
 def get_revision_label_from_ctx(ctx, include_date=True, include_hash=True):
     if include_date:
         if include_hash:
-            return '%s:%s <i><font color="#666666">(%s)</font></i>' % \
-                (str(ctx.rev()), str(ctx), str(get_readable_ctx_date(ctx)))
+            return '%s:%s <i><font color="#666666">(%s)</font></i>' % (
+                str(ctx.rev()),
+                str(ctx),
+                str(get_readable_ctx_date(ctx)),
+            )
         else:
-            return '%s <i><font color="#666666">(%s)</font></i>' % \
-                (str(ctx.rev()), str(get_readable_ctx_date(ctx)))
+            return '%s <i><font color="#666666">(%s)</font></i>' % (
+                str(ctx.rev()),
+                str(get_readable_ctx_date(ctx)),
+            )
     else:
         if include_hash:
-            return '%s:%s' % (str(ctx.rev()), str(ctx))
+            return "%s:%s" % (str(ctx.rev()), str(ctx))
         else:
-            return '%s' % str(ctx.rev())
+            return "%s" % str(ctx.rev())
 
 
-def get_rev_label_from_changeset_revision(repo, changeset_revision, include_date=True, include_hash=True):
+def get_rev_label_from_changeset_revision(
+    repo, changeset_revision, include_date=True, include_hash=True
+):
     """
     Given a changeset revision hash, return two strings, the changeset rev and the changeset revision hash
     which includes the revision date if the receive include_date is True.
     """
     ctx = get_changectx_for_changeset(repo, changeset_revision)
     if ctx:
-        rev = '%04d' % ctx.rev()
+        rev = "%04d" % ctx.rev()
         label = get_revision_label_from_ctx(ctx, include_date=include_date)
     else:
-        rev = '-1'
+        rev = "-1"
         label = "-1:%s" % changeset_revision
     return rev, label
 
@@ -304,7 +341,11 @@ def get_rev_label_from_changeset_revision(repo, changeset_revision, include_date
 def pull_repository(repo_path, repository_clone_url, ctx_rev):
     """Pull changes from a remote repository to a local one."""
     try:
-        subprocess.check_output(['hg', 'pull', '-r', ctx_rev, repository_clone_url], stderr=subprocess.STDOUT, cwd=repo_path)
+        subprocess.check_output(
+            ["hg", "pull", "-r", ctx_rev, repository_clone_url],
+            stderr=subprocess.STDOUT,
+            cwd=repo_path,
+        )
     except Exception as e:
         error_message = "Error pulling revision '%s': %s" % (ctx_rev, e)
         if isinstance(e, subprocess.CalledProcessError):
@@ -313,9 +354,9 @@ def pull_repository(repo_path, repository_clone_url, ctx_rev):
 
 
 def remove_file(repo_path, selected_file, force=True):
-    cmd = ['hg', 'remove']
+    cmd = ["hg", "remove"]
     if force:
-        cmd.append('--force')
+        cmd.append("--force")
     cmd.append(selected_file)
     try:
         subprocess.check_output(cmd, stderr=subprocess.STDOUT, cwd=repo_path)
@@ -326,7 +367,11 @@ def remove_file(repo_path, selected_file, force=True):
         raise Exception(error_message)
 
 
-def reversed_lower_upper_bounded_changelog(repo, excluded_lower_bounds_changeset_revision, included_upper_bounds_changeset_revision):
+def reversed_lower_upper_bounded_changelog(
+    repo,
+    excluded_lower_bounds_changeset_revision,
+    included_upper_bounds_changeset_revision,
+):
     """
     Return a reversed list of changesets in the repository changelog after the excluded_lower_bounds_changeset_revision,
     but up to and including the included_upper_bounds_changeset_revision.  The value of excluded_lower_bounds_changeset_revision
@@ -345,7 +390,10 @@ def reversed_lower_upper_bounded_changelog(repo, excluded_lower_bounds_changeset
         changeset_hash = str(repo.changectx(changeset))
         if appending_started:
             reversed_changelog.insert(0, changeset)
-        if changeset_hash == excluded_lower_bounds_changeset_revision and not appending_started:
+        if (
+            changeset_hash == excluded_lower_bounds_changeset_revision
+            and not appending_started
+        ):
             appending_started = True
         if changeset_hash == included_upper_bounds_changeset_revision:
             break
@@ -357,7 +405,9 @@ def reversed_upper_bounded_changelog(repo, included_upper_bounds_changeset_revis
     Return a reversed list of changesets in the repository changelog up to and including the
     included_upper_bounds_changeset_revision.
     """
-    return reversed_lower_upper_bounded_changelog(repo, INITIAL_CHANGELOG_HASH, included_upper_bounds_changeset_revision)
+    return reversed_lower_upper_bounded_changelog(
+        repo, INITIAL_CHANGELOG_HASH, included_upper_bounds_changeset_revision
+    )
 
 
 def update_repository(repo_path, ctx_rev=None):
@@ -376,13 +426,13 @@ def update_repository(repo_path, ctx_rev=None):
     # I = ignored
     # It would be nice if we could use mercurial's purge extension to remove untracked files.  The problem is that
     # purging is not supported by the mercurial API.
-    cmd = ['hg', 'update']
+    cmd = ["hg", "update"]
     if ctx_rev:
-        cmd.extend(['-r', ctx_rev])
+        cmd.extend(["-r", ctx_rev])
     try:
         subprocess.check_output(cmd, stderr=subprocess.STDOUT, cwd=repo_path)
     except Exception as e:
-        error_message = 'Error updating repository: %s' % e
+        error_message = "Error updating repository: %s" % e
         if isinstance(e, subprocess.CalledProcessError):
             error_message += "\nOutput was:\n%s" % e.output
         raise Exception(error_message)
@@ -393,9 +443,9 @@ def init_repository(repo_path):
     Create a new Mercurial repository in the given directory.
     """
     try:
-        subprocess.check_output(['hg', 'init'], stderr=subprocess.STDOUT, cwd=repo_path)
+        subprocess.check_output(["hg", "init"], stderr=subprocess.STDOUT, cwd=repo_path)
     except Exception as e:
-        error_message = 'Error initializing repository: %s' % e
+        error_message = "Error initializing repository: %s" % e
         if isinstance(e, subprocess.CalledProcessError):
             error_message += "\nOutput was:\n%s" % e.output
         raise Exception(error_message)
@@ -406,7 +456,11 @@ def changeset2rev(repo_path, changeset_revision):
     Return the revision number corresponding to a specified changeset revision.
     """
     try:
-        rev = subprocess.check_output(['hg', 'id', '-r', changeset_revision, '-n'], stderr=subprocess.STDOUT, cwd=repo_path)
+        rev = subprocess.check_output(
+            ["hg", "id", "-r", changeset_revision, "-n"],
+            stderr=subprocess.STDOUT,
+            cwd=repo_path,
+        )
     except Exception as e:
         error_message = "Error looking for changeset '%s': %s" % (changeset_revision, e)
         if isinstance(e, subprocess.CalledProcessError):

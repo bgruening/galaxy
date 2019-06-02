@@ -11,7 +11,9 @@ from galaxy.model.custom_types import TrimmedString
 
 log = logging.getLogger(__name__)
 user_active_column = Column("active", Boolean, default=True, nullable=True)
-user_activation_token_column = Column("activation_token", TrimmedString(64), nullable=True)
+user_activation_token_column = Column(
+    "activation_token", TrimmedString(64), nullable=True
+)
 
 
 def upgrade(migrate_engine):
@@ -28,7 +30,9 @@ def upgrade(migrate_engine):
         user_active_column.create(table=user_table, populate_default=True)
         assert user_active_column is user_table.c.active
     except Exception:
-        log.exception("Adding columns 'active' and 'activation_token' to galaxy_user table failed.")
+        log.exception(
+            "Adding columns 'active' and 'activation_token' to galaxy_user table failed."
+        )
 
 
 def downgrade(migrate_engine):
@@ -40,10 +44,12 @@ def downgrade(migrate_engine):
     try:
         user_table = Table("galaxy_user", metadata, autoload=True)
         # SQLAlchemy Migrate has a bug when dropping a boolean column in SQLite
-        if migrate_engine.name != 'sqlite':
+        if migrate_engine.name != "sqlite":
             user_active = user_table.c.active
             user_active.drop()
         user_activation_token = user_table.c.activation_token
         user_activation_token.drop()
     except Exception:
-        log.exception("Dropping 'active' and 'activation_token' columns from galaxy_user table failed.")
+        log.exception(
+            "Dropping 'active' and 'activation_token' columns from galaxy_user table failed."
+        )

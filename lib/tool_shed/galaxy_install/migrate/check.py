@@ -12,7 +12,9 @@ from tool_shed.util import common_util
 log = logging.getLogger(__name__)
 
 # Path relative to galaxy
-migrate_repository_directory = os.path.abspath(os.path.dirname(__file__)).replace(os.getcwd() + os.path.sep, '', 1)
+migrate_repository_directory = os.path.abspath(os.path.dirname(__file__)).replace(
+    os.getcwd() + os.path.sep, "", 1
+)
 migrate_repository = repository.Repository(migrate_repository_directory)
 
 
@@ -38,9 +40,9 @@ def verify_tools(app, url, galaxy_config_file=None, engine_options={}):
             if tool_panel_configs:
                 # The missing_tool_configs_dict contents are something like:
                 # {'emboss_antigenic.xml': [('emboss', '5.0.0', 'package', '\nreadme blah blah blah\n')]}
-                tool_shed_accessible, missing_tool_configs_dict = common_util.check_for_missing_tools(app,
-                                                                                                      tool_panel_configs,
-                                                                                                      latest_tool_migration_script_number)
+                tool_shed_accessible, missing_tool_configs_dict = common_util.check_for_missing_tools(
+                    app, tool_panel_configs, latest_tool_migration_script_number
+                )
             else:
                 # It doesn't matter if the tool shed is accessible since there are no migrated tools defined in the local Galaxy instance, but
                 # we have to set the value of tool_shed_accessible to True so that the value of migrate_tools.version can be correctly set in
@@ -55,28 +57,36 @@ def verify_tools(app, url, galaxy_config_file=None, engine_options={}):
         if not app.config.running_functional_tests:
             if tool_shed_accessible:
                 # Automatically update the value of the migrate_tools.version database table column.
-                cmd = ['sh', 'manage_db.sh', 'upgrade', 'tools']
+                cmd = ["sh", "manage_db.sh", "upgrade", "tools"]
                 if galaxy_config_file:
-                    cmd[2:2] = ['-c', galaxy_config_file]
-                proc = subprocess.Popen(args=cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    cmd[2:2] = ["-c", galaxy_config_file]
+                proc = subprocess.Popen(
+                    args=cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+                )
                 return_code = proc.wait()
                 output = proc.stdout.read(32768)
                 if return_code != 0:
-                    raise Exception("Error attempting to update the value of migrate_tools.version: %s" % output)
+                    raise Exception(
+                        "Error attempting to update the value of migrate_tools.version: %s"
+                        % output
+                    )
                 elif missing_tool_configs_dict:
                     if len(tool_panel_configs) == 1:
-                        plural = ''
+                        plural = ""
                         tool_panel_config_file_names = tool_panel_configs[0]
                     else:
-                        plural = 's'
-                        tool_panel_config_file_names = ', '.join(tool_panel_configs)
+                        plural = "s"
+                        tool_panel_config_file_names = ", ".join(tool_panel_configs)
                     msg = "\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
                     msg += "\n\nThe list of files at the end of this message refers to tools that are configured to load into the tool panel for\n"
                     msg += "this Galaxy instance, but have been removed from the Galaxy distribution.  These tools and their dependencies can be\n"
                     msg += "automatically installed from the Galaxy tool shed at http://toolshed.g2.bx.psu.edu.\n\n"
                     msg += "To skip this process, attempt to start your Galaxy server again (e.g., sh run.sh or whatever you use).  If you do this,\n"
                     msg += "be aware that these tools will no longer be available in your Galaxy tool panel, and entries for each of them should\n"
-                    msg += "be removed from your file%s named %s.\n\n" % (plural, tool_panel_config_file_names)
+                    msg += "be removed from your file%s named %s.\n\n" % (
+                        plural,
+                        tool_panel_config_file_names,
+                    )
                     msg += "CRITICAL NOTE IF YOU PLAN TO INSTALL\n"
                     msg += "The location in which the tool repositories will be installed is the value of the 'tool_path' attribute in the <tool>\n"
                     msg += 'tag of the file named ./migrated_tool_conf.xml (i.e., <toolbox tool_path="database/shed_tools">).  The default location\n'
@@ -93,44 +103,71 @@ def verify_tools(app, url, galaxy_config_file=None, engine_options={}):
                         msg += "choose to install them (recommended), they will be installed within the location specified by the 'tool_dependency_dir'\n"
                         msg += "setting in your main Galaxy configuration file (e.g., uninverse_wsgi.ini).\n"
                         processed_tool_dependencies = []
-                        for missing_tool_config, tool_dependencies in missing_tool_configs_dict.items():
-                            for tool_dependencies_tup in missing_tool_configs_dict[missing_tool_config]['tool_dependencies']:
-                                if tool_dependencies_tup not in processed_tool_dependencies:
+                        for (
+                            missing_tool_config,
+                            tool_dependencies,
+                        ) in missing_tool_configs_dict.items():
+                            for tool_dependencies_tup in missing_tool_configs_dict[
+                                missing_tool_config
+                            ]["tool_dependencies"]:
+                                if (
+                                    tool_dependencies_tup
+                                    not in processed_tool_dependencies
+                                ):
                                     msg += "------------------------------------\n"
                                     msg += "Tool Dependency\n"
                                     msg += "------------------------------------\n"
-                                    msg += "Name: %s, Version: %s, Type: %s\n" % (tool_dependencies_tup[0],
-                                                                                  tool_dependencies_tup[1],
-                                                                                  tool_dependencies_tup[2])
+                                    msg += "Name: %s, Version: %s, Type: %s\n" % (
+                                        tool_dependencies_tup[0],
+                                        tool_dependencies_tup[1],
+                                        tool_dependencies_tup[2],
+                                    )
                                     if len(tool_dependencies_tup) >= 4:
                                         msg += "Requirements and installation information:\n"
                                         msg += "%s\n" % tool_dependencies_tup[3]
                                     else:
                                         msg += "\n"
                                     msg += "------------------------------------\n"
-                                    processed_tool_dependencies.append(tool_dependencies_tup)
+                                    processed_tool_dependencies.append(
+                                        tool_dependencies_tup
+                                    )
                         msg += "\n"
-                    msg += "%s" % output.replace('done', '')
+                    msg += "%s" % output.replace("done", "")
                     msg += "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"
-                    msg += "sh ./scripts/migrate_tools/%04d_tools.sh\n" % latest_tool_migration_script_number
+                    msg += (
+                        "sh ./scripts/migrate_tools/%04d_tools.sh\n"
+                        % latest_tool_migration_script_number
+                    )
                     msg += "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n"
                     if have_tool_dependencies:
                         msg += "The tool dependencies listed above will be installed along with the repositories if you add the 'install_dependencies'\n"
                         msg += "option to the above command like this:\n\n"
                         msg += "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"
-                        msg += "sh ./scripts/migrate_tools/%04d_tools.sh install_dependencies\n" % latest_tool_migration_script_number
+                        msg += (
+                            "sh ./scripts/migrate_tools/%04d_tools.sh install_dependencies\n"
+                            % latest_tool_migration_script_number
+                        )
                         msg += "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n"
                         msg += "Tool dependencies can be installed after the repositories have been installed as well.\n\n"
                     msg += "After the installation process finishes, you can start your Galaxy server.  As part of this installation process,\n"
                     msg += "entries for each of the following tool config files will be added to the file named ./migrated_tool_conf.xml, so these\n"
                     msg += "tools will continue to be loaded into your tool panel.  Because of this, existing entries for these tools have been\n"
-                    msg += "removed from your file%s named %s.\n\n" % (plural, tool_panel_config_file_names)
-                    for missing_tool_config, tool_dependencies in missing_tool_configs_dict.items():
+                    msg += "removed from your file%s named %s.\n\n" % (
+                        plural,
+                        tool_panel_config_file_names,
+                    )
+                    for (
+                        missing_tool_config,
+                        tool_dependencies,
+                    ) in missing_tool_configs_dict.items():
                         msg += "%s\n" % missing_tool_config
                     msg += "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n"
                     raise Exception(msg)
             else:
-                log.debug("The main Galaxy tool shed is not currently available, so skipped tool migration %s until next server startup" % db_schema.version)
+                log.debug(
+                    "The main Galaxy tool shed is not currently available, so skipped tool migration %s until next server startup"
+                    % db_schema.version
+                )
     else:
         log.info("At migrate_tools version %d" % db_schema.version)
 
@@ -140,7 +177,7 @@ def migrate_to_current_version(engine, schema):
     changeset = schema.changeset(None)
     for ver, change in changeset:
         nextver = ver + changeset.step
-        log.info('Installing tools from version %s -> %s... ' % (ver, nextver))
+        log.info("Installing tools from version %s -> %s... " % (ver, nextver))
         old_stdout = sys.stdout
 
         class FakeStdout(object):

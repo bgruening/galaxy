@@ -20,6 +20,7 @@ class Grid(object):
     """
     Specifies the content and format of a grid (data table).
     """
+
     title = ""
     model_class = None
     show_item_checkboxes = False
@@ -60,8 +61,8 @@ class Grid(object):
     def __call__(self, trans, **kwargs):
         # Get basics.
         # FIXME: pretty sure this is only here to pass along, can likely be eliminated
-        status = kwargs.get('status', None)
-        message = kwargs.get('message', None)
+        status = kwargs.get("status", None)
+        message = kwargs.get("message", None)
         # Build a base filter and sort key that is the combination of the saved state and defaults.
         # Saved state takes preference over defaults.
         base_filter = {}
@@ -75,10 +76,10 @@ class Grid(object):
         # Maintain sort state in generated urls
         extra_url_args = {}
         # Determine whether use_default_filter flag is set.
-        use_default_filter_str = kwargs.get('use_default_filter')
+        use_default_filter_str = kwargs.get("use_default_filter")
         use_default_filter = False
         if use_default_filter_str:
-            use_default_filter = (use_default_filter_str.lower() == 'true')
+            use_default_filter = use_default_filter_str.lower() == "true"
         # Process filtering arguments to (a) build a query that represents the filter and (b) build a
         # dictionary that denotes the current filter.
         cur_filter_dict = {}
@@ -93,7 +94,9 @@ class Grid(object):
                 elif "f-" + column.model_class.__name__ + ".%s" % column.key in kwargs:
                     # Queries that include table joins cannot guarantee unique column names.  This problem is
                     # handled by setting the column_filter value to <TableName>.<ColumnName>.
-                    column_filter = kwargs.get("f-" + column.model_class.__name__ + ".%s" % column.key)
+                    column_filter = kwargs.get(
+                        "f-" + column.model_class.__name__ + ".%s" % column.key
+                    )
                 elif "f-" + column.key in kwargs:
                     column_filter = kwargs.get("f-" + column.key)
                 elif column.key in base_filter:
@@ -117,6 +120,7 @@ class Grid(object):
                             a_list = loads_recurse(element)
                             decoded_list = decoded_list + a_list
                     return decoded_list
+
                 # If column filter found, apply it.
                 if column_filter is not None:
                     # TextColumns may have a mix of json and strings.
@@ -125,18 +129,21 @@ class Grid(object):
                         if len(column_filter) == 1:
                             column_filter = column_filter[0]
                     # Interpret ',' as a separator for multiple terms.
-                    if isinstance(column_filter, string_types) and column_filter.find(',') != -1:
-                        column_filter = column_filter.split(',')
+                    if (
+                        isinstance(column_filter, string_types)
+                        and column_filter.find(",") != -1
+                    ):
+                        column_filter = column_filter.split(",")
 
                     # Check if filter is empty
                     if isinstance(column_filter, list):
                         # Remove empty strings from filter list
-                        column_filter = [x for x in column_filter if x != '']
+                        column_filter = [x for x in column_filter if x != ""]
                         if len(column_filter) == 0:
                             continue
                     elif isinstance(column_filter, string_types):
                         # If filter criterion is empty, do nothing.
-                        if column_filter == '':
+                        if column_filter == "":
                             continue
 
                     # Update query.
@@ -148,26 +155,33 @@ class Grid(object):
                     # that we can encode to UTF-8 and thus handle user input to filters.
                     if isinstance(column_filter, list):
                         # Filter is a list; process each item.
-                        column_filter = [text_type(_).encode('utf-8') if not isinstance(_, string_types) else _ for _ in column_filter]
+                        column_filter = [
+                            text_type(_).encode("utf-8")
+                            if not isinstance(_, string_types)
+                            else _
+                            for _ in column_filter
+                        ]
                         extra_url_args["f-" + column.key] = dumps(column_filter)
                     else:
                         # Process singleton filter.
                         if not isinstance(column_filter, string_types):
                             column_filter = text_type(column_filter)
-                        extra_url_args["f-" + column.key] = column_filter.encode("utf-8")
+                        extra_url_args["f-" + column.key] = column_filter.encode(
+                            "utf-8"
+                        )
         # Process sort arguments.
         sort_key = None
-        if 'sort' in kwargs:
-            sort_key = kwargs['sort']
+        if "sort" in kwargs:
+            sort_key = kwargs["sort"]
         elif base_sort_key:
             sort_key = base_sort_key
         if sort_key:
-            ascending = not(sort_key.startswith("-"))
+            ascending = not (sort_key.startswith("-"))
             # Queries that include table joins cannot guarantee unique column names.  This problem is
             # handled by setting the column_filter value to <TableName>.<ColumnName>.
             table_name = None
-            if sort_key.find('.') > -1:
-                a_list = sort_key.split('.')
+            if sort_key.find(".") > -1:
+                a_list = sort_key.split(".")
                 if ascending:
                     table_name = a_list[0]
                 else:
@@ -179,23 +193,27 @@ class Grid(object):
                 column_name = sort_key[1:]
             # Sort key is a column key.
             for column in self.columns:
-                if column.key and column.key.find('.') > -1:
-                    column_key = column.key.split('.')[1]
+                if column.key and column.key.find(".") > -1:
+                    column_key = column.key.split(".")[1]
                 else:
                     column_key = column.key
-                if (table_name is None or table_name == column.model_class.__name__) and column_key == column_name:
-                    query = column.sort(trans, query, ascending, column_name=column_name)
+                if (
+                    table_name is None or table_name == column.model_class.__name__
+                ) and column_key == column_name:
+                    query = column.sort(
+                        trans, query, ascending, column_name=column_name
+                    )
                     break
-            extra_url_args['sort'] = sort_key
+            extra_url_args["sort"] = sort_key
         # There might be a current row
         current_item = self.get_current_item(trans, **kwargs)
         # Process page number.
         if self.use_paging:
-            if 'page' in kwargs:
-                if kwargs['page'] == 'all':
+            if "page" in kwargs:
+                if kwargs["page"] == "all":
                     page_num = 0
                 else:
-                    page_num = int(kwargs['page'])
+                    page_num = int(kwargs["page"])
             else:
                 page_num = 1
             if page_num == 0:
@@ -207,8 +225,12 @@ class Grid(object):
                 # Show a limited number of rows. Before modifying query, get the total number of rows that query
                 # returns so that the total number of pages can be computed.
                 total_num_rows = query.count()
-                query = query.limit(self.num_rows_per_page).offset((page_num - 1) * self.num_rows_per_page)
-                num_pages = int(math.ceil(float(total_num_rows) / self.num_rows_per_page))
+                query = query.limit(self.num_rows_per_page).offset(
+                    (page_num - 1) * self.num_rows_per_page
+                )
+                num_pages = int(
+                    math.ceil(float(total_num_rows) / self.num_rows_per_page)
+                )
         else:
             # Defaults.
             page_num = 1
@@ -220,8 +242,8 @@ class Grid(object):
         # Log grid view.
         context = text_type(self.__class__.__name__)
         params = cur_filter_dict.copy()
-        params['sort'] = sort_key
-        params['async'] = ('async' in kwargs)
+        params["sort"] = sort_key
+        params["async"] = "async" in kwargs
 
         # TODO:??
         # commenting this out; when this fn calls session.add( action ) and session.flush the query from this fn
@@ -232,10 +254,10 @@ class Grid(object):
 
         # Render grid.
         def url(*args, **kwargs):
-            route_name = kwargs.pop('__route_name__', None)
+            route_name = kwargs.pop("__route_name__", None)
             # Only include sort/filter arguments if not linking to another
             # page. This is a bit of a hack.
-            if 'action' in kwargs:
+            if "action" in kwargs:
                 new_kwargs = dict()
             else:
                 new_kwargs = dict(extra_url_args)
@@ -244,59 +266,69 @@ class Grid(object):
                 new_kwargs.update(args[0])
             new_kwargs.update(kwargs)
             # We need to encode item ids
-            if 'id' in new_kwargs:
-                id = new_kwargs['id']
+            if "id" in new_kwargs:
+                id = new_kwargs["id"]
                 if isinstance(id, list):
-                    new_kwargs['id'] = [trans.security.encode_id(i) for i in id]
+                    new_kwargs["id"] = [trans.security.encode_id(i) for i in id]
                 else:
-                    new_kwargs['id'] = trans.security.encode_id(id)
+                    new_kwargs["id"] = trans.security.encode_id(id)
             # The url_for invocation *must* include a controller and action.
-            if 'controller' not in new_kwargs:
-                new_kwargs['controller'] = trans.controller
-            if 'action' not in new_kwargs:
-                new_kwargs['action'] = trans.action
+            if "controller" not in new_kwargs:
+                new_kwargs["controller"] = trans.controller
+            if "action" not in new_kwargs:
+                new_kwargs["action"] = trans.action
             if route_name:
                 return url_for(route_name, **new_kwargs)
             return url_for(**new_kwargs)
 
-        self.use_panels = (kwargs.get('use_panels', False) in [True, 'True', 'true'])
-        self.advanced_search = (kwargs.get('advanced_search', False) in [True, 'True', 'true'])
-        async_request = ((self.use_async) and (kwargs.get('async', False) in [True, 'True', 'true']))
+        self.use_panels = kwargs.get("use_panels", False) in [True, "True", "true"]
+        self.advanced_search = kwargs.get("advanced_search", False) in [
+            True,
+            "True",
+            "true",
+        ]
+        async_request = (self.use_async) and (
+            kwargs.get("async", False) in [True, "True", "true"]
+        )
         # Currently, filling the template returns a str object; this requires decoding the string into a
         # unicode object within mako templates. What probably should be done is to return the template as
         # utf-8 unicode; however, this would require encoding the object as utf-8 before returning the grid
         # results via a controller method, which is require substantial changes. Hence, for now, return grid
         # as str.
-        page = trans.fill_template(iff(async_request, self.async_template, self.template),
-                                   grid=self,
-                                   query=query,
-                                   cur_page_num=page_num,
-                                   num_pages=num_pages,
-                                   num_page_links=self.num_page_links,
-                                   default_filter_dict=self.default_filter,
-                                   cur_filter_dict=cur_filter_dict,
-                                   sort_key=sort_key,
-                                   current_item=current_item,
-                                   ids=kwargs.get('id', []),
-                                   url=url,
-                                   status=status,
-                                   message=message,
-                                   info_text=self.info_text,
-                                   use_panels=self.use_panels,
-                                   use_hide_message=self.use_hide_message,
-                                   advanced_search=self.advanced_search,
-                                   show_item_checkboxes=(self.show_item_checkboxes or
-                                                         kwargs.get('show_item_checkboxes', '') in ['True', 'true']),
-                                   # Pass back kwargs so that grid template can set and use args without
-                                   # grid explicitly having to pass them.
-                                   kwargs=kwargs)
+        page = trans.fill_template(
+            iff(async_request, self.async_template, self.template),
+            grid=self,
+            query=query,
+            cur_page_num=page_num,
+            num_pages=num_pages,
+            num_page_links=self.num_page_links,
+            default_filter_dict=self.default_filter,
+            cur_filter_dict=cur_filter_dict,
+            sort_key=sort_key,
+            current_item=current_item,
+            ids=kwargs.get("id", []),
+            url=url,
+            status=status,
+            message=message,
+            info_text=self.info_text,
+            use_panels=self.use_panels,
+            use_hide_message=self.use_hide_message,
+            advanced_search=self.advanced_search,
+            show_item_checkboxes=(
+                self.show_item_checkboxes
+                or kwargs.get("show_item_checkboxes", "") in ["True", "true"]
+            ),
+            # Pass back kwargs so that grid template can set and use args without
+            # grid explicitly having to pass them.
+            kwargs=kwargs,
+        )
         trans.log_action(trans.get_user(), text_type("grid.view"), context, params)
         return page
 
     def get_ids(self, **kwargs):
         id = []
-        if 'id' in kwargs:
-            id = kwargs['id']
+        if "id" in kwargs:
+            id = kwargs["id"]
             # Coerce ids to list
             if not isinstance(id, list):
                 id = id.split(",")
@@ -325,10 +357,23 @@ class Grid(object):
 
 
 class GridColumn(object):
-    def __init__(self, label, key=None, model_class=None, method=None, format=None,
-                 link=None, attach_popup=False, visible=True, nowrap=False,
-                 # Valid values for filterable are ['standard', 'advanced', None]
-                 filterable=None, sortable=True, label_id_prefix=None, target=None):
+    def __init__(
+        self,
+        label,
+        key=None,
+        model_class=None,
+        method=None,
+        format=None,
+        link=None,
+        attach_popup=False,
+        visible=True,
+        nowrap=False,
+        # Valid values for filterable are ['standard', 'advanced', None]
+        filterable=None,
+        sortable=True,
+        label_id_prefix=None,
+        target=None,
+    ):
         """Create a grid column."""
         self.label = label
         self.key = key
@@ -342,8 +387,8 @@ class GridColumn(object):
         self.visible = visible
         self.filterable = filterable
         # Column must have a key to be sortable.
-        self.sortable = (self.key is not None and sortable)
-        self.label_id_prefix = label_id_prefix or ''
+        self.sortable = self.key is not None and sortable
+        self.label_id_prefix = label_id_prefix or ""
 
     def get_value(self, trans, grid, item):
         if self.method:
@@ -395,7 +440,9 @@ class ReverseSortColumn(GridColumn):
     """ Column that reverses sorting; this is useful when the natural sort is descending. """
 
     def sort(self, trans, query, ascending, column_name=None):
-        return GridColumn.sort(self, trans, query, (not ascending), column_name=column_name)
+        return GridColumn.sort(
+            self, trans, query, (not ascending), column_name=column_name
+        )
 
 
 class TextColumn(GridColumn):
@@ -426,8 +473,8 @@ class TextColumn(GridColumn):
         """
         # Queries that include table joins cannot guarantee that table column names will be
         # unique, so check to see if a_filter is of type <TableName>.<ColumnName>.
-        if self.key.find('.') > -1:
-            a_key = self.key.split('.')[1]
+        if self.key.find(".") > -1:
+            a_key = self.key.split(".")[1]
         else:
             a_key = self.key
         model_class_key_field = getattr(self.model_class, a_key)
@@ -438,9 +485,13 @@ class TextColumn(GridColumn):
         if column_name is None:
             column_name = self.key
         if ascending:
-            query = query.order_by(func.lower(self.model_class.table.c.get(column_name)).asc())
+            query = query.order_by(
+                func.lower(self.model_class.table.c.get(column_name)).asc()
+            )
         else:
-            query = query.order_by(func.lower(self.model_class.table.c.get(column_name)).desc())
+            query = query.order_by(
+                func.lower(self.model_class.table.c.get(column_name)).desc()
+            )
         return query
 
 
@@ -456,8 +507,8 @@ class BooleanColumn(TextColumn):
         return GridColumn.sort(self, trans, query, ascending, column_name=column_name)
 
     def get_single_filter(self, user, a_filter):
-        if self.key.find('.') > -1:
-            a_key = self.key.split('.')[1]
+        if self.key.find(".") > -1:
+            a_key = self.key.split(".")[1]
         else:
             a_key = self.key
         model_class_key_field = getattr(self.model_class, a_key)
@@ -496,38 +547,69 @@ class CommunityRatingColumn(GridColumn, UsesItemRatings):
     """ Column that displays community ratings for an item. """
 
     def get_value(self, trans, grid, item):
-        ave_item_rating, num_ratings = self.get_ave_item_rating_data(trans.sa_session, item, webapp_model=trans.model)
-        return trans.fill_template("tool_shed_rating.mako",
-                                   ave_item_rating=ave_item_rating,
-                                   num_ratings=num_ratings,
-                                   item_id=trans.security.encode_id(item.id))
+        ave_item_rating, num_ratings = self.get_ave_item_rating_data(
+            trans.sa_session, item, webapp_model=trans.model
+        )
+        return trans.fill_template(
+            "tool_shed_rating.mako",
+            ave_item_rating=ave_item_rating,
+            num_ratings=num_ratings,
+            item_id=trans.security.encode_id(item.id),
+        )
 
     def sort(self, trans, query, ascending, column_name=None):
         # Get the columns that connect item's table and item's rating association table.
-        item_rating_assoc_class = getattr(trans.model, '%sRatingAssociation' % self.model_class.__name__)
+        item_rating_assoc_class = getattr(
+            trans.model, "%sRatingAssociation" % self.model_class.__name__
+        )
         foreign_key = get_foreign_key(item_rating_assoc_class, self.model_class)
         fk_col = foreign_key.parent
         referent_col = foreign_key.get_referent(self.model_class.table)
         # Do sorting using a subquery.
         # Subquery to get average rating for each item.
-        ave_rating_subquery = trans.sa_session.query(fk_col,
-                                                     func.avg(item_rating_assoc_class.table.c.rating).label('avg_rating')) \
-            .group_by(fk_col).subquery()
+        ave_rating_subquery = (
+            trans.sa_session.query(
+                fk_col,
+                func.avg(item_rating_assoc_class.table.c.rating).label("avg_rating"),
+            )
+            .group_by(fk_col)
+            .subquery()
+        )
         # Integrate subquery into main query.
-        query = query.outerjoin((ave_rating_subquery, referent_col == ave_rating_subquery.columns[fk_col.name]))
+        query = query.outerjoin(
+            (
+                ave_rating_subquery,
+                referent_col == ave_rating_subquery.columns[fk_col.name],
+            )
+        )
         # Sort using subquery results; use coalesce to avoid null values.
-        if not ascending:  # TODO: for now, reverse sorting b/c first sort is ascending, and that should be the natural sort.
-            query = query.order_by(func.coalesce(ave_rating_subquery.c.avg_rating, 0).asc())
+        if (
+            not ascending
+        ):  # TODO: for now, reverse sorting b/c first sort is ascending, and that should be the natural sort.
+            query = query.order_by(
+                func.coalesce(ave_rating_subquery.c.avg_rating, 0).asc()
+            )
         else:
-            query = query.order_by(func.coalesce(ave_rating_subquery.c.avg_rating, 0).desc())
+            query = query.order_by(
+                func.coalesce(ave_rating_subquery.c.avg_rating, 0).desc()
+            )
         return query
 
 
 class OwnerAnnotationColumn(TextColumn, UsesAnnotations):
     """ Column that displays and filters item owner's annotations. """
 
-    def __init__(self, col_name, key, model_class=None, model_annotation_association_class=None, filterable=None):
-        GridColumn.__init__(self, col_name, key=key, model_class=model_class, filterable=filterable)
+    def __init__(
+        self,
+        col_name,
+        key,
+        model_class=None,
+        model_annotation_association_class=None,
+        filterable=None,
+    ):
+        GridColumn.__init__(
+            self, col_name, key=key, model_class=model_class, filterable=filterable
+        )
         self.sortable = False
         self.model_annotation_association_class = model_annotation_association_class
 
@@ -537,7 +619,7 @@ class OwnerAnnotationColumn(TextColumn, UsesAnnotations):
         if annotation:
             ann_snippet = annotation[:155]
             if len(annotation) > 155:
-                ann_snippet = ann_snippet[:ann_snippet.rfind(' ')]
+                ann_snippet = ann_snippet[: ann_snippet.rfind(" ")]
                 ann_snippet += "..."
         else:
             ann_snippet = ""
@@ -546,24 +628,54 @@ class OwnerAnnotationColumn(TextColumn, UsesAnnotations):
     def get_single_filter(self, user, a_filter):
         """ Filter by annotation and annotation owner. """
         return self.model_class.annotations.any(
-            and_(func.lower(self.model_annotation_association_class.annotation).like("%" + a_filter.lower() + "%"),
-               # TODO: not sure why, to filter by owner's annotations, we have to do this rather than
-               # 'self.model_class.user==self.model_annotation_association_class.user'
-               self.model_annotation_association_class.table.c.user_id == self.model_class.table.c.user_id))
+            and_(
+                func.lower(self.model_annotation_association_class.annotation).like(
+                    "%" + a_filter.lower() + "%"
+                ),
+                # TODO: not sure why, to filter by owner's annotations, we have to do this rather than
+                # 'self.model_class.user==self.model_annotation_association_class.user'
+                self.model_annotation_association_class.table.c.user_id
+                == self.model_class.table.c.user_id,
+            )
+        )
 
 
 class CommunityTagsColumn(TextColumn):
     """ Column that supports community tags. """
 
-    def __init__(self, col_name, key, model_class=None, model_tag_association_class=None, filterable=None, grid_name=None):
-        GridColumn.__init__(self, col_name, key=key, model_class=model_class, nowrap=True, filterable=filterable, sortable=False)
+    def __init__(
+        self,
+        col_name,
+        key,
+        model_class=None,
+        model_tag_association_class=None,
+        filterable=None,
+        grid_name=None,
+    ):
+        GridColumn.__init__(
+            self,
+            col_name,
+            key=key,
+            model_class=model_class,
+            nowrap=True,
+            filterable=filterable,
+            sortable=False,
+        )
         self.model_tag_association_class = model_tag_association_class
         # Column-specific attributes.
         self.grid_name = grid_name
 
     def get_value(self, trans, grid, item):
-        return trans.fill_template("/tagging_common.mako", tag_type="community", trans=trans, user=trans.get_user(), tagged_item=item, elt_context=self.grid_name,
-                                   tag_click_fn="add_tag_to_grid_filter", use_toggle_link=True)
+        return trans.fill_template(
+            "/tagging_common.mako",
+            tag_type="community",
+            trans=trans,
+            user=trans.get_user(),
+            tagged_item=item,
+            elt_context=self.grid_name,
+            tag_click_fn="add_tag_to_grid_filter",
+            use_toggle_link=True,
+        )
 
     def filter(self, trans, user, query, column_filter):
         """ Modify query to filter model_class by tag. Multiple filters are ANDed. """
@@ -583,10 +695,22 @@ class CommunityTagsColumn(TextColumn):
         for name, value in raw_tags:
             if name:
                 # Filter by all tags.
-                clause_list.append(self.model_class.tags.any(func.lower(self.model_tag_association_class.user_tname).like("%" + name.lower() + "%")))
+                clause_list.append(
+                    self.model_class.tags.any(
+                        func.lower(self.model_tag_association_class.user_tname).like(
+                            "%" + name.lower() + "%"
+                        )
+                    )
+                )
                 if value:
                     # Filter by all values.
-                    clause_list.append(self.model_class.tags.any(func.lower(self.model_tag_association_class.user_value).like("%" + value.lower() + "%")))
+                    clause_list.append(
+                        self.model_class.tags.any(
+                            func.lower(
+                                self.model_tag_association_class.user_value
+                            ).like("%" + value.lower() + "%")
+                        )
+                    )
         return and_(*clause_list)
 
 
@@ -594,13 +718,15 @@ class IndividualTagsColumn(CommunityTagsColumn):
     """ Column that supports individual tags. """
 
     def get_value(self, trans, grid, item):
-        return trans.fill_template("/tagging_common.mako",
-                                   tag_type="individual",
-                                   user=trans.user,
-                                   tagged_item=item,
-                                   elt_context=self.grid_name,
-                                   tag_click_fn="add_tag_to_grid_filter",
-                                   use_toggle_link=True)
+        return trans.fill_template(
+            "/tagging_common.mako",
+            tag_type="individual",
+            user=trans.user,
+            tagged_item=item,
+            elt_context=self.grid_name,
+            tag_click_fn="add_tag_to_grid_filter",
+            use_toggle_link=True,
+        )
 
     def get_filter(self, trans, user, column_filter):
         # Parse filter to extract multiple tags.
@@ -612,10 +738,28 @@ class IndividualTagsColumn(CommunityTagsColumn):
         for name, value in raw_tags:
             if name:
                 # Filter by individual's tag names.
-                clause_list.append(self.model_class.tags.any(and_(func.lower(self.model_tag_association_class.user_tname).like("%" + name.lower() + "%"), self.model_tag_association_class.user == user)))
+                clause_list.append(
+                    self.model_class.tags.any(
+                        and_(
+                            func.lower(
+                                self.model_tag_association_class.user_tname
+                            ).like("%" + name.lower() + "%"),
+                            self.model_tag_association_class.user == user,
+                        )
+                    )
+                )
                 if value:
                     # Filter by individual's tag values.
-                    clause_list.append(self.model_class.tags.any(and_(func.lower(self.model_tag_association_class.user_value).like("%" + value.lower() + "%"), self.model_tag_association_class.user == user)))
+                    clause_list.append(
+                        self.model_class.tags.any(
+                            and_(
+                                func.lower(
+                                    self.model_tag_association_class.user_value
+                                ).like("%" + value.lower() + "%"),
+                                self.model_tag_association_class.user == user,
+                            )
+                        )
+                    )
         return and_(*clause_list)
 
 
@@ -623,7 +767,9 @@ class MulticolFilterColumn(TextColumn):
     """ Column that performs multicolumn filtering. """
 
     def __init__(self, col_name, cols_to_filter, key, visible, filterable="default"):
-        GridColumn.__init__(self, col_name, key=key, visible=visible, filterable=filterable)
+        GridColumn.__init__(
+            self, col_name, key=key, visible=visible, filterable=filterable
+        )
         self.cols_to_filter = cols_to_filter
 
     def filter(self, trans, user, query, column_filter):
@@ -666,7 +812,11 @@ class PublicURLColumn(TextColumn):
 
     def get_link(self, trans, grid, item):
         if item.user.username and item.slug:
-            return dict(action='display_by_username_and_slug', username=item.user.username, slug=item.slug)
+            return dict(
+                action="display_by_username_and_slug",
+                username=item.user.username,
+                slug=item.slug,
+            )
         elif not item.user.username:
             # TODO: provide link to set username.
             return None
@@ -680,7 +830,11 @@ class DeletedColumn(GridColumn):
 
     def get_accepted_filters(self):
         """ Returns a list of accepted filters for this column. """
-        accepted_filter_labels_and_vals = {"active" : "False", "deleted" : "True", "all": "All"}
+        accepted_filter_labels_and_vals = {
+            "active": "False",
+            "deleted": "True",
+            "all": "All",
+        }
         accepted_filters = []
         for label, val in accepted_filter_labels_and_vals.items():
             args = {self.key: val}
@@ -717,7 +871,7 @@ class StateColumn(GridColumn):
 
     def get_accepted_filters(self):
         """Returns a list of accepted filters for this column."""
-        all = GridColumnFilter('all', {self.key : 'All'})
+        all = GridColumnFilter("all", {self.key: "All"})
         accepted_filters = [all]
         for k, v in self.model_class.states.items():
             args = {self.key: v}
@@ -743,7 +897,9 @@ class SharingStatusColumn(GridColumn):
         return ", ".join(sharing_statuses)
 
     def get_link(self, trans, grid, item):
-        if not item.deleted and (item.users_shared_with or item.importable or item.published):
+        if not item.deleted and (
+            item.users_shared_with or item.importable or item.published
+        ):
             return dict(operation="share or publish", id=item.id)
         return None
 
@@ -779,9 +935,19 @@ class SharingStatusColumn(GridColumn):
 
 
 class GridOperation(object):
-    def __init__(self, label, key=None, condition=None, allow_multiple=True, allow_popup=True,
-                 target=None, url_args=None, async_compatible=False, confirm=None,
-                 global_operation=None):
+    def __init__(
+        self,
+        label,
+        key=None,
+        condition=None,
+        allow_multiple=True,
+        allow_popup=True,
+        target=None,
+        url_args=None,
+        async_compatible=False,
+        confirm=None,
+        global_operation=None,
+    ):
         self.label = label
         self.key = key
         self.allow_multiple = allow_multiple
@@ -800,11 +966,11 @@ class GridOperation(object):
 
     def get_url_args(self, item):
         if self.url_args:
-            if hasattr(self.url_args, '__call__'):
+            if hasattr(self.url_args, "__call__"):
                 url_args = self.url_args(item)
             else:
                 url_args = dict(self.url_args)
-            url_args['id'] = item.id
+            url_args["id"] = item.id
             return url_args
         else:
             return dict(operation=self.label, id=item.id)
@@ -820,7 +986,11 @@ class DisplayByUsernameAndSlugGridOperation(GridOperation):
     """ Operation to display an item by username and slug. """
 
     def get_url_args(self, item):
-        return {'action' : 'display_by_username_and_slug', 'username' : item.user.username, 'slug' : item.slug}
+        return {
+            "action": "display_by_username_and_slug",
+            "username": item.user.username,
+            "slug": item.slug,
+        }
 
 
 class GridAction(object):

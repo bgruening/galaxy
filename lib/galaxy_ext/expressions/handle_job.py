@@ -9,7 +9,9 @@ import os
 import sys
 
 # insert *this* galaxy before all others on sys.path
-sys.path.insert(1, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)))
+sys.path.insert(
+    1, os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+)
 
 try:
     from cwltool import expression
@@ -24,7 +26,9 @@ log = logging.getLogger(__name__)
 
 def run(environment_path=None):
     if expression is None:
-        raise Exception("Python library cwltool must be available to evaluate expressions.")
+        raise Exception(
+            "Python library cwltool must be available to evaluate expressions."
+        )
 
     if environment_path is None:
         environment_path = os.environ.get("GALAXY_EXPRESSION_INPUTS")

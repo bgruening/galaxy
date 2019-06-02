@@ -50,7 +50,9 @@ USE_FIELD_TYPES = True
 #     easier to manage in someways.
 USE_STEP_PARAMETERS = USE_FIELD_TYPES
 
-TypeRepresentation = collections.namedtuple("TypeRepresentation", ["name", "galaxy_param_type", "label", "collection_type"])
+TypeRepresentation = collections.namedtuple(
+    "TypeRepresentation", ["name", "galaxy_param_type", "label", "collection_type"]
+)
 TYPE_REPRESENTATIONS = [
     TypeRepresentation("null", NO_GALAXY_INPUT, "no input", None),
     TypeRepresentation("integer", INPUT_TYPE.INTEGER, "an integer", None),
@@ -60,14 +62,20 @@ TYPE_REPRESENTATIONS = [
     TypeRepresentation("directory", INPUT_TYPE.DATA, "a directory", None),
     TypeRepresentation("boolean", INPUT_TYPE.BOOLEAN, "a boolean", None),
     TypeRepresentation("text", INPUT_TYPE.TEXT, "a simple text field", None),
-    TypeRepresentation("record", INPUT_TYPE.DATA_COLLECTON, "record as a dataset collection", "record"),
+    TypeRepresentation(
+        "record", INPUT_TYPE.DATA_COLLECTON, "record as a dataset collection", "record"
+    ),
     TypeRepresentation("json", INPUT_TYPE.TEXT, "arbitrary JSON structure", None),
     TypeRepresentation("array", INPUT_TYPE.DATA_COLLECTON, "as a dataset list", "list"),
-    TypeRepresentation("enum", INPUT_TYPE.TEXT, "enum value", None),  # TODO: make this a select...
+    TypeRepresentation(
+        "enum", INPUT_TYPE.TEXT, "enum value", None
+    ),  # TODO: make this a select...
     TypeRepresentation("field", INPUT_TYPE.FIELD, "arbitrary JSON structure", None),
 ]
 FIELD_TYPE_REPRESENTATION = TYPE_REPRESENTATIONS[-1]
-TypeRepresentation.uses_param = lambda self: self.galaxy_param_type is not NO_GALAXY_INPUT
+TypeRepresentation.uses_param = (
+    lambda self: self.galaxy_param_type is not NO_GALAXY_INPUT
+)
 
 if not USE_FIELD_TYPES:
     CWL_TYPE_TO_REPRESENTATIONS = {
@@ -114,7 +122,9 @@ def type_descriptions_for_field_types(field_types):
             field_type = field_type.get("type")
 
         try:
-            type_representation_names_for_field_type = CWL_TYPE_TO_REPRESENTATIONS.get(field_type)
+            type_representation_names_for_field_type = CWL_TYPE_TO_REPRESENTATIONS.get(
+                field_type
+            )
         except TypeError:
             raise Exception("Failed to convert field_type %s" % field_type)
         assert type_representation_names_for_field_type is not None, field_type
@@ -146,27 +156,32 @@ def dataset_wrapper_to_file_json(inputs_dir, dataset_wrapper):
         os.symlink(path, new_input_path)
         secondary_files = []
         for secondary_file_name in os.listdir(secondary_files_path):
-            secondary_file_path = os.path.join(secondary_files_path, secondary_file_name)
+            secondary_file_path = os.path.join(
+                secondary_files_path, secondary_file_name
+            )
             target = os.path.join(inputs_dir, secondary_file_name)
             log.info("linking [%s] to [%s]" % (secondary_file_path, target))
             os.symlink(secondary_file_path, target)
             is_dir = os.path.isdir(os.path.realpath(secondary_file_path))
-            secondary_files.append({"class": "File" if not is_dir else "Directory", "location": target})
+            secondary_files.append(
+                {"class": "File" if not is_dir else "Directory", "location": target}
+            )
 
         raw_file_object["secondaryFiles"] = secondary_files
         path = new_input_path
 
     raw_file_object["location"] = path
     raw_file_object["size"] = int(dataset_wrapper.get_size())
-    set_basename_and_derived_properties(raw_file_object, str(dataset_wrapper.cwl_filename or dataset_wrapper.name))
+    set_basename_and_derived_properties(
+        raw_file_object, str(dataset_wrapper.cwl_filename or dataset_wrapper.name)
+    )
     return raw_file_object
 
 
 def dataset_wrapper_to_directory_json(inputs_dir, dataset_wrapper):
     assert dataset_wrapper.ext == "directory"
 
-    return {"location": dataset_wrapper.extra_files_path,
-            "class": "Directory"}
+    return {"location": dataset_wrapper.extra_files_path, "class": "Directory"}
 
 
 def collection_wrapper_to_array(inputs_dir, wrapped_value):
@@ -255,16 +270,23 @@ def to_cwl_job(tool, param_dict, local_working_directory):
             only_input = next(iter(input.inputs.values()))
             array_value = []
             for instance in param_dict[input_name]:
-                array_value.append(simple_value(only_input, instance[input_name[:-len("_repeat")]]))
-            input_json[input_name[:-len("_repeat")]] = array_value
+                array_value.append(
+                    simple_value(only_input, instance[input_name[: -len("_repeat")]])
+                )
+            input_json[input_name[: -len("_repeat")]] = array_value
         elif input.type == "conditional":
-            assert input_name in param_dict, "No value for %s in %s" % (input_name, param_dict)
+            assert input_name in param_dict, "No value for %s in %s" % (
+                input_name,
+                param_dict,
+            )
             current_case = param_dict[input_name]["_cwl__type_"]
             if str(current_case) != "null":  # str because it is a wrapped...
                 case_index = input.get_current_case(current_case)
                 case_input = input.cases[case_index].inputs["_cwl__value_"]
                 case_value = param_dict[input_name]["_cwl__value_"]
-                input_json[input_name] = simple_value(case_input, case_value, current_case)
+                input_json[input_name] = simple_value(
+                    case_input, case_value, current_case
+                )
         else:
             matched_field = None
             for field in input_fields:
@@ -278,7 +300,9 @@ def to_cwl_job(tool, param_dict, local_working_directory):
                 type_descriptions = type_descriptions_for_field_types([field_type])
             assert len(type_descriptions) == 1
             type_description_name = type_descriptions[0].name
-            input_json[input_name] = simple_value(input, param_dict[input_name], type_description_name)
+            input_json[input_name] = simple_value(
+                input, param_dict[input_name], type_description_name
+            )
 
     log.debug("Galaxy Tool State is CWL State is %s" % input_json)
     return input_json
@@ -313,13 +337,14 @@ def to_galaxy_parameters(tool, as_dict):
         elif galaxy_input_type == "conditional":
             case_strings = input.case_strings
             # TODO: less crazy handling of defaults...
-            if (as_dict_value is NOT_PRESENT or as_dict_value is None) and "null" in case_strings:
+            if (
+                as_dict_value is NOT_PRESENT or as_dict_value is None
+            ) and "null" in case_strings:
                 type_representation_name = "null"
-            elif (as_dict_value is NOT_PRESENT or as_dict_value is None):
+            elif as_dict_value is NOT_PRESENT or as_dict_value is None:
                 raise RequestParameterInvalidException(
-                    "Cannot translate CWL datatype - value [%s] of type [%s] with case_strings [%s]. Non-null property must be set." % (
-                        as_dict_value, type(as_dict_value), case_strings
-                    )
+                    "Cannot translate CWL datatype - value [%s] of type [%s] with case_strings [%s]. Non-null property must be set."
+                    % (as_dict_value, type(as_dict_value), case_strings)
                 )
             elif isinstance(as_dict_value, bool) and "boolean" in case_strings:
                 type_representation_name = "boolean"
@@ -333,9 +358,19 @@ def to_galaxy_parameters(tool, as_dict):
                 type_representation_name = "double"
             elif isinstance(as_dict_value, string_types) and "string" in case_strings:
                 type_representation_name = "string"
-            elif isinstance(as_dict_value, dict) and "src" in as_dict_value and "id" in as_dict_value and "file" in case_strings:
+            elif (
+                isinstance(as_dict_value, dict)
+                and "src" in as_dict_value
+                and "id" in as_dict_value
+                and "file" in case_strings
+            ):
                 type_representation_name = "file"
-            elif isinstance(as_dict_value, dict) and "src" in as_dict_value and "id" in as_dict_value and "directory" in case_strings:
+            elif (
+                isinstance(as_dict_value, dict)
+                and "src" in as_dict_value
+                and "id" in as_dict_value
+                and "directory" in case_strings
+            ):
                 # TODO: can't disambiuate with above if both are available...
                 type_representation_name = "directory"
             elif "field" in case_strings:
@@ -344,16 +379,17 @@ def to_galaxy_parameters(tool, as_dict):
                 type_representation_name = "json"
             else:
                 raise RequestParameterInvalidException(
-                    "Cannot translate CWL datatype - value [%s] of type [%s] with case_strings [%s]." % (
-                        as_dict_value, type(as_dict_value), case_strings
-                    )
+                    "Cannot translate CWL datatype - value [%s] of type [%s] with case_strings [%s]."
+                    % (as_dict_value, type(as_dict_value), case_strings)
                 )
             galaxy_request["%s|_cwl__type_" % input_name] = type_representation_name
             if type_representation_name != "null":
                 current_case_index = input.get_current_case(type_representation_name)
                 current_case_inputs = input.cases[current_case_index].inputs
                 current_case_input = current_case_inputs["_cwl__value_"]
-                galaxy_value = from_simple_value(current_case_input, as_dict_value, type_representation_name)
+                galaxy_value = from_simple_value(
+                    current_case_input, as_dict_value, type_representation_name
+                )
                 galaxy_request["%s|_cwl__value_" % input_name] = galaxy_value
         elif as_dict_value is NOT_PRESENT:
             continue

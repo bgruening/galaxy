@@ -38,8 +38,7 @@ class CollectionBuilder(object):
 
     def replace_elements_in_collection(self, template_collection, replacement_dict):
         self._current_elements = self._replace_elements_in_collection(
-            template_collection=template_collection,
-            replacement_dict=replacement_dict,
+            template_collection=template_collection, replacement_dict=replacement_dict
         )
 
     def _replace_elements_in_collection(self, template_collection, replacement_dict):
@@ -51,11 +50,13 @@ class CollectionBuilder(object):
                 )
                 collection_builder.replace_elements_in_collection(
                     template_collection=element.child_collection,
-                    replacement_dict=replacement_dict
+                    replacement_dict=replacement_dict,
                 )
                 elements[element.element_identifier] = collection_builder
             else:
-                elements[element.element_identifier] = replacement_dict.get(element.element_object, element.element_object)
+                elements[element.element_identifier] = replacement_dict.get(
+                    element.element_object, element.element_object
+                )
         return elements
 
     def get_level(self, identifier):
@@ -104,9 +105,13 @@ class BoundCollectionBuilder(CollectionBuilder):
     def __init__(self, dataset_collection):
         self.dataset_collection = dataset_collection
         if dataset_collection.populated:
-            raise Exception("Cannot reset elements of an already populated dataset collection.")
+            raise Exception(
+                "Cannot reset elements of an already populated dataset collection."
+            )
         collection_type = dataset_collection.collection_type
-        collection_type_description = COLLECTION_TYPE_DESCRIPTION_FACTORY.for_collection_type(collection_type)
+        collection_type_description = COLLECTION_TYPE_DESCRIPTION_FACTORY.for_collection_type(
+            collection_type
+        )
         super(BoundCollectionBuilder, self).__init__(collection_type_description)
 
     def populate(self):

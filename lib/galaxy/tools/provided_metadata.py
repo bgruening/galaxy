@@ -8,7 +8,9 @@ from galaxy.util import stringify_dictionary_keys
 log = logging.getLogger(__name__)
 
 
-def parse_tool_provided_metadata(meta_file, provided_metadata_style=None, job_wrapper=None):
+def parse_tool_provided_metadata(
+    meta_file, provided_metadata_style=None, job_wrapper=None
+):
     """Return a ToolProvidedMetadata object for specified file path.
 
     If meta_file is absent, return a NullToolProvidedMetadata. If provided_metadata_style is None
@@ -32,7 +34,11 @@ def _guess_tool_provided_metadata_style(path):
         with open(path, "r") as f:
             metadata = json.load(f)
         metadata_type = metadata.get("type", None)
-        return "legacy" if metadata_type in ["dataset", "new_primary_dataset"] else "default"
+        return (
+            "legacy"
+            if metadata_type in ["dataset", "new_primary_dataset"]
+            else "default"
+        )
     except ValueError:
         # Either empty or multiple JSON lines, either way we can safely treat
         # it as legacy style.
@@ -40,7 +46,6 @@ def _guess_tool_provided_metadata_style(path):
 
 
 class BaseToolProvidedMetadata(object):
-
     def get_new_datasets(self, output_name):
         """Find new datasets for dataset discovery for specified output.
 
@@ -97,52 +102,63 @@ class NullToolProvidedMetadata(BaseToolProvidedMetadata):
 
 
 class LegacyToolProvidedMetadata(BaseToolProvidedMetadata):
-
     def __init__(self, meta_file, job_wrapper=None):
         self.meta_file = meta_file
         self.tool_provided_job_metadata = []
 
-        with open(meta_file, 'r') as f:
+        with open(meta_file, "r") as f:
             for line in f:
                 try:
                     line = stringify_dictionary_keys(json.loads(line))
-                    assert 'type' in line
+                    assert "type" in line
                 except Exception:
-                    log.exception('(%s) Got JSON data from tool, but data is improperly formatted or no "type" key in data' % job_wrapper.job_id)
-                    log.debug('Offending data was: %s' % line)
+                    log.exception(
+                        '(%s) Got JSON data from tool, but data is improperly formatted or no "type" key in data'
+                        % job_wrapper.job_id
+                    )
+                    log.debug("Offending data was: %s" % line)
                     continue
                 # Set the dataset id if it's a dataset entry and isn't set.
                 # This isn't insecure.  We loop the job's output datasets in
                 # the finish method, so if a tool writes out metadata for a
                 # dataset id that it doesn't own, it'll just be ignored.
-                dataset_id_not_specified = line['type'] == 'dataset' and 'dataset_id' not in line
+                dataset_id_not_specified = (
+                    line["type"] == "dataset" and "dataset_id" not in line
+                )
                 if dataset_id_not_specified:
-                    dataset_basename = line['dataset']
+                    dataset_basename = line["dataset"]
                     if job_wrapper:
                         try:
-                            line['dataset_id'] = job_wrapper.get_output_file_id(dataset_basename)
+                            line["dataset_id"] = job_wrapper.get_output_file_id(
+                                dataset_basename
+                            )
                         except KeyError:
-                            log.warning('(%s) Tool provided job dataset-specific metadata without specifying a dataset' % job_wrapper.job_id)
+                            log.warning(
+                                "(%s) Tool provided job dataset-specific metadata without specifying a dataset"
+                                % job_wrapper.job_id
+                            )
                             continue
                     else:
-                        match = re.match(r'dataset_(\d+)\.dat', dataset_basename)
-                        line['dataset_id'] = int(match.group(1))
+                        match = re.match(r"dataset_(\d+)\.dat", dataset_basename)
+                        line["dataset_id"] = int(match.group(1))
 
                 self.tool_provided_job_metadata.append(line)
 
     def get_dataset_meta(self, output_name, dataset_id):
         for meta in self.tool_provided_job_metadata:
-            if meta['type'] == 'dataset' and int(meta['dataset_id']) == dataset_id:
+            if meta["type"] == "dataset" and int(meta["dataset_id"]) == dataset_id:
                 return meta
         return {}
 
     def get_new_dataset_meta_by_basename(self, output_name, basename):
         for meta in self.tool_provided_job_metadata:
-            if meta['type'] == 'new_primary_dataset' and meta['filename'] == basename:
+            if meta["type"] == "new_primary_dataset" and meta["filename"] == basename:
                 return meta
 
     def get_new_datasets(self, output_name):
-        log.warning("Called get_new_datasets with legacy tool metadata provider - that is unimplemented.")
+        log.warning(
+            "Called get_new_datasets with legacy tool metadata provider - that is unimplemented."
+        )
         return []
 
     def has_failed_outputs(self):
@@ -157,36 +173,41 @@ class LegacyToolProvidedMetadata(BaseToolProvidedMetadata):
         return []
 
     def rewrite(self):
-        with open(self.meta_file, 'wt') as job_metadata_fh:
+        with open(self.meta_file, "wt") as job_metadata_fh:
             for meta in self.tool_provided_job_metadata:
                 job_metadata_fh.write("%s\n" % (json.dumps(meta)))
 
     def get_new_datasets_for_metadata_collection(self):
         for meta in self.tool_provided_job_metadata:
-            if meta['type'] == 'new_primary_dataset':
+            if meta["type"] == "new_primary_dataset":
                 yield meta
 
 
 class ToolProvidedMetadata(BaseToolProvidedMetadata):
-
     def __init__(self, meta_file):
         self.meta_file = meta_file
-        with open(meta_file, 'r') as f:
+        with open(meta_file, "r") as f:
             self.tool_provided_job_metadata = json.load(f)
 
     def get_dataset_meta(self, output_name, dataset_id):
         return self.tool_provided_job_metadata.get(output_name, {})
 
     def get_new_dataset_meta_by_basename(self, output_name, basename):
-        datasets = self.tool_provided_job_metadata.get(output_name, {}).get("datasets", [])
+        datasets = self.tool_provided_job_metadata.get(output_name, {}).get(
+            "datasets", []
+        )
         for meta in datasets:
-            if meta['filename'] == basename:
+            if meta["filename"] == basename:
                 return meta
 
     def get_new_datasets(self, output_name):
-        datasets = self.tool_provided_job_metadata.get(output_name, {}).get("datasets", [])
+        datasets = self.tool_provided_job_metadata.get(output_name, {}).get(
+            "datasets", []
+        )
         if not datasets:
-            elements = self.tool_provided_job_metadata.get(output_name, {}).get("elements", [])
+            elements = self.tool_provided_job_metadata.get(output_name, {}).get(
+                "elements", []
+            )
             if elements:
                 datasets = self._elements_to_datasets(elements)
         return datasets
@@ -195,7 +216,9 @@ class ToolProvidedMetadata(BaseToolProvidedMetadata):
         for element in elements:
             extra_kwds = {"identifier_%d" % level: element["name"]}
             if "elements" in element:
-                for inner_element in self._elements_to_datasets(element["elements"], level=level + 1):
+                for inner_element in self._elements_to_datasets(
+                    element["elements"], level=level + 1
+                ):
                     dataset = extra_kwds.copy()
                     dataset.update(inner_element)
                     yield dataset
@@ -220,5 +243,5 @@ class ToolProvidedMetadata(BaseToolProvidedMetadata):
         return self.tool_provided_job_metadata.get("__unnamed_outputs", [])
 
     def rewrite(self):
-        with open(self.meta_file, 'wt') as job_metadata_fh:
+        with open(self.meta_file, "wt") as job_metadata_fh:
             json.dump(self.tool_provided_job_metadata, job_metadata_fh)

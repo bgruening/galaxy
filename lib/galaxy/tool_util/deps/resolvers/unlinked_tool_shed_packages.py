@@ -20,16 +20,9 @@ See bottom for instructions on how to add this resolver.
 """
 import logging
 from os import listdir
-from os.path import (
-    exists,
-    getmtime,
-    join
-)
+from os.path import exists, getmtime, join
 
-from . import (
-    Dependency,
-    NullDependency
-)
+from . import Dependency, NullDependency
 from .galaxy_packages import BaseGalaxyPackageDependencyResolver
 
 log = logging.getLogger(__name__)
@@ -39,21 +32,32 @@ PREFERRED_OWNERS = MANUAL + ",iuc,devteam"
 
 
 class UnlinkedToolShedPackageDependencyResolver(BaseGalaxyPackageDependencyResolver):
-    dict_collection_visible_keys = BaseGalaxyPackageDependencyResolver.dict_collection_visible_keys + ['preferred_owners', 'select_by_owner']
+    dict_collection_visible_keys = (
+        BaseGalaxyPackageDependencyResolver.dict_collection_visible_keys
+        + ["preferred_owners", "select_by_owner"]
+    )
     resolver_type = "unlinked_tool_shed_packages"
 
     def __init__(self, dependency_manager, **kwds):
-        super(UnlinkedToolShedPackageDependencyResolver, self).__init__(dependency_manager, **kwds)
+        super(UnlinkedToolShedPackageDependencyResolver, self).__init__(
+            dependency_manager, **kwds
+        )
         # Provide a list of preferred owners whose dependency to use
-        self.preferred_owners = kwds.get('preferred_owners', PREFERRED_OWNERS).split(",")
+        self.preferred_owners = kwds.get("preferred_owners", PREFERRED_OWNERS).split(
+            ","
+        )
         # Option to ignore owner and just use last modified time
-        self.select_by_owner = str(kwds.get('select_by_owner', "true")).lower() != "false"
+        self.select_by_owner = (
+            str(kwds.get("select_by_owner", "true")).lower() != "false"
+        )
 
-    def _find_dep_versioned(self, name, version, type='package', **kwds):
+    def _find_dep_versioned(self, name, version, type="package", **kwds):
         try:
             possibles = self._find_possible_dependencies(name, version, type)
             if len(possibles) == 0:
-                log.debug("Unable to find dependency,'%s' '%s' '%s'", name, version, type)
+                log.debug(
+                    "Unable to find dependency,'%s' '%s' '%s'", name, version, type
+                )
                 return NullDependency(version=version, name=name)
             elif len(possibles) == 1:
                 # Only one candidate found so ignore any preference rules
@@ -62,7 +66,12 @@ class UnlinkedToolShedPackageDependencyResolver(BaseGalaxyPackageDependencyResol
                 # Pick the preferred one
                 return self._select_preferred_dependency(possibles).dependency
         except Exception:
-            log.exception("Unexpected error hunting for dependency '%s' '%s''%s'", name, version, type)
+            log.exception(
+                "Unexpected error hunting for dependency '%s' '%s''%s'",
+                name,
+                version,
+                type,
+            )
             return NullDependency(version=version, name=name)
 
     # Finds all possible dependency to use
@@ -76,7 +85,13 @@ class UnlinkedToolShedPackageDependencyResolver(BaseGalaxyPackageDependencyResol
                 # First try the way without owner/name/revision
                 package = self._galaxy_package_dep(path, version, name, type, True)
                 if not isinstance(package, NullDependency):
-                    log.debug("Found dependency '%s' '%s' '%s' at '%s'", name, version, type, path)
+                    log.debug(
+                        "Found dependency '%s' '%s' '%s' at '%s'",
+                        name,
+                        version,
+                        type,
+                        path,
+                    )
                     possibles.append(CandidateDependency(package, path))
                 # now try with an owner/name/revision
                 for owner in listdir(path):
@@ -86,10 +101,22 @@ class UnlinkedToolShedPackageDependencyResolver(BaseGalaxyPackageDependencyResol
                             package_path = join(owner_path, package_name)
                             for revision in listdir(package_path):
                                 revision_path = join(package_path, revision)
-                                package = self._galaxy_package_dep(revision_path, version, name, type, True)
+                                package = self._galaxy_package_dep(
+                                    revision_path, version, name, type, True
+                                )
                                 if not isinstance(package, NullDependency):
-                                    log.debug("Found dependency '%s' '%s' '%s' at '%s'", name, version, type, revision_path)
-                                    possibles.append(CandidateDependency(package, package_path, owner))
+                                    log.debug(
+                                        "Found dependency '%s' '%s' '%s' at '%s'",
+                                        name,
+                                        version,
+                                        type,
+                                        revision_path,
+                                    )
+                                    possibles.append(
+                                        CandidateDependency(
+                                            package, package_path, owner
+                                        )
+                                    )
         return possibles
 
     def _select_preferred_dependency(self, possibles, by_owner=None):
@@ -115,7 +142,10 @@ class UnlinkedToolShedPackageDependencyResolver(BaseGalaxyPackageDependencyResol
             if latest_modified < modified:
                 latest_candidate = candidate
                 latest_modified = modified
-        log.debug("Picking dependency at '%s' as it was the last modified", latest_candidate.path)
+        log.debug(
+            "Picking dependency at '%s' as it was the last modified",
+            latest_candidate.path,
+        )
         return latest_candidate
 
     """
@@ -140,8 +170,12 @@ class UnlinkedToolShedPackageDependencyResolver(BaseGalaxyPackageDependencyResol
 
 
 class CandidateDependency(Dependency):
-    dict_collection_visible_keys = Dependency.dict_collection_visible_keys + ['dependency', 'path', 'owner']
-    dependency_type = 'unlinked_tool_shed_package'
+    dict_collection_visible_keys = Dependency.dict_collection_visible_keys + [
+        "dependency",
+        "path",
+        "owner",
+    ]
+    dependency_type = "unlinked_tool_shed_package"
 
     @property
     def exact(self):
@@ -159,7 +193,7 @@ class CandidateDependency(Dependency):
         return self.dependency.shell_commands()
 
 
-__all__ = ('UnlinkedToolShedPackageDependencyResolver', )
+__all__ = ("UnlinkedToolShedPackageDependencyResolver",)
 
 """
 At the time of writing July 3 2015 this resolver has to be plugged in.

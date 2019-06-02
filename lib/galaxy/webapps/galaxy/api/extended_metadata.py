@@ -3,23 +3,24 @@ API operations on annotations.
 """
 import logging
 
-from galaxy import (
-    managers,
-    web
-)
+from galaxy import managers, web
 from galaxy.web.base.controller import (
     BaseAPIController,
     HTTPNotImplemented,
     UsesExtendedMetadataMixin,
     UsesLibraryMixinItems,
-    UsesStoredWorkflowMixin
+    UsesStoredWorkflowMixin,
 )
 
 log = logging.getLogger(__name__)
 
 
-class BaseExtendedMetadataController(BaseAPIController, UsesExtendedMetadataMixin, UsesLibraryMixinItems, UsesStoredWorkflowMixin):
-
+class BaseExtendedMetadataController(
+    BaseAPIController,
+    UsesExtendedMetadataMixin,
+    UsesLibraryMixinItems,
+    UsesStoredWorkflowMixin,
+):
     @web.legacy_expose_api
     def index(self, trans, **kwd):
         idnum = kwd[self.exmeta_item_id]
@@ -63,11 +64,15 @@ class LibraryDatasetExtendMetadataController(BaseExtendedMetadataController):
     def _get_item_from_id(self, trans, idstr, check_writable=True):
         if check_writable:
             item = self.get_library_dataset_dataset_association(trans, idstr)
-            if trans.app.security_agent.can_modify_library_item(trans.get_current_user_roles(), item):
+            if trans.app.security_agent.can_modify_library_item(
+                trans.get_current_user_roles(), item
+            ):
                 return item
         else:
             item = self.get_library_dataset_dataset_association(trans, idstr)
-            if trans.app.security_agent.can_access_library_item(trans.get_current_user_roles(), item, trans.user):
+            if trans.app.security_agent.can_access_library_item(
+                trans.get_current_user_roles(), item, trans.user
+            ):
                 return item
         return None
 
@@ -83,7 +88,9 @@ class HistoryDatasetExtendMetadataController(BaseExtendedMetadataController):
     def _get_item_from_id(self, trans, idstr, check_writable=True):
         decoded_idstr = self.decode_id(idstr)
         if check_writable:
-            return self.hda_manager.get_owned(decoded_idstr, trans.user, current_history=trans.history)
+            return self.hda_manager.get_owned(
+                decoded_idstr, trans.user, current_history=trans.history
+            )
         else:
             hda = self.hda_manager.get_accessible(decoded_idstr, trans.user)
             return self.hda_manager.error_if_uploading(hda)

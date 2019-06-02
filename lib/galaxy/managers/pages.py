@@ -18,7 +18,7 @@ class PageManager(sharable.SharableModelManager):
     """
 
     model_class = model.Page
-    foreign_key_name = 'page'
+    foreign_key_name = "page"
     user_share_model = model.PageUserShareAssociation
 
     tag_assoc = model.PageTagAssociation
@@ -40,21 +40,21 @@ class PageSerializer(sharable.SharableModelSerializer):
     """
     Interface/service object for serializing pages into dictionaries.
     """
+
     model_manager_class = PageManager
-    SINGLE_CHAR_ABBR = 'p'
+    SINGLE_CHAR_ABBR = "p"
 
     def __init__(self, app):
         super(PageSerializer, self).__init__(app)
         self.page_manager = PageManager(app)
 
-        self.default_view = 'summary'
-        self.add_view('summary', [])
-        self.add_view('detailed', [])
+        self.default_view = "summary"
+        self.add_view("summary", [])
+        self.add_view("detailed", [])
 
     def add_serializers(self):
         super(PageSerializer, self).add_serializers()
-        self.serializers.update({
-        })
+        self.serializers.update({})
 
 
 class PageDeserializer(sharable.SharableModelDeserializer):
@@ -62,6 +62,7 @@ class PageDeserializer(sharable.SharableModelDeserializer):
     Interface/service object for validating and deserializing dictionaries
     into pages.
     """
+
     model_manager_class = PageManager
 
     def __init__(self, app):
@@ -70,6 +71,5 @@ class PageDeserializer(sharable.SharableModelDeserializer):
 
     def add_deserializers(self):
         super(PageDeserializer, self).add_deserializers()
-        self.deserializers.update({
-        })
+        self.deserializers.update({})
         self.deserializable_keyset.update(self.deserializers.keys())

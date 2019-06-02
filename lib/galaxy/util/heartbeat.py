@@ -34,7 +34,9 @@ class Heartbeat(threading.Thread):
     Thread that periodically dumps the state of all threads to a file
     """
 
-    def __init__(self, config, name="Heartbeat Thread", period=20, fname="heartbeat.log"):
+    def __init__(
+        self, config, name="Heartbeat Thread", period=20, fname="heartbeat.log"
+    ):
         threading.Thread.__init__(self, name=name)
         self.config = config
         self.should_stop = False
@@ -51,11 +53,10 @@ class Heartbeat(threading.Thread):
     def run(self):
         self.pid = os.getpid()
         self.fname = self.fname.format(
-            server_name=self.config.server_name,
-            pid=self.pid
+            server_name=self.config.server_name, pid=self.pid
         )
         fname, ext = os.path.splitext(self.fname)
-        self.fname_nonsleeping = fname + '.nonsleeping' + ext
+        self.fname_nonsleeping = fname + ".nonsleeping" + ext
         wait = self.period
         if self.period <= 0:
             wait = 60
@@ -68,13 +69,25 @@ class Heartbeat(threading.Thread):
         if self.file is None or self.file.closed:
             self.file = open(self.fname, "a")
             self.file_nonsleeping = open(self.fname_nonsleeping, "a")
-            self.file.write("Heartbeat for pid %d thread started at %s\n\n" % (self.pid, time.asctime()))
-            self.file_nonsleeping.write("Non-Sleeping-threads for pid %d thread started at %s\n\n" % (self.pid, time.asctime()))
+            self.file.write(
+                "Heartbeat for pid %d thread started at %s\n\n"
+                % (self.pid, time.asctime())
+            )
+            self.file_nonsleeping.write(
+                "Non-Sleeping-threads for pid %d thread started at %s\n\n"
+                % (self.pid, time.asctime())
+            )
 
     def close_logs(self):
         if self.file is not None and not self.file.closed:
-            self.file.write("Heartbeat for pid %d thread stopped at %s\n\n" % (self.pid, time.asctime()))
-            self.file_nonsleeping.write("Non-Sleeping-threads for pid %d thread stopped at %s\n\n" % (self.pid, time.asctime()))
+            self.file.write(
+                "Heartbeat for pid %d thread stopped at %s\n\n"
+                % (self.pid, time.asctime())
+            )
+            self.file_nonsleeping.write(
+                "Non-Sleeping-threads for pid %d thread stopped at %s\n\n"
+                % (self.pid, time.asctime())
+            )
             self.file.close()
             self.file_nonsleeping.close()
 
@@ -82,7 +95,9 @@ class Heartbeat(threading.Thread):
         self.open_logs()
         try:
             # Print separator with timestamp
-            self.file.write("Traceback dump for all threads at %s:\n\n" % time.asctime())
+            self.file.write(
+                "Traceback dump for all threads at %s:\n\n" % time.asctime()
+            )
             # Print the thread states
             threads = get_current_thread_object_dict()
             for thread_id, frame in iteritems(sys._current_frames()):
@@ -126,8 +141,11 @@ class Heartbeat(threading.Thread):
             return True
         if _funcname == "accept" and _text[-14:] == "_sock.accept()":
             return True
-        if _funcname in ("monitor", "__monitor", "app_loop", "check") \
-                and _text.startswith("time.sleep(") and _text.endswith(")"):
+        if (
+            _funcname in ("monitor", "__monitor", "app_loop", "check")
+            and _text.startswith("time.sleep(")
+            and _text.endswith(")")
+        ):
             return True
         if _funcname == "drain_events" and _text == "sleep(polling_interval)":
             return True
@@ -180,8 +198,18 @@ class Heartbeat(threading.Thread):
                 self.nonsleeping_heartbeats[thread_id] = 1
 
             good_frame = self.get_interesting_stack_frame(tb)
-            self.file_nonsleeping.write("Thread %s\t%s\tnon-sleeping for %d heartbeat(s)\n  File %s:%d\n    Function \"%s\"\n      %s\n" %
-                (thread_id, object, self.nonsleeping_heartbeats[thread_id], good_frame[0], good_frame[1], good_frame[2], good_frame[3]))
+            self.file_nonsleeping.write(
+                'Thread %s\t%s\tnon-sleeping for %d heartbeat(s)\n  File %s:%d\n    Function "%s"\n      %s\n'
+                % (
+                    thread_id,
+                    object,
+                    self.nonsleeping_heartbeats[thread_id],
+                    good_frame[0],
+                    good_frame[1],
+                    good_frame[2],
+                    good_frame[3],
+                )
+            )
             all_threads_are_sleeping = False
 
         if all_threads_are_sleeping:

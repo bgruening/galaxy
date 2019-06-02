@@ -9,7 +9,7 @@ from galaxy.version import VERSION_MAJOR
 
 log = logging.getLogger(__name__)
 
-ATTRS_FILENAME_HISTORY = 'history_attrs.txt'
+ATTRS_FILENAME_HISTORY = "history_attrs.txt"
 
 
 class JobImportHistoryArchiveWrapper:
@@ -32,7 +32,11 @@ class JobImportHistoryArchiveWrapper:
         # Import history.
         #
 
-        jiha = self.sa_session.query(model.JobImportHistoryArchive).filter_by(job_id=self.job_id).first()
+        jiha = (
+            self.sa_session.query(model.JobImportHistoryArchive)
+            .filter_by(job_id=self.job_id)
+            .first()
+        )
         if not jiha:
             return None
         user = jiha.job.user
@@ -40,7 +44,9 @@ class JobImportHistoryArchiveWrapper:
         new_history = None
         try:
             archive_dir = jiha.archive_dir
-            model_store = store.get_import_model_store_for_directory(archive_dir, app=self.app, user=user)
+            model_store = store.get_import_model_store_for_directory(
+                archive_dir, app=self.app, user=user
+            )
             job = jiha.job
             with model_store.target_history(default_history=job.history) as new_history:
 
@@ -93,8 +99,12 @@ class JobExportHistoryArchiveWrapper:
         jeha.history_attrs_filename = history_attrs_filename
 
         # symlink files on export, on worker files will tarred up in a dereferenced manner.
-        with store.DirectoryModelExportStore(temp_output_dir, app=app, export_files="symlink") as export_store:
-            export_store.export_history(history, include_hidden=include_hidden, include_deleted=include_deleted)
+        with store.DirectoryModelExportStore(
+            temp_output_dir, app=app, export_files="symlink"
+        ) as export_store:
+            export_store.export_history(
+                history, include_hidden=include_hidden, include_deleted=include_deleted
+            )
 
         #
         # Create and return command line for running tool.
@@ -107,10 +117,17 @@ class JobExportHistoryArchiveWrapper:
     def cleanup_after_job(self):
         """ Remove temporary directory and attribute files generated during setup for this job. """
         # Get jeha for job.
-        jeha = self.sa_session.query(model.JobExportHistoryArchive).filter_by(job_id=self.job_id).first()
+        jeha = (
+            self.sa_session.query(model.JobExportHistoryArchive)
+            .filter_by(job_id=self.job_id)
+            .first()
+        )
         if jeha:
             temp_dir = jeha.temp_directory
             try:
                 shutil.rmtree(temp_dir)
             except Exception as e:
-                log.debug('Error deleting directory containing attribute files (%s): %s' % (temp_dir, e))
+                log.debug(
+                    "Error deleting directory containing attribute files (%s): %s"
+                    % (temp_dir, e)
+                )

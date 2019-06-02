@@ -17,13 +17,21 @@ from .metadata import MetadataElement
 @build_sniff_from_prefix
 class Phylip(Text):
     """Phylip format stores a multiple sequence alignment"""
+
     edam_data = "data_0863"
     edam_format = "format_1997"
     file_ext = "phylip"
 
     """Add metadata elements"""
-    MetadataElement(name="sequences", default=0, desc="Number of sequences", readonly=True,
-                    visible=False, optional=True, no_value=0)
+    MetadataElement(
+        name="sequences",
+        default=0,
+        desc="Number of sequences",
+        readonly=True,
+        visible=False,
+        optional=True,
+        no_value=0,
+    )
 
     def set_meta(self, dataset, **kwd):
         """
@@ -31,7 +39,9 @@ class Phylip(Text):
         """
         dataset.metadata.data_lines = self.count_data_lines(dataset)
         try:
-            dataset.metadata.sequences = int(open(dataset.file_name).readline().split()[0])
+            dataset.metadata.sequences = int(
+                open(dataset.file_name).readline().split()[0]
+            )
         except Exception:
             raise Exception("Header does not correspond to PHYLIP header.")
 
@@ -39,12 +49,14 @@ class Phylip(Text):
         if not dataset.dataset.purged:
             dataset.peek = get_file_peek(dataset.file_name, is_multi_byte=is_multi_byte)
             if dataset.metadata.sequences:
-                dataset.blurb = "%s sequences" % util.commaify(str(dataset.metadata.sequences))
+                dataset.blurb = "%s sequences" % util.commaify(
+                    str(dataset.metadata.sequences)
+                )
             else:
                 dataset.blurb = nice_size(dataset.get_size())
         else:
-            dataset.peek = 'file does not exist'
-            dataset.blurb = 'file purged from disk'
+            dataset.peek = "file does not exist"
+            dataset.blurb = "file purged from disk"
 
     def sniff_prefix(self, file_prefix):
         """

@@ -11,17 +11,12 @@ import threading
 from time import sleep
 
 from galaxy import model
-from galaxy.util import (
-    asbool,
-)
-from ..runners import (
-    BaseJobRunner,
-    JobState
-)
+from galaxy.util import asbool
+from ..runners import BaseJobRunner, JobState
 
 log = logging.getLogger(__name__)
 
-__all__ = ('LocalJobRunner', )
+__all__ = ("LocalJobRunner",)
 
 DEFAULT_POOL_SLEEP_TIME = 1
 # TODO: Set to false and just get rid of this option. It would simplify this
@@ -33,6 +28,7 @@ class LocalJobRunner(BaseJobRunner):
     """
     Job runner backed by a finite pool of worker threads. FIFO scheduling
     """
+
     runner_name = "LocalRunner"
 
     def __init__(self, app, nworkers):
@@ -44,8 +40,12 @@ class LocalJobRunner(BaseJobRunner):
         self._procs = []
 
         # Set TEMP if a valid temp value is not already set
-        if not ('TMPDIR' in self._environ or 'TEMP' in self._environ or 'TMP' in self._environ):
-            self._environ['TEMP'] = os.path.abspath(tempfile.gettempdir())
+        if not (
+            "TMPDIR" in self._environ
+            or "TEMP" in self._environ
+            or "TMP" in self._environ
+        ):
+            self._environ["TEMP"] = os.path.abspath(tempfile.gettempdir())
 
         super(LocalJobRunner, self).__init__(app, nworkers)
         self._init_worker_threads()
@@ -57,21 +57,28 @@ class LocalJobRunner(BaseJobRunner):
 
         # slots would be cleaner name, but don't want deployers to see examples and think it
         # is going to work with other job runners.
-        slots = job_wrapper.job_destination.params.get("local_slots", None) or os.environ.get("GALAXY_SLOTS", None)
+        slots = job_wrapper.job_destination.params.get(
+            "local_slots", None
+        ) or os.environ.get("GALAXY_SLOTS", None)
         if slots:
-            slots_statement = 'GALAXY_SLOTS="%d"; export GALAXY_SLOTS; GALAXY_SLOTS_CONFIGURED="1"; export GALAXY_SLOTS_CONFIGURED;' % (int(slots))
+            slots_statement = (
+                'GALAXY_SLOTS="%d"; export GALAXY_SLOTS; GALAXY_SLOTS_CONFIGURED="1"; export GALAXY_SLOTS_CONFIGURED;'
+                % (int(slots))
+            )
         else:
             slots_statement = 'GALAXY_SLOTS="1"; export GALAXY_SLOTS;'
 
         job_id = job_wrapper.get_id_tag()
         job_file = JobState.default_job_file(job_wrapper.working_directory, job_id)
-        exit_code_path = JobState.default_exit_code_file(job_wrapper.working_directory, job_id)
+        exit_code_path = JobState.default_exit_code_file(
+            job_wrapper.working_directory, job_id
+        )
         job_script_props = {
-            'slots_statement': slots_statement,
-            'command': command_line,
-            'exit_code_path': exit_code_path,
-            'working_directory': job_wrapper.working_directory,
-            'shell': job_wrapper.shell,
+            "slots_statement": slots_statement,
+            "command": command_line,
+            "exit_code_path": exit_code_path,
+            "working_directory": job_wrapper.working_directory,
+            "shell": job_wrapper.shell,
         }
         job_file_contents = self.get_job_file(job_wrapper, **job_script_props)
         self.write_executable_script(job_file, job_file_contents)
@@ -81,23 +88,29 @@ class LocalJobRunner(BaseJobRunner):
         if not self._prepare_job_local(job_wrapper):
             return
 
-        stderr = stdout = ''
+        stderr = stdout = ""
 
         # command line has been added to the wrapper by prepare_job()
         command_line, exit_code_path = self.__command_line(job_wrapper)
         job_id = job_wrapper.get_id_tag()
 
         try:
-            stdout_file = tempfile.NamedTemporaryFile(mode='wb+', suffix='_stdout', dir=job_wrapper.working_directory)
-            stderr_file = tempfile.NamedTemporaryFile(mode='wb+', suffix='_stderr', dir=job_wrapper.working_directory)
-            log.debug('(%s) executing job script: %s' % (job_id, command_line))
-            proc = subprocess.Popen(args=command_line,
-                                    shell=True,
-                                    cwd=job_wrapper.working_directory,
-                                    stdout=stdout_file,
-                                    stderr=stderr_file,
-                                    env=self._environ,
-                                    preexec_fn=os.setpgrp)
+            stdout_file = tempfile.NamedTemporaryFile(
+                mode="wb+", suffix="_stdout", dir=job_wrapper.working_directory
+            )
+            stderr_file = tempfile.NamedTemporaryFile(
+                mode="wb+", suffix="_stderr", dir=job_wrapper.working_directory
+            )
+            log.debug("(%s) executing job script: %s" % (job_id, command_line))
+            proc = subprocess.Popen(
+                args=command_line,
+                shell=True,
+                cwd=job_wrapper.working_directory,
+                stdout=stdout_file,
+                stderr=stderr_file,
+                env=self._environ,
+                preexec_fn=os.setpgrp,
+            )
 
             proc.terminated_by_shutdown = False
             with self._proc_lock:
@@ -127,7 +140,7 @@ class LocalJobRunner(BaseJobRunner):
             stderr = self._job_io_for_db(stderr_file)
             stdout_file.close()
             stderr_file.close()
-            log.debug('execution finished: %s' % command_line)
+            log.debug("execution finished: %s" % command_line)
         except Exception:
             log.exception("failure running job %d", job_wrapper.job_id)
             self._fail_job_local(job_wrapper, "failure running job")
@@ -137,7 +150,9 @@ class LocalJobRunner(BaseJobRunner):
 
         job_destination = job_wrapper.job_destination
         job_state = JobState(job_wrapper, job_destination)
-        job_state.exit_code_file = JobState.default_exit_code_file(job_wrapper.working_directory, job_id)
+        job_state.exit_code_file = JobState.default_exit_code_file(
+            job_wrapper.working_directory, job_id
+        )
         job_state.stop_job = False
         self._finish_or_resubmit_job(job_state, stdout, stderr, job_id=job_id)
 
@@ -146,34 +161,53 @@ class LocalJobRunner(BaseJobRunner):
         job = job_wrapper.get_job()
         job_ext_output_metadata = job.get_external_output_metadata()
         try:
-            pid = job_ext_output_metadata[0].job_runner_external_pid  # every JobExternalOutputMetadata has a pid set, we just need to take from one of them
-            assert pid not in [None, '']
+            pid = job_ext_output_metadata[
+                0
+            ].job_runner_external_pid  # every JobExternalOutputMetadata has a pid set, we just need to take from one of them
+            assert pid not in [None, ""]
         except Exception:
             # metadata internal or job not complete yet
             pid = job.get_job_runner_external_id()
-        if pid in [None, '']:
-            log.warning("stop_job(): %s: no PID in database for job, unable to stop" % job.id)
+        if pid in [None, ""]:
+            log.warning(
+                "stop_job(): %s: no PID in database for job, unable to stop" % job.id
+            )
             return
         pid = int(pid)
         if not self._check_pid(pid):
-            log.warning("stop_job(): %s: PID %d was already dead or can't be signaled" % (job.id, pid))
+            log.warning(
+                "stop_job(): %s: PID %d was already dead or can't be signaled"
+                % (job.id, pid)
+            )
             return
         for sig in [15, 9]:
             try:
                 os.killpg(pid, sig)
             except OSError as e:
-                log.warning("stop_job(): %s: Got errno %s when attempting to signal %d to PID %d: %s" % (job.id, errno.errorcode[e.errno], sig, pid, e.strerror))
+                log.warning(
+                    "stop_job(): %s: Got errno %s when attempting to signal %d to PID %d: %s"
+                    % (job.id, errno.errorcode[e.errno], sig, pid, e.strerror)
+                )
                 return  # give up
             sleep(2)
             if not self._check_pid(pid):
-                log.debug("stop_job(): %s: PID %d successfully killed with signal %d" % (job.id, pid, sig))
+                log.debug(
+                    "stop_job(): %s: PID %d successfully killed with signal %d"
+                    % (job.id, pid, sig)
+                )
                 return
         else:
-            log.warning("stop_job(): %s: PID %d refuses to die after signaling TERM/KILL" % (job.id, pid))
+            log.warning(
+                "stop_job(): %s: PID %d refuses to die after signaling TERM/KILL"
+                % (job.id, pid)
+            )
 
     def recover(self, job, job_wrapper):
         # local jobs can't be recovered
-        job_wrapper.change_state(model.Job.states.ERROR, info="This job was killed when Galaxy was restarted.  Please retry the job.")
+        job_wrapper.change_state(
+            model.Job.states.ERROR,
+            info="This job was killed when Galaxy was restarted.  Please retry the job.",
+        )
 
     def shutdown(self):
         super(LocalJobRunner, self).shutdown()
@@ -195,11 +229,17 @@ class LocalJobRunner(BaseJobRunner):
 
     def _embed_metadata(self, job_wrapper):
         job_destination = job_wrapper.job_destination
-        embed_metadata = asbool(job_destination.params.get("embed_metadata_in_job", DEFAULT_EMBED_METADATA_IN_JOB))
+        embed_metadata = asbool(
+            job_destination.params.get(
+                "embed_metadata_in_job", DEFAULT_EMBED_METADATA_IN_JOB
+            )
+        )
         return embed_metadata
 
     def _prepare_job_local(self, job_wrapper):
-        return self.prepare_job(job_wrapper, include_metadata=self._embed_metadata(job_wrapper))
+        return self.prepare_job(
+            job_wrapper, include_metadata=self._embed_metadata(job_wrapper)
+        )
 
     def _check_pid(self, pid):
         try:
@@ -209,7 +249,10 @@ class LocalJobRunner(BaseJobRunner):
             if e.errno == errno.ESRCH:
                 log.debug("_check_pid(): PID %d is dead" % pid)
             else:
-                log.warning("_check_pid(): Got errno %s when attempting to check PID %d: %s" % (errno.errorcode[e.errno], pid, e.strerror))
+                log.warning(
+                    "_check_pid(): Got errno %s when attempting to check PID %d: %s"
+                    % (errno.errorcode[e.errno], pid, e.strerror)
+                )
             return False
 
     def _terminate(self, proc):
@@ -230,10 +273,12 @@ class LocalJobRunner(BaseJobRunner):
         while proc.poll() is None:
             i += 1
             if (i % 20) == 0:
-                limit_state = job_wrapper.check_limits(runtime=datetime.datetime.now() - job_start)
+                limit_state = job_wrapper.check_limits(
+                    runtime=datetime.datetime.now() - job_start
+                )
                 if limit_state is not None:
                     job_wrapper.fail(limit_state[1])
-                    log.debug('(%s) Terminating process group' % job_id)
+                    log.debug("(%s) Terminating process group" % job_id)
                     self._terminate(proc)
                     return True
             else:

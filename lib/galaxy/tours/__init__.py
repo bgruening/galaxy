@@ -13,16 +13,16 @@ log = logging.getLogger(__name__)
 
 def tour_loader(contents_dict):
     #  Some of this can be done on the clientside.  Maybe even should?
-    title_default = contents_dict.get('title_default', None)
-    for step in contents_dict['steps']:
-        if 'intro' in step:
-            step['content'] = step.pop('intro')
-        if 'position' in step:
-            step['placement'] = step.pop('position')
-        if 'element' not in step:
-            step['orphan'] = True
-        if title_default and 'title' not in step:
-            step['title'] = title_default
+    title_default = contents_dict.get("title_default", None)
+    for step in contents_dict["steps"]:
+        if "intro" in step:
+            step["content"] = step.pop("intro")
+        if "position" in step:
+            step["placement"] = step.pop("position")
+        if "element" not in step:
+            step["orphan"] = True
+        if title_default and "title" not in step:
+            step["title"] = title_default
     return contents_dict
 
 
@@ -32,11 +32,15 @@ class ToursRegistry(object):
         self.load_tours()
 
     def tours_by_id_with_description(self):
-        return [{'id': k,
-                 'description': self.tours[k].get('description', None),
-                 'name': self.tours[k].get('name', None),
-                 'tags': self.tours[k].get('tags', None)}
-                for k in self.tours.keys()]
+        return [
+            {
+                "id": k,
+                "description": self.tours[k].get("description", None),
+                "name": self.tours[k].get("name", None),
+                "tags": self.tours[k].get("tags", None),
+            }
+            for k in self.tours.keys()
+        ]
 
     def load_tour(self, tour_id):
         for tour_dir in self.tour_directories:
@@ -54,7 +58,7 @@ class ToursRegistry(object):
         self.tours = {}
         for tour_dir in self.tour_directories:
             for filename in os.listdir(tour_dir):
-                if filename.endswith('.yaml') or filename.endswith('.yml'):
+                if filename.endswith(".yaml") or filename.endswith(".yml"):
                     self._load_tour_from_path(os.path.join(tour_dir, filename))
         return self.tours_by_id_with_description()
 
@@ -76,7 +80,13 @@ class ToursRegistry(object):
         except IOError:
             log.exception("Tour '%s' could not be loaded, error reading file.", tour_id)
         except yaml.error.YAMLError:
-            log.exception("Tour '%s' could not be loaded, error within file.  Please check your yaml syntax.", tour_id)
+            log.exception(
+                "Tour '%s' could not be loaded, error within file.  Please check your yaml syntax.",
+                tour_id,
+            )
         except TypeError:
-            log.exception("Tour '%s' could not be loaded, error within file. Possibly spacing related. Please check your yaml syntax.", tour_id)
+            log.exception(
+                "Tour '%s' could not be loaded, error within file. Possibly spacing related. Please check your yaml syntax.",
+                tour_id,
+            )
         return None

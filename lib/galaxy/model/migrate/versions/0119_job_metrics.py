@@ -19,9 +19,9 @@ JobMetricText_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("job_id", Integer, ForeignKey("job.id"), index=True),
-    Column("plugin", Unicode(255), ),
-    Column("metric_name", Unicode(255), ),
-    Column("metric_value", Unicode(TEXT_METRIC_MAX_LENGTH), ),
+    Column("plugin", Unicode(255)),
+    Column("metric_name", Unicode(255)),
+    Column("metric_value", Unicode(TEXT_METRIC_MAX_LENGTH)),
 )
 
 
@@ -30,9 +30,9 @@ TaskMetricText_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("task_id", Integer, ForeignKey("task.id"), index=True),
-    Column("plugin", Unicode(255), ),
-    Column("metric_name", Unicode(255), ),
-    Column("metric_value", Unicode(TEXT_METRIC_MAX_LENGTH), ),
+    Column("plugin", Unicode(255)),
+    Column("metric_name", Unicode(255)),
+    Column("metric_value", Unicode(TEXT_METRIC_MAX_LENGTH)),
 )
 
 
@@ -41,9 +41,9 @@ JobMetricNumeric_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("job_id", Integer, ForeignKey("job.id"), index=True),
-    Column("plugin", Unicode(255), ),
-    Column("metric_name", Unicode(255), ),
-    Column("metric_value", Numeric(22, 7), ),
+    Column("plugin", Unicode(255)),
+    Column("metric_name", Unicode(255)),
+    Column("metric_value", Numeric(22, 7)),
 )
 
 
@@ -52,9 +52,9 @@ TaskMetricNumeric_table = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("task_id", Integer, ForeignKey("task.id"), index=True),
-    Column("plugin", Unicode(255), ),
-    Column("metric_name", Unicode(255), ),
-    Column("metric_value", Numeric(22, 7), ),
+    Column("plugin", Unicode(255)),
+    Column("metric_name", Unicode(255)),
+    Column("metric_value", Numeric(22, 7)),
 )
 
 

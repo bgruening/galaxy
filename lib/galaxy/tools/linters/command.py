@@ -14,7 +14,9 @@ def lint_command(tool_xml, lint_ctx):
         return
 
     if len(commands) == 0:
-        lint_ctx.error("No command tag found, must specify a command template to execute.")
+        lint_ctx.error(
+            "No command tag found, must specify a command template to execute."
+        )
         return
 
     command = get_command(tool_xml)

@@ -9,10 +9,7 @@ import logging
 
 from sqlalchemy import MetaData
 
-from galaxy.model.migrate.versions.util import (
-    add_index,
-    drop_index
-)
+from galaxy.model.migrate.versions.util import add_index, drop_index
 
 log = logging.getLogger(__name__)
 metadata = MetaData()
@@ -23,11 +20,21 @@ def upgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
 
-    add_index('ix_hda_ta_history_dataset_association_id', 'history_dataset_association_tag_association', 'history_dataset_association_id', metadata)
+    add_index(
+        "ix_hda_ta_history_dataset_association_id",
+        "history_dataset_association_tag_association",
+        "history_dataset_association_id",
+        metadata,
+    )
 
 
 def downgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
 
-    drop_index('ix_hda_ta_history_dataset_association_id', 'history_dataset_association_tag_association', 'history_dataset_association_id', metadata)
+    drop_index(
+        "ix_hda_ta_history_dataset_association_id",
+        "history_dataset_association_tag_association",
+        "history_dataset_association_id",
+        metadata,
+    )

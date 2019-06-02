@@ -21,14 +21,14 @@ messages = Bunch(
     NO_TOOL="no tool",
     DATA="data",
     ERROR="error",
-    OK="ok"
+    OK="ok",
 )
 
 
 def decode_dbkey(dbkey):
     """ Decodes dbkey and returns tuple ( username, dbkey )"""
-    if isinstance(dbkey, six.string_types) and ':' in dbkey:
-        return dbkey.split(':')
+    if isinstance(dbkey, six.string_types) and ":" in dbkey:
+        return dbkey.split(":")
     else:
         return None, dbkey
 
@@ -49,24 +49,24 @@ class GenomeRegion(object):
 
     @staticmethod
     def from_dict(obj_dict):
-        return GenomeRegion(chrom=obj_dict['chrom'],
-                            start=obj_dict['start'],
-                            end=obj_dict['end'])
+        return GenomeRegion(
+            chrom=obj_dict["chrom"], start=obj_dict["start"], end=obj_dict["end"]
+        )
 
     @staticmethod
     def from_str(obj_str):
         # check for gene region
-        gene_region = obj_str.split(':')
+        gene_region = obj_str.split(":")
 
         # split gene region into components
-        if (len(gene_region) == 2):
-            gene_interval = gene_region[1].split('-')
+        if len(gene_region) == 2:
+            gene_interval = gene_region[1].split("-")
 
             # check length
-            if (len(gene_interval) == 2):
-                return GenomeRegion(chrom=gene_region[0],
-                                    start=gene_interval[0],
-                                    end=gene_interval[1])
+            if len(gene_interval) == 2:
+                return GenomeRegion(
+                    chrom=gene_region[0], start=gene_interval[0], end=gene_interval[1]
+                )
 
         # return genome region instance
         return GenomeRegion()
@@ -95,7 +95,7 @@ class Genome(object):
                 return s
 
         def split_by_number(s):
-            return [check_int(c) for c in re.split('([0-9]+)', s)]
+            return [check_int(c) for c in re.split("([0-9]+)", s)]
 
         #
         # Parameter check, setting.
@@ -146,7 +146,7 @@ class Genome(object):
         else:
             # Use low to start list.
             high = low + int(num)
-            prev_chroms = (low != 0)
+            prev_chroms = low != 0
             start_index = low
 
             # Read chrom data from len file.
@@ -171,15 +171,15 @@ class Genome(object):
             # No more chroms to read.
             pass
 
-        to_sort = [{'chrom': chrm, 'len': length} for chrm, length in chroms.items()]
-        to_sort.sort(key=lambda _: split_by_number(_['chrom']))
+        to_sort = [{"chrom": chrm, "len": length} for chrm, length in chroms.items()]
+        to_sort.sort(key=lambda _: split_by_number(_["chrom"]))
         return {
-            'id': self.key,
-            'reference': self.twobit_file is not None,
-            'chrom_info': to_sort,
-            'prev_chroms' : prev_chroms,
-            'next_chroms' : next_chroms,
-            'start_index' : start_index
+            "id": self.key,
+            "reference": self.twobit_file is not None,
+            "chrom_info": to_sort,
+            "prev_chroms": prev_chroms,
+            "next_chroms": next_chroms,
+            "start_index": start_index,
         }
 
 
@@ -193,7 +193,7 @@ class Genomes(object):
         # Create list of genomes from app.genome_builds
         self.genomes = {}
         # Store internal versions of data tables for twobit and __dbkey__
-        self._table_versions = {'twobit': None, '__dbkeys__': None}
+        self._table_versions = {"twobit": None, "__dbkeys__": None}
         self.reload_genomes()
 
     def reload_genomes(self):
@@ -204,12 +204,14 @@ class Genomes(object):
             if table is not None:
                 self._table_versions[table_name] = table._loaded_content_version
 
-        twobit_table = self.app.tool_data_tables.get('twobit', None)
+        twobit_table = self.app.tool_data_tables.get("twobit", None)
         twobit_fields = {}
         if twobit_table is None:
             # Add genome data (twobit files) to genomes, directly from twobit.loc
             try:
-                for line in open(os.path.join(self.app.config.tool_data_path, "twobit.loc")):
+                for line in open(
+                    os.path.join(self.app.config.tool_data_path, "twobit.loc")
+                ):
                     if line.startswith("#"):
                         continue
                     val = line.split()
@@ -228,7 +230,9 @@ class Genomes(object):
                     self.genomes[key].len_file = None
             # Add genome data (twobit files) to genomes.
             if twobit_table is not None:
-                self.genomes[key].twobit_file = twobit_table.get_entry('value', key, 'path', default=None)
+                self.genomes[key].twobit_file = twobit_table.get_entry(
+                    "value", key, "path", default=None
+                )
             elif key in twobit_fields:
                 self.genomes[key].twobit_file = twobit_fields[key]
 
@@ -257,21 +261,35 @@ class Genomes(object):
         user_keys_dict = {}
         user = trans.get_user()
         if user:
-            if 'dbkeys' in user.preferences:
-                user_keys_dict = loads(user.preferences['dbkeys'])
-            dbkeys.extend([(attributes['name'], key) for key, attributes in user_keys_dict.items()])
+            if "dbkeys" in user.preferences:
+                user_keys_dict = loads(user.preferences["dbkeys"])
+            dbkeys.extend(
+                [
+                    (attributes["name"], key)
+                    for key, attributes in user_keys_dict.items()
+                ]
+            )
 
         # Add app keys to dbkeys.
 
         # If chrom_info is True, only include keys with len files (which contain chromosome info).
         if chrom_info:
+
             def filter_fn(b):
                 return b.len_file is not None
+
         else:
+
             def filter_fn(b):
                 return True
 
-        dbkeys.extend([(genome.description, genome.key) for key, genome in self.genomes.items() if filter_fn(genome)])
+        dbkeys.extend(
+            [
+                (genome.description, genome.key)
+                for key, genome in self.genomes.items()
+                if filter_fn(genome)
+            ]
+        )
 
         return dbkeys
 
@@ -284,7 +302,11 @@ class Genomes(object):
         # If there is no dbkey owner, default to current user.
         dbkey_owner, dbkey = decode_dbkey(dbkey)
         if dbkey_owner:
-            dbkey_user = trans.sa_session.query(trans.app.model.User).filter_by(username=dbkey_owner).first()
+            dbkey_user = (
+                trans.sa_session.query(trans.app.model.User)
+                .filter_by(username=dbkey_owner)
+                .first()
+            )
         else:
             dbkey_user = trans.user
 
@@ -295,26 +317,36 @@ class Genomes(object):
         twobit_file = None
 
         # Look first in user's custom builds.
-        if dbkey_user and 'dbkeys' in dbkey_user.preferences:
-            user_keys = loads(dbkey_user.preferences['dbkeys'])
+        if dbkey_user and "dbkeys" in dbkey_user.preferences:
+            user_keys = loads(dbkey_user.preferences["dbkeys"])
             if dbkey in user_keys:
                 dbkey_attributes = user_keys[dbkey]
-                dbkey_name = dbkey_attributes['name']
+                dbkey_name = dbkey_attributes["name"]
 
                 # If there's a fasta for genome, convert to 2bit for later use.
-                if 'fasta' in dbkey_attributes:
-                    build_fasta = trans.sa_session.query(trans.app.model.HistoryDatasetAssociation).get(dbkey_attributes['fasta'])
-                    len_file = build_fasta.get_converted_dataset(trans, 'len').file_name
-                    build_fasta.get_converted_dataset(trans, 'twobit')
+                if "fasta" in dbkey_attributes:
+                    build_fasta = trans.sa_session.query(
+                        trans.app.model.HistoryDatasetAssociation
+                    ).get(dbkey_attributes["fasta"])
+                    len_file = build_fasta.get_converted_dataset(trans, "len").file_name
+                    build_fasta.get_converted_dataset(trans, "twobit")
                     # HACK: set twobit_file to True rather than a file name because
                     # get_converted_dataset returns null during conversion even though
                     # there will eventually be a twobit file available for genome.
                     twobit_file = True
                 # Backwards compatibility: look for len file directly.
-                elif 'len' in dbkey_attributes:
-                    len_file = trans.sa_session.query(trans.app.model.HistoryDatasetAssociation).get(user_keys[dbkey]['len']).file_name
+                elif "len" in dbkey_attributes:
+                    len_file = (
+                        trans.sa_session.query(
+                            trans.app.model.HistoryDatasetAssociation
+                        )
+                        .get(user_keys[dbkey]["len"])
+                        .file_name
+                    )
                 if len_file:
-                    genome = Genome(dbkey, dbkey_name, len_file=len_file, twobit_file=twobit_file)
+                    genome = Genome(
+                        dbkey, dbkey_name, len_file=len_file, twobit_file=twobit_file
+                    )
 
         # Look in history and system builds.
         if not genome:
@@ -331,7 +363,7 @@ class Genomes(object):
         if genome:
             rval = genome.to_dict(num=num, chrom=chrom, low=low)
         else:
-            log.exception('genome not found for key %s', dbkey)
+            log.exception("genome not found for key %s", dbkey)
 
         return rval
 
@@ -347,11 +379,11 @@ class Genomes(object):
             return True
 
         # Look for key in owner's custom builds.
-        if dbkey_owner and 'dbkeys' in dbkey_owner.preferences:
-            user_keys = loads(dbkey_owner.preferences['dbkeys'])
+        if dbkey_owner and "dbkeys" in dbkey_owner.preferences:
+            user_keys = loads(dbkey_owner.preferences["dbkeys"])
             if dbkey in user_keys:
                 dbkey_attributes = user_keys[dbkey]
-                if 'fasta' in dbkey_attributes:
+                if "fasta" in dbkey_attributes:
                     # Fasta + converted datasets can provide reference data.
                     return True
 
@@ -365,7 +397,11 @@ class Genomes(object):
         # If there is no dbkey owner, default to current user.
         dbkey_owner, dbkey = decode_dbkey(dbkey)
         if dbkey_owner:
-            dbkey_user = trans.sa_session.query(trans.app.model.User).filter_by(username=dbkey_owner).first()
+            dbkey_user = (
+                trans.sa_session.query(trans.app.model.User)
+                .filter_by(username=dbkey_owner)
+                .first()
+            )
         else:
             dbkey_user = trans.user
 
@@ -380,14 +416,16 @@ class Genomes(object):
             # Built-in twobit.
             twobit_file_name = self.genomes[dbkey].twobit_file
         else:
-            user_keys = loads(dbkey_user.preferences['dbkeys'])
+            user_keys = loads(dbkey_user.preferences["dbkeys"])
             dbkey_attributes = user_keys[dbkey]
-            fasta_dataset = trans.sa_session.query(trans.app.model.HistoryDatasetAssociation).get(dbkey_attributes['fasta'])
-            msg = fasta_dataset.convert_dataset(trans, 'twobit')
+            fasta_dataset = trans.sa_session.query(
+                trans.app.model.HistoryDatasetAssociation
+            ).get(dbkey_attributes["fasta"])
+            msg = fasta_dataset.convert_dataset(trans, "twobit")
             if msg:
                 return msg
             else:
-                twobit_dataset = fasta_dataset.get_converted_dataset(trans, 'twobit')
+                twobit_dataset = fasta_dataset.get_converted_dataset(trans, "twobit")
                 twobit_file_name = twobit_dataset.file_name
 
         # Read and return reference data.

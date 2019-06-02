@@ -17,15 +17,16 @@ from six import string_types
 from sqlalchemy.orm import object_session
 
 import galaxy.model
-from galaxy.util import (form_builder, listify, string_as_bool,
-                         stringify_dictionary_keys)
+from galaxy.util import form_builder, listify, string_as_bool, stringify_dictionary_keys
 from galaxy.util.json import safe_dumps
 from galaxy.util.object_wrapper import sanitize_lists_to_string
 from galaxy.util.odict import odict
 
 log = logging.getLogger(__name__)
 
-STATEMENTS = "__galaxy_statements__"  # this is the name of the property in a Datatype class where new metadata spec element Statements are stored
+STATEMENTS = (
+    "__galaxy_statements__"
+)  # this is the name of the property in a Datatype class where new metadata spec element Statements are stored
 
 
 class Statement(object):
@@ -50,7 +51,9 @@ class Statement(object):
     @classmethod
     def process(cls, element):
         for statement, args, kwargs in getattr(element, STATEMENTS, []):
-            statement.target(element, *args, **kwargs)  # statement.target is MetadataElementSpec, element is a Datatype class
+            statement.target(
+                element, *args, **kwargs
+            )  # statement.target is MetadataElementSpec, element is a Datatype class
 
 
 class MetadataCollection(object):
@@ -77,6 +80,7 @@ class MetadataCollection(object):
         # collection: hda/lda (parent) <--> MetadataCollection (self) ; needs to be
         # hashable, so cannot use proxy.
         self.__dict__["_parent"] = weakref.ref(parent)
+
     parent = property(get_parent, set_parent)
 
     @property
@@ -100,13 +104,18 @@ class MetadataCollection(object):
 
     def __bool__(self):
         return bool(self.parent._metadata)
+
     __nonzero__ = __bool__
 
     def __getattr__(self, name):
         if name in self.spec:
             if name in self.parent._metadata:
-                return self.spec[name].wrap(self.parent._metadata[name], object_session(self.parent))
-            return self.spec[name].wrap(self.spec[name].default, object_session(self.parent))
+                return self.spec[name].wrap(
+                    self.parent._metadata[name], object_session(self.parent)
+                )
+            return self.spec[name].wrap(
+                self.spec[name].default, object_session(self.parent)
+            )
         if name in self.parent._metadata:
             return self.parent._metadata[name]
 
@@ -123,14 +132,18 @@ class MetadataCollection(object):
         if name in self.parent._metadata:
             del self.parent._metadata[name]
         else:
-            log.info("Attempted to delete invalid key '%s' from MetadataCollection" % name)
+            log.info(
+                "Attempted to delete invalid key '%s' from MetadataCollection" % name
+            )
 
     def element_is_set(self, name):
         return bool(self.parent._metadata.get(name, False))
 
     def get_metadata_parameter(self, name, **kwd):
         if name in self.spec:
-            field = self.spec[name].param.get_field(getattr(self, name), self, None, **kwd)
+            field = self.spec[name].param.get_field(
+                getattr(self, name), self, None, **kwd
+            )
             field.value = getattr(self, name)
             return field
 
@@ -139,7 +152,9 @@ class MetadataCollection(object):
         rval = {}
         for key, value in to_copy.items():
             if key in self.spec:
-                rval[key] = self.spec[key].param.make_copy(value, target_context=self, source_context=to_copy)
+                rval[key] = self.spec[key].param.make_copy(
+                    value, target_context=self, source_context=to_copy
+                )
         return rval
 
     @property
@@ -153,16 +168,25 @@ class MetadataCollection(object):
     def from_JSON_dict(self, filename=None, path_rewriter=None, json_dict=None):
         dataset = self.parent
         if filename is not None:
-            log.debug('loading metadata from file for: %s %s' % (dataset.__class__.__name__, dataset.id))
+            log.debug(
+                "loading metadata from file for: %s %s"
+                % (dataset.__class__.__name__, dataset.id)
+            )
             JSONified_dict = json.load(open(filename))
         elif json_dict is not None:
-            log.debug('loading metadata from dict for: %s %s' % (dataset.__class__.__name__, dataset.id))
+            log.debug(
+                "loading metadata from dict for: %s %s"
+                % (dataset.__class__.__name__, dataset.id)
+            )
             if isinstance(json_dict, string_types):
                 JSONified_dict = json.loads(json_dict)
             elif isinstance(json_dict, dict):
                 JSONified_dict = json_dict
             else:
-                raise ValueError("json_dict must be either a dictionary or a string, got %s." % (type(json_dict)))
+                raise ValueError(
+                    "json_dict must be either a dictionary or a string, got %s."
+                    % (type(json_dict))
+                )
         else:
             raise ValueError("You must provide either a filename or a json_dict")
 
@@ -178,8 +202,10 @@ class MetadataCollection(object):
                 external_value = JSONified_dict[name]
                 param = spec.param
                 if isinstance(param, FileParameter):
-                    from_ext_kwds['path_rewriter'] = path_rewriter
-                value = param.from_external_value(external_value, dataset, **from_ext_kwds)
+                    from_ext_kwds["path_rewriter"] = path_rewriter
+                value = param.from_external_value(
+                    external_value, dataset, **from_ext_kwds
+                )
                 metadata_name_value[name] = value
             elif name in dataset._metadata:
                 # if the metadata value is not found in our externally set metadata but it has a value in the 'old'
@@ -187,8 +213,8 @@ class MetadataCollection(object):
                 del dataset._metadata[name]
         for name, value in metadata_name_value.items():
             dataset._metadata[name] = value
-        if '__extension__' in JSONified_dict:
-            dataset.extension = JSONified_dict['__extension__']
+        if "__extension__" in JSONified_dict:
+            dataset.extension = JSONified_dict["__extension__"]
 
     def to_JSON_dict(self, filename=None):
         # galaxy.model.customtypes.json_encoder.encode()
@@ -197,11 +223,11 @@ class MetadataCollection(object):
         for name, spec in self.spec.items():
             if name in dataset_meta_dict:
                 meta_dict[name] = spec.param.to_external_value(dataset_meta_dict[name])
-        if '__extension__' in dataset_meta_dict:
-            meta_dict['__extension__'] = dataset_meta_dict['__extension__']
+        if "__extension__" in dataset_meta_dict:
+            meta_dict["__extension__"] = dataset_meta_dict["__extension__"]
         if filename is None:
             return json.dumps(meta_dict)
-        json.dump(meta_dict, open(filename, 'wt+'))
+        json.dump(meta_dict, open(filename, "wt+"))
 
     def __getstate__(self):
         # cannot pickle a weakref item (self._parent), when
@@ -231,7 +257,7 @@ class MetadataSpecCollection(odict):
 
     def __repr__(self):
         # force elements to draw with __str__ for sphinx-apidoc
-        return ', '.join([item.__str__() for item in self.iter()])
+        return ", ".join([item.__str__() for item in self.iter()])
 
 
 class MetadataParameter(object):
@@ -299,9 +325,18 @@ class MetadataElementSpec(object):
     is a MetadataSpecCollection) of datatype.
     """
 
-    def __init__(self, datatype, name=None, desc=None,
-                 param=MetadataParameter, default=None, no_value=None,
-                 visible=True, set_in_upload=False, **kwargs):
+    def __init__(
+        self,
+        datatype,
+        name=None,
+        desc=None,
+        param=MetadataParameter,
+        default=None,
+        no_value=None,
+        visible=True,
+        set_in_upload=False,
+        **kwargs
+    ):
         self.name = name
         self.desc = desc or name
         self.default = default
@@ -334,7 +369,9 @@ class MetadataElementSpec(object):
         # TODO??: assuming param is the class of this MetadataElementSpec - add the plain class name for that
         spec_dict = dict(param_class=self.param.__class__.__name__)
         spec_dict.update(self.__dict__)
-        return ("{name} ({param_class}): {desc}, defaults to '{default}'".format(**spec_dict))
+        return "{name} ({param_class}): {desc}, defaults to '{default}'".format(
+            **spec_dict
+        )
 
 
 # create a statement class that, when called,
@@ -360,11 +397,15 @@ class SelectParameter(MetadataParameter):
             value = [value]
         return ",".join(map(str, value))
 
-    def get_field(self, value=None, context=None, other_values=None, values=None, **kwd):
+    def get_field(
+        self, value=None, context=None, other_values=None, values=None, **kwd
+    ):
         context = context or {}
         other_values = other_values or {}
 
-        field = form_builder.SelectField(self.spec.name, multiple=self.multiple, display=self.spec.get("display"))
+        field = form_builder.SelectField(
+            self.spec.name, multiple=self.multiple, display=self.spec.get("display")
+        )
         if self.values:
             value_list = self.values
         elif values:
@@ -375,7 +416,9 @@ class SelectParameter(MetadataParameter):
             value_list = []
         for val, label in value_list:
             try:
-                if (self.multiple and val in value) or (not self.multiple and val == value):
+                if (self.multiple and val in value) or (
+                    not self.multiple and val == value
+                ):
                     field.add_option(label, val, selected=True)
                 else:
                     field.add_option(label, val, selected=False)
@@ -406,19 +449,21 @@ class SelectParameter(MetadataParameter):
 
 
 class DBKeyParameter(SelectParameter):
-
-    def get_field(self, value=None, context=None, other_values=None, values=None, **kwd):
+    def get_field(
+        self, value=None, context=None, other_values=None, values=None, **kwd
+    ):
         context = context or {}
         other_values = other_values or {}
         try:
-            values = kwd['trans'].app.genome_builds.get_genome_build_names(kwd['trans'])
+            values = kwd["trans"].app.genome_builds.get_genome_build_names(kwd["trans"])
         except KeyError:
             pass
-        return super(DBKeyParameter, self).get_field(value, context, other_values, values, **kwd)
+        return super(DBKeyParameter, self).get_field(
+            value, context, other_values, values, **kwd
+        )
 
 
 class RangeParameter(SelectParameter):
-
     def __init__(self, spec):
         SelectParameter.__init__(self, spec)
         # The spec must be set with min and max values
@@ -426,13 +471,27 @@ class RangeParameter(SelectParameter):
         self.max = spec.get("max") or 1
         self.step = self.spec.get("step") or 1
 
-    def get_field(self, value=None, context=None, other_values=None, values=None, **kwd):
+    def get_field(
+        self, value=None, context=None, other_values=None, values=None, **kwd
+    ):
         context = context or {}
         other_values = other_values or {}
 
         if values is None:
-            values = list(zip(range(self.min, self.max, self.step), range(self.min, self.max, self.step)))
-        return SelectParameter.get_field(self, value=value, context=context, other_values=other_values, values=values, **kwd)
+            values = list(
+                zip(
+                    range(self.min, self.max, self.step),
+                    range(self.min, self.max, self.step),
+                )
+            )
+        return SelectParameter.get_field(
+            self,
+            value=value,
+            context=context,
+            other_values=other_values,
+            values=values,
+            **kwd
+        )
 
     @classmethod
     def marshal(cls, value):
@@ -442,31 +501,36 @@ class RangeParameter(SelectParameter):
 
 
 class ColumnParameter(RangeParameter):
-
-    def get_field(self, value=None, context=None, other_values=None, values=None, **kwd):
+    def get_field(
+        self, value=None, context=None, other_values=None, values=None, **kwd
+    ):
         context = context or {}
         other_values = other_values or {}
 
         if values is None and context:
             column_range = range(1, (context.columns or 0) + 1, 1)
             values = list(zip(column_range, column_range))
-        return RangeParameter.get_field(self, value=value, context=context, other_values=other_values, values=values, **kwd)
+        return RangeParameter.get_field(
+            self,
+            value=value,
+            context=context,
+            other_values=other_values,
+            values=values,
+            **kwd
+        )
 
 
 class ColumnTypesParameter(MetadataParameter):
-
     def to_string(self, value):
         return ",".join(map(str, value))
 
 
 class ListParameter(MetadataParameter):
-
     def to_string(self, value):
         return ",".join([str(x) for x in value])
 
 
 class DictParameter(MetadataParameter):
-
     def to_string(self, value):
         return json.dumps(value)
 
@@ -476,7 +540,6 @@ class DictParameter(MetadataParameter):
 
 
 class PythonObjectParameter(MetadataParameter):
-
     def to_string(self, value):
         if not value:
             return self.spec._to_string(self.spec.no_value)
@@ -493,7 +556,6 @@ class PythonObjectParameter(MetadataParameter):
 
 
 class FileParameter(MetadataParameter):
-
     def to_string(self, value):
         if not value:
             return str(self.spec.no_value)
@@ -511,7 +573,9 @@ class FileParameter(MetadataParameter):
     def wrap(self, value, session):
         if value is None:
             return None
-        if isinstance(value, galaxy.model.MetadataFile) or isinstance(value, MetadataTempFile):
+        if isinstance(value, galaxy.model.MetadataFile) or isinstance(
+            value, MetadataTempFile
+        ):
             return value
         mf = session.query(galaxy.model.MetadataFile).get(value)
         return mf
@@ -519,7 +583,9 @@ class FileParameter(MetadataParameter):
     def make_copy(self, value, target_context, source_context):
         value = self.wrap(value, object_session(target_context.parent))
         if value:
-            new_value = galaxy.model.MetadataFile(dataset=target_context.parent, name=self.spec.name)
+            new_value = galaxy.model.MetadataFile(
+                dataset=target_context.parent, name=self.spec.name
+            )
             object_session(target_context.parent).add(new_value)
             object_session(target_context.parent).flush()
             shutil.copy(value.file_name, new_value.file_name)
@@ -548,11 +614,13 @@ class FileParameter(MetadataParameter):
                 # Job may have run with a different (non-local) tmp/working
                 # directory. Correct.
                 file_name = path_rewriter(file_name)
-            parent.dataset.object_store.update_from_file(mf,
-                                                         file_name=file_name,
-                                                         extra_dir='_metadata_files',
-                                                         extra_dir_at_root=True,
-                                                         alt_name=os.path.basename(mf.file_name))
+            parent.dataset.object_store.update_from_file(
+                mf,
+                file_name=file_name,
+                extra_dir="_metadata_files",
+                extra_dir_at_root=True,
+                alt_name=os.path.basename(mf.file_name),
+            )
             os.unlink(file_name)
             value = mf.id
         return value
@@ -587,7 +655,9 @@ class FileParameter(MetadataParameter):
 
 # This class is used when a database file connection is not available
 class MetadataTempFile(object):
-    tmp_dir = 'database/tmp'  # this should be overwritten as necessary in calling scripts
+    tmp_dir = (
+        "database/tmp"
+    )  # this should be overwritten as necessary in calling scripts
 
     def __init__(self, **kwds):
         self.kwds = kwds
@@ -597,25 +667,33 @@ class MetadataTempFile(object):
     def file_name(self):
         if self._filename is None:
             # we need to create a tmp file, accessable across all nodes/heads, save the name, and return it
-            self._filename = abspath(tempfile.NamedTemporaryFile(dir=self.tmp_dir, prefix="metadata_temp_file_").name)
-            open(self._filename, 'wb+')  # create an empty file, so it can't be reused using tempfile
+            self._filename = abspath(
+                tempfile.NamedTemporaryFile(
+                    dir=self.tmp_dir, prefix="metadata_temp_file_"
+                ).name
+            )
+            open(
+                self._filename, "wb+"
+            )  # create an empty file, so it can't be reused using tempfile
         return self._filename
 
     def to_JSON(self):
-        return {'__class__': self.__class__.__name__,
-                'filename': self.file_name,
-                'kwds': self.kwds}
+        return {
+            "__class__": self.__class__.__name__,
+            "filename": self.file_name,
+            "kwds": self.kwds,
+        }
 
     @classmethod
     def from_JSON(cls, json_dict):
         # need to ensure our keywords are not unicode
-        rval = cls(**stringify_dictionary_keys(json_dict['kwds']))
-        rval._filename = json_dict['filename']
+        rval = cls(**stringify_dictionary_keys(json_dict["kwds"]))
+        rval._filename = json_dict["filename"]
         return rval
 
     @classmethod
     def is_JSONified_value(cls, value):
-        return (isinstance(value, dict) and value.get('__class__', None) == cls.__name__)
+        return isinstance(value, dict) and value.get("__class__", None) == cls.__name__
 
     @classmethod
     def cleanup_from_JSON_dict_filename(cls, filename):
@@ -624,10 +702,16 @@ class MetadataTempFile(object):
                 if cls.is_JSONified_value(value):
                     value = cls.from_JSON(value)
                 if isinstance(value, cls) and os.path.exists(value.file_name):
-                    log.debug('Cleaning up abandoned MetadataTempFile file: %s' % value.file_name)
+                    log.debug(
+                        "Cleaning up abandoned MetadataTempFile file: %s"
+                        % value.file_name
+                    )
                     os.unlink(value.file_name)
         except Exception as e:
-            log.debug('Failed to cleanup MetadataTempFile temp files from %s: %s' % (filename, e))
+            log.debug(
+                "Failed to cleanup MetadataTempFile temp files from %s: %s"
+                % (filename, e)
+            )
 
 
 __all__ = (

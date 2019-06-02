@@ -13,14 +13,11 @@ import time
 from datetime import datetime
 
 from galaxy.exceptions import ObjectInvalid, ObjectNotFound
-from galaxy.util import (
-    directory_hash_id,
-    safe_relpath,
-    umask_fix_perms,
-)
+from galaxy.util import directory_hash_id, safe_relpath, umask_fix_perms
 from galaxy.util.sleeper import Sleeper
 from .s3 import parse_config_xml
 from ..objectstore import convert_bytes, ObjectStore
+
 try:
     from cloudbridge.factory import CloudProviderFactory, ProviderList
     from cloudbridge.interfaces.exceptions import InvalidNameException
@@ -37,15 +34,11 @@ NO_CLOUDBRIDGE_ERROR_MESSAGE = (
 
 
 class CloudConfigMixin(object):
-
     def _config_to_dict(self):
         return {
             "provider": self.provider,
             "auth": self.credentials,
-            "bucket": {
-                "name": self.bucket_name,
-                "use_reduced_redundancy": self.use_rr,
-            },
+            "bucket": {"name": self.bucket_name, "use_reduced_redundancy": self.use_rr},
             "connection": {
                 "host": self.host,
                 "port": self.port,
@@ -53,10 +46,7 @@ class CloudConfigMixin(object):
                 "is_secure": self.is_secure,
                 "conn_path": self.conn_path,
             },
-            "cache": {
-                "size": self.cache_size,
-                "path": self.staging_path,
-            }
+            "cache": {"size": self.cache_size, "path": self.staging_path},
         }
 
 
@@ -66,30 +56,33 @@ class Cloud(ObjectStore, CloudConfigMixin):
     cache exists that is used as an intermediate location for files between
     Galaxy and the cloud storage.
     """
-    store_type = 'cloud'
+
+    store_type = "cloud"
 
     def __init__(self, config, config_dict):
         super(Cloud, self).__init__(config, config_dict)
         self.transfer_progress = 0
 
-        bucket_dict = config_dict['bucket']
-        connection_dict = config_dict.get('connection', {})
-        cache_dict = config_dict['cache']
+        bucket_dict = config_dict["bucket"]
+        connection_dict = config_dict.get("connection", {})
+        cache_dict = config_dict["cache"]
 
         self.provider = config_dict["provider"]
         self.credentials = config_dict["auth"]
-        self.bucket_name = bucket_dict.get('name')
-        self.use_rr = bucket_dict.get('use_reduced_redundancy', False)
-        self.max_chunk_size = bucket_dict.get('max_chunk_size', 250)
+        self.bucket_name = bucket_dict.get("name")
+        self.use_rr = bucket_dict.get("use_reduced_redundancy", False)
+        self.max_chunk_size = bucket_dict.get("max_chunk_size", 250)
 
-        self.host = connection_dict.get('host', None)
-        self.port = connection_dict.get('port', 6000)
-        self.multipart = connection_dict.get('multipart', True)
-        self.is_secure = connection_dict.get('is_secure', True)
-        self.conn_path = connection_dict.get('conn_path', '/')
+        self.host = connection_dict.get("host", None)
+        self.port = connection_dict.get("port", 6000)
+        self.multipart = connection_dict.get("multipart", True)
+        self.is_secure = connection_dict.get("is_secure", True)
+        self.conn_path = connection_dict.get("conn_path", "/")
 
-        self.cache_size = cache_dict.get('size', -1)
-        self.staging_path = cache_dict.get('path') or self.config.object_store_cache_path
+        self.cache_size = cache_dict.get("size", -1)
+        self.staging_path = (
+            cache_dict.get("path") or self.config.object_store_cache_path
+        )
 
         self._initialize()
 
@@ -110,7 +103,7 @@ class Cloud(ObjectStore, CloudConfigMixin):
             log.info("Cache cleaner manager started")
         # Test if 'axel' is available for parallel download and pull the key into cache
         try:
-            subprocess.call('axel')
+            subprocess.call("axel")
             self.use_axel = True
         except OSError:
             self.use_axel = False
@@ -119,18 +112,28 @@ class Cloud(ObjectStore, CloudConfigMixin):
     def _get_connection(provider, credentials):
         log.debug("Configuring `{}` Connection".format(provider))
         if provider == "aws":
-            config = {"aws_access_key": credentials["access_key"],
-                      "aws_secret_key": credentials["secret_key"]}
-            connection = CloudProviderFactory().create_provider(ProviderList.AWS, config)
+            config = {
+                "aws_access_key": credentials["access_key"],
+                "aws_secret_key": credentials["secret_key"],
+            }
+            connection = CloudProviderFactory().create_provider(
+                ProviderList.AWS, config
+            )
         elif provider == "azure":
-            config = {"azure_subscription_id": credentials["subscription_id"],
-                      "azure_client_id": credentials["client_id"],
-                      "azure_secret": credentials["secret"],
-                      "azure_tenant": credentials["tenant"]}
-            connection = CloudProviderFactory().create_provider(ProviderList.AZURE, config)
+            config = {
+                "azure_subscription_id": credentials["subscription_id"],
+                "azure_client_id": credentials["client_id"],
+                "azure_secret": credentials["secret"],
+                "azure_tenant": credentials["tenant"],
+            }
+            connection = CloudProviderFactory().create_provider(
+                ProviderList.AZURE, config
+            )
         elif provider == "google":
             config = {"gcp_service_creds_file": credentials["credentials_file"]}
-            connection = CloudProviderFactory().create_provider(ProviderList.GCP, config)
+            connection = CloudProviderFactory().create_provider(
+                ProviderList.GCP, config
+            )
         else:
             raise Exception("Unsupported provider `{}`.".format(provider))
 
@@ -191,9 +194,7 @@ class Cloud(ObjectStore, CloudConfigMixin):
                 if skey is None:
                     missing_config.append("secret_key")
 
-                config["auth"] = {
-                    "access_key": akey,
-                    "secret_key": skey}
+                config["auth"] = {"access_key": akey, "secret_key": skey}
             elif provider == "azure":
                 sid = auth_element.get("subscription_id")
                 if sid is None:
@@ -211,31 +212,37 @@ class Cloud(ObjectStore, CloudConfigMixin):
                     "subscription_id": sid,
                     "client_id": cid,
                     "secret": sec,
-                    "tenant": ten}
+                    "tenant": ten,
+                }
             elif provider == "google":
                 cre = auth_element.get("credentials_file")
                 if not os.path.isfile(cre):
-                    msg = "The following file specified for GCP credentials not found: {}".format(cre)
+                    msg = "The following file specified for GCP credentials not found: {}".format(
+                        cre
+                    )
                     log.error(msg)
                     raise IOError(msg)
                 if cre is None:
                     missing_config.append("credentials_file")
-                config["auth"] = {
-                    "credentials_file": cre}
+                config["auth"] = {"credentials_file": cre}
             else:
                 msg = "Unsupported provider `{}`.".format(provider)
                 log.error(msg)
                 raise Exception(msg)
 
             if len(missing_config) > 0:
-                msg = "The following configuration required for {} cloud backend " \
-                      "are missing: {}".format(provider, missing_config)
+                msg = (
+                    "The following configuration required for {} cloud backend "
+                    "are missing: {}".format(provider, missing_config)
+                )
                 log.error(msg)
                 raise Exception(msg)
             else:
                 return config
         except Exception:
-            log.exception("Malformed ObjectStore Configuration XML -- unable to continue")
+            log.exception(
+                "Malformed ObjectStore Configuration XML -- unable to continue"
+            )
             raise
 
     def to_dict(self):
@@ -264,8 +271,11 @@ class Cloud(ObjectStore, CloudConfigMixin):
             # Initiate cleaning once within 10% of the defined cache size?
             cache_limit = self.cache_size * 0.9
             if total_size > cache_limit:
-                log.info("Initiating cache cleaning: current cache size: %s; clean until smaller than: %s",
-                         convert_bytes(total_size), convert_bytes(cache_limit))
+                log.info(
+                    "Initiating cache cleaning: current cache size: %s; clean until smaller than: %s",
+                    convert_bytes(total_size),
+                    convert_bytes(cache_limit),
+                )
                 # How much to delete? If simply deleting up to the cache-10% limit,
                 # is likely to be deleting frequently and may run the risk of hitting
                 # the limit - maybe delete additional #%?
@@ -304,14 +314,19 @@ class Cloud(ObjectStore, CloudConfigMixin):
                 #     % (i, file_name, convert_bytes(f[2]), file_date, \
                 #     convert_bytes(deleted_amount), convert_bytes(delete_this_much)))
             else:
-                log.debug("Cache cleaning done. Total space freed: %s", convert_bytes(deleted_amount))
+                log.debug(
+                    "Cache cleaning done. Total space freed: %s",
+                    convert_bytes(deleted_amount),
+                )
                 return
 
     def _get_bucket(self, bucket_name):
         try:
             bucket = self.conn.storage.buckets.get(bucket_name)
             if bucket is None:
-                log.debug("Bucket not found, creating a bucket with handle '%s'", bucket_name)
+                log.debug(
+                    "Bucket not found, creating a bucket with handle '%s'", bucket_name
+                )
                 bucket = self.conn.storage.buckets.create(bucket_name)
             log.debug("Using cloud ObjectStore with bucket '%s'", bucket.name)
             return bucket
@@ -335,18 +350,27 @@ class Cloud(ObjectStore, CloudConfigMixin):
                     continue
                 umask_fix_perms(path, self.config.umask, 0o666, self.config.gid)
 
-    def _construct_path(self, obj, base_dir=None, dir_only=None, extra_dir=None, extra_dir_at_root=False, alt_name=None,
-                        obj_dir=False, **kwargs):
+    def _construct_path(
+        self,
+        obj,
+        base_dir=None,
+        dir_only=None,
+        extra_dir=None,
+        extra_dir_at_root=False,
+        alt_name=None,
+        obj_dir=False,
+        **kwargs
+    ):
         # extra_dir should never be constructed from provided data but just
         # make sure there are no shenannigans afoot
         if extra_dir and extra_dir != os.path.normpath(extra_dir):
-            log.warning('extra_dir is not normalized: %s', extra_dir)
+            log.warning("extra_dir is not normalized: %s", extra_dir)
             raise ObjectInvalid("The requested object is invalid")
         # ensure that any parent directory references in alt_name would not
         # result in a path not contained in the directory path constructed here
         if alt_name:
             if not safe_relpath(alt_name):
-                log.warning('alt_name would locate path outside dir: %s', alt_name)
+                log.warning("alt_name would locate path outside dir: %s", alt_name)
                 raise ObjectInvalid("The requested object is invalid")
             # alt_name can contain parent directory references, but S3 will not
             # follow them, so if they are valid we normalize them out
@@ -366,10 +390,12 @@ class Cloud(ObjectStore, CloudConfigMixin):
             return os.path.join(base, rel_path)
 
         # S3 folders are marked by having trailing '/' so add it now
-        rel_path = '%s/' % rel_path
+        rel_path = "%s/" % rel_path
 
         if not dir_only:
-            rel_path = os.path.join(rel_path, alt_name if alt_name else "dataset_%s.dat" % obj.id)
+            rel_path = os.path.join(
+                rel_path, alt_name if alt_name else "dataset_%s.dat" % obj.id
+            )
         return rel_path
 
     def _get_cache_path(self, rel_path):
@@ -391,7 +417,7 @@ class Cloud(ObjectStore, CloudConfigMixin):
         exists = False
         try:
             # A hackish way of testing if the rel_path is a folder vs a file
-            is_dir = rel_path[-1] == '/'
+            is_dir = rel_path[-1] == "/"
             if is_dir:
                 keyresult = self.bucket.objects.list(prefix=rel_path)
                 if len(keyresult) > 0:
@@ -399,11 +425,13 @@ class Cloud(ObjectStore, CloudConfigMixin):
                 else:
                     exists = False
             else:
-                exists = True if self.bucket.objects.get(rel_path) is not None else False
+                exists = (
+                    True if self.bucket.objects.get(rel_path) is not None else False
+                )
         except Exception:
             log.exception("Trouble checking existence of S3 key '%s'", rel_path)
             return False
-        if rel_path[0] == '/':
+        if rel_path[0] == "/":
             raise
         return exists
 
@@ -428,28 +456,50 @@ class Cloud(ObjectStore, CloudConfigMixin):
 
     def _download(self, rel_path):
         try:
-            log.debug("Pulling key '%s' into cache to %s", rel_path, self._get_cache_path(rel_path))
+            log.debug(
+                "Pulling key '%s' into cache to %s",
+                rel_path,
+                self._get_cache_path(rel_path),
+            )
             key = self.bucket.objects.get(rel_path)
             # Test if cache is large enough to hold the new file
             if self.cache_size > 0 and key.size > self.cache_size:
-                log.critical("File %s is larger (%s) than the cache size (%s). Cannot download.",
-                             rel_path, key.size, self.cache_size)
+                log.critical(
+                    "File %s is larger (%s) than the cache size (%s). Cannot download.",
+                    rel_path,
+                    key.size,
+                    self.cache_size,
+                )
                 return False
             if self.use_axel:
-                log.debug("Parallel pulled key '%s' into cache to %s", rel_path, self._get_cache_path(rel_path))
+                log.debug(
+                    "Parallel pulled key '%s' into cache to %s",
+                    rel_path,
+                    self._get_cache_path(rel_path),
+                )
                 ncores = multiprocessing.cpu_count()
                 url = key.generate_url(7200)
                 ret_code = subprocess.call("axel -a -n %s '%s'" % (ncores, url))
                 if ret_code == 0:
                     return True
             else:
-                log.debug("Pulled key '%s' into cache to %s", rel_path, self._get_cache_path(rel_path))
+                log.debug(
+                    "Pulled key '%s' into cache to %s",
+                    rel_path,
+                    self._get_cache_path(rel_path),
+                )
                 self.transfer_progress = 0  # Reset transfer progress counter
-                with open(self._get_cache_path(rel_path), "w+") as downloaded_file_handle:
+                with open(
+                    self._get_cache_path(rel_path), "w+"
+                ) as downloaded_file_handle:
                     key.save_content(downloaded_file_handle)
                 return True
         except Exception:
-            log.exception("Problem downloading key '%s' from S3 bucket '%s'", rel_path, self.bucket.name)
+            log.exception(
+                "Problem downloading key '%s' from S3 bucket '%s'",
+                rel_path,
+                self.bucket.name,
+            )
         return False
 
     def _push_to_os(self, rel_path, source_file=None, from_string=None):
@@ -463,9 +513,14 @@ class Cloud(ObjectStore, CloudConfigMixin):
         try:
             source_file = source_file if source_file else self._get_cache_path(rel_path)
             if os.path.exists(source_file):
-                if os.path.getsize(source_file) == 0 and (self.bucket.objects.get(rel_path) is not None):
-                    log.debug("Wanted to push file '%s' to S3 key '%s' but its size is 0; skipping.", source_file,
-                              rel_path)
+                if os.path.getsize(source_file) == 0 and (
+                    self.bucket.objects.get(rel_path) is not None
+                ):
+                    log.debug(
+                        "Wanted to push file '%s' to S3 key '%s' but its size is 0; skipping.",
+                        source_file,
+                        rel_path,
+                    )
                     return True
                 if from_string:
                     if not self.bucket.objects.get(rel_path):
@@ -473,11 +528,19 @@ class Cloud(ObjectStore, CloudConfigMixin):
                         created_obj.upload(source_file)
                     else:
                         self.bucket.objects.get(rel_path).upload(source_file)
-                    log.debug("Pushed data from string '%s' to key '%s'", from_string, rel_path)
+                    log.debug(
+                        "Pushed data from string '%s' to key '%s'",
+                        from_string,
+                        rel_path,
+                    )
                 else:
                     start_time = datetime.now()
-                    log.debug("Pushing cache file '%s' of size %s bytes to key '%s'", source_file,
-                              os.path.getsize(source_file), rel_path)
+                    log.debug(
+                        "Pushing cache file '%s' of size %s bytes to key '%s'",
+                        source_file,
+                        os.path.getsize(source_file),
+                        rel_path,
+                    )
                     self.transfer_progress = 0  # Reset transfer progress counter
                     if not self.bucket.objects.get(rel_path):
                         created_obj = self.bucket.objects.create(rel_path)
@@ -486,14 +549,24 @@ class Cloud(ObjectStore, CloudConfigMixin):
                         self.bucket.objects.get(rel_path).upload_from_file(source_file)
 
                     end_time = datetime.now()
-                    log.debug("Pushed cache file '%s' to key '%s' (%s bytes transfered in %s sec)",
-                              source_file, rel_path, os.path.getsize(source_file), end_time - start_time)
+                    log.debug(
+                        "Pushed cache file '%s' to key '%s' (%s bytes transfered in %s sec)",
+                        source_file,
+                        rel_path,
+                        os.path.getsize(source_file),
+                        end_time - start_time,
+                    )
                 return True
             else:
-                log.error("Tried updating key '%s' from source file '%s', but source file does not exist.",
-                          rel_path, source_file)
+                log.error(
+                    "Tried updating key '%s' from source file '%s', but source file does not exist.",
+                    rel_path,
+                    source_file,
+                )
         except Exception:
-            log.exception("Trouble pushing S3 key '%s' from file '%s'", rel_path, source_file)
+            log.exception(
+                "Trouble pushing S3 key '%s' from file '%s'", rel_path, source_file
+            )
         return False
 
     def file_ready(self, obj, **kwargs):
@@ -504,10 +577,16 @@ class Cloud(ObjectStore, CloudConfigMixin):
         rel_path = self._construct_path(obj, **kwargs)
         # Make sure the size in cache is available in its entirety
         if self._in_cache(rel_path):
-            if os.path.getsize(self._get_cache_path(rel_path)) == self._get_size_in_cloud(rel_path):
+            if os.path.getsize(
+                self._get_cache_path(rel_path)
+            ) == self._get_size_in_cloud(rel_path):
                 return True
-            log.debug("Waiting for dataset %s to transfer from OS: %s/%s", rel_path,
-                      os.path.getsize(self._get_cache_path(rel_path)), self._get_size_in_cloud(rel_path))
+            log.debug(
+                "Waiting for dataset %s to transfer from OS: %s/%s",
+                rel_path,
+                os.path.getsize(self._get_cache_path(rel_path)),
+                self._get_size_in_cloud(rel_path),
+            )
         return False
 
     def exists(self, obj, **kwargs):
@@ -521,8 +600,8 @@ class Cloud(ObjectStore, CloudConfigMixin):
         in_cloud = self._key_exists(rel_path)
         # log.debug("~~~~~~ File '%s' exists in cache: %s; in s3: %s" % (rel_path, in_cache, in_s3))
         # dir_only does not get synced so shortcut the decision
-        dir_only = kwargs.get('dir_only', False)
-        base_dir = kwargs.get('base_dir', None)
+        dir_only = kwargs.get("dir_only", False)
+        base_dir = kwargs.get("base_dir", None)
         if dir_only:
             if in_cache or in_cloud:
                 return True
@@ -547,10 +626,10 @@ class Cloud(ObjectStore, CloudConfigMixin):
         if not self.exists(obj, **kwargs):
 
             # Pull out locally used fields
-            extra_dir = kwargs.get('extra_dir', None)
-            extra_dir_at_root = kwargs.get('extra_dir_at_root', False)
-            dir_only = kwargs.get('dir_only', False)
-            alt_name = kwargs.get('alt_name', None)
+            extra_dir = kwargs.get("extra_dir", None)
+            extra_dir_at_root = kwargs.get("extra_dir_at_root", False)
+            dir_only = kwargs.get("dir_only", False)
+            alt_name = kwargs.get("alt_name", None)
 
             # Construct hashed path
             rel_path = os.path.join(*directory_hash_id(obj.id))
@@ -568,16 +647,20 @@ class Cloud(ObjectStore, CloudConfigMixin):
                 os.makedirs(cache_dir)
 
             if not dir_only:
-                rel_path = os.path.join(rel_path, alt_name if alt_name else "dataset_%s.dat" % obj.id)
-                open(os.path.join(self.staging_path, rel_path), 'w').close()
-                self._push_to_os(rel_path, from_string='')
+                rel_path = os.path.join(
+                    rel_path, alt_name if alt_name else "dataset_%s.dat" % obj.id
+                )
+                open(os.path.join(self.staging_path, rel_path), "w").close()
+                self._push_to_os(rel_path, from_string="")
 
     def empty(self, obj, **kwargs):
         if self.exists(obj, **kwargs):
             return bool(self.size(obj, **kwargs) > 0)
         else:
-            raise ObjectNotFound('objectstore.empty, object does not exist: %s, kwargs: %s'
-                                 % (str(obj), str(kwargs)))
+            raise ObjectNotFound(
+                "objectstore.empty, object does not exist: %s, kwargs: %s"
+                % (str(obj), str(kwargs))
+            )
 
     def size(self, obj, **kwargs):
         rel_path = self._construct_path(obj, **kwargs)
@@ -585,7 +668,11 @@ class Cloud(ObjectStore, CloudConfigMixin):
             try:
                 return os.path.getsize(self._get_cache_path(rel_path))
             except OSError as ex:
-                log.info("Could not get size of file '%s' in local cache, will try cloud. Error: %s", rel_path, ex)
+                log.info(
+                    "Could not get size of file '%s' in local cache, will try cloud. Error: %s",
+                    rel_path,
+                    ex,
+                )
         elif self.exists(obj, **kwargs):
             return self._get_size_in_cloud(rel_path)
         log.warning("Did not find dataset '%s', returning 0 for size", rel_path)
@@ -593,10 +680,10 @@ class Cloud(ObjectStore, CloudConfigMixin):
 
     def delete(self, obj, entire_dir=False, **kwargs):
         rel_path = self._construct_path(obj, **kwargs)
-        extra_dir = kwargs.get('extra_dir', None)
-        base_dir = kwargs.get('base_dir', None)
-        dir_only = kwargs.get('dir_only', False)
-        obj_dir = kwargs.get('obj_dir', False)
+        extra_dir = kwargs.get("extra_dir", None)
+        base_dir = kwargs.get("base_dir", None)
+        dir_only = kwargs.get("dir_only", False)
+        obj_dir = kwargs.get("obj_dir", False)
         try:
             # Remove temparory data in JOB_WORK directory
             if base_dir and dir_only and obj_dir:
@@ -626,7 +713,7 @@ class Cloud(ObjectStore, CloudConfigMixin):
         except Exception:
             log.exception("Could not delete key '%s' from cloud", rel_path)
         except OSError:
-            log.exception('%s delete error', self.get_filename(obj, **kwargs))
+            log.exception("%s delete error", self.get_filename(obj, **kwargs))
         return False
 
     def get_data(self, obj, start=0, count=-1, **kwargs):
@@ -635,16 +722,16 @@ class Cloud(ObjectStore, CloudConfigMixin):
         if not self._in_cache(rel_path):
             self._pull_into_cache(rel_path)
         # Read the file content from cache
-        data_file = open(self._get_cache_path(rel_path), 'r')
+        data_file = open(self._get_cache_path(rel_path), "r")
         data_file.seek(start)
         content = data_file.read(count)
         data_file.close()
         return content
 
     def get_filename(self, obj, **kwargs):
-        base_dir = kwargs.get('base_dir', None)
-        dir_only = kwargs.get('dir_only', False)
-        obj_dir = kwargs.get('obj_dir', False)
+        base_dir = kwargs.get("base_dir", None)
+        dir_only = kwargs.get("dir_only", False)
+        obj_dir = kwargs.get("obj_dir", False)
         rel_path = self._construct_path(obj, **kwargs)
 
         # for JOB_WORK directory
@@ -674,8 +761,10 @@ class Cloud(ObjectStore, CloudConfigMixin):
         # even if it does not exist.
         # if dir_only:
         #     return cache_path
-        raise ObjectNotFound('objectstore.get_filename, no cache_path: %s, kwargs: %s'
-                             % (str(obj), str(kwargs)))
+        raise ObjectNotFound(
+            "objectstore.get_filename, no cache_path: %s, kwargs: %s"
+            % (str(obj), str(kwargs))
+        )
         # return cache_path # Until the upload tool does not explicitly create the dataset, return expected path
 
     def update_from_file(self, obj, file_name=None, create=False, **kwargs):
@@ -694,14 +783,20 @@ class Cloud(ObjectStore, CloudConfigMixin):
                         shutil.copy2(source_file, cache_file)
                     self._fix_permissions(cache_file)
                 except OSError:
-                    log.exception("Trouble copying source file '%s' to cache '%s'", source_file, cache_file)
+                    log.exception(
+                        "Trouble copying source file '%s' to cache '%s'",
+                        source_file,
+                        cache_file,
+                    )
             else:
                 source_file = self._get_cache_path(rel_path)
             # Update the file on cloud
             self._push_to_os(rel_path, source_file)
         else:
-            raise ObjectNotFound('objectstore.update_from_file, object does not exist: %s, kwargs: %s'
-                                 % (str(obj), str(kwargs)))
+            raise ObjectNotFound(
+                "objectstore.update_from_file, object does not exist: %s, kwargs: %s"
+                % (str(obj), str(kwargs))
+            )
 
     def get_object_url(self, obj, **kwargs):
         if self.exists(obj, **kwargs):

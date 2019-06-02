@@ -10,7 +10,6 @@ log = logging.getLogger(__name__)
 
 
 class ShedToolStatic(BaseUIController):
-
     @web.expose
     def index(self, trans, shed, owner, repo, tool, version, image_file):
         """
@@ -24,19 +23,19 @@ class ShedToolStatic(BaseUIController):
         .. image:: some_image.jpg
         .. image:: /deep/some_image.png
         """
-        guid = '/'.join([shed, 'repos', owner, repo, tool, version])
+        guid = "/".join([shed, "repos", owner, repo, tool, version])
         tool = trans.app.toolbox.get_tool(guid)
         repo_path = tool._repository_dir
-        if 'static/images' not in image_file:
-            path = join(repo_path, 'static', 'images', image_file)
+        if "static/images" not in image_file:
+            path = join(repo_path, "static", "images", image_file)
         else:
             path = join(repo_path, image_file)
         if not safe_contains(os.path.abspath(repo_path), os.path.abspath(path)):
             raise RequestParameterInvalidException()
-        ext = os.path.splitext(image_file)[-1].lstrip('.')
+        ext = os.path.splitext(image_file)[-1].lstrip(".")
         if ext:
             mime = trans.app.datatypes_registry.get_mimetype_by_extension(ext)
             if mime:
                 trans.response.set_content_type(mime)
         if os.path.exists(path):
-            return open(path, 'rb')
+            return open(path, "rb")

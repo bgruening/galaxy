@@ -24,7 +24,9 @@ class DependencyResolversView(object):
             if not hasattr(resolver, "list_dependencies"):
                 continue
             for requirement in resolver.list_dependencies():
-                requirements.append({"index": index, "requirement": requirement.to_dict()})
+                requirements.append(
+                    {"index": index, "requirement": requirement.to_dict()}
+                )
         return requirements
 
     def resolver_requirements(self, index):
@@ -46,17 +48,22 @@ class DependencyResolversView(object):
         """
         Resolves dependencies to build a requirements status in the admin panel/API
         """
-        kwds = {'install': False,
-                'return_null': True,
-                'installed_tool_dependencies': installed_tool_dependencies}
-        dependencies_per_tool = {tool: self._dependency_manager.requirements_to_dependencies(requirements,
-                                                                                             **kwds)
-                                 for tool, requirements in tool_requirements_d.items()}
+        kwds = {
+            "install": False,
+            "return_null": True,
+            "installed_tool_dependencies": installed_tool_dependencies,
+        }
+        dependencies_per_tool = {
+            tool: self._dependency_manager.requirements_to_dependencies(
+                requirements, **kwds
+            )
+            for tool, requirements in tool_requirements_d.items()
+        }
         return dependencies_per_tool
 
     def uninstall_dependencies(self, index=None, resolver_type=None, **payload):
         """Attempt to uninstall requirements. Returns 0 if successfull, else None."""
-        requirements = payload.get('requirements')
+        requirements = payload.get("requirements")
         if not requirements:
             return None
         if index:
@@ -65,7 +72,10 @@ class DependencyResolversView(object):
                 return resolver.uninstall(requirements)
         elif resolver_type:
             for resolver in self._dependency_resolvers:
-                if resolver.resolver_type == resolver_type and resolver.can_uninstall_dependencies:
+                if (
+                    resolver.resolver_type == resolver_type
+                    and resolver.can_uninstall_dependencies
+                ):
                     return resolver.uninstall(requirements)
         else:
             for index in self.uninstallable_resolvers:
@@ -80,8 +90,10 @@ class DependencyResolversView(object):
         unused_dependencies = []
         toolbox_requirements_status = self.toolbox_requirements_status
         for resolver in self._dependency_resolvers:
-            if hasattr(resolver, 'unused_dependency_paths'):
-                unused_dependencies.extend(resolver.unused_dependency_paths(toolbox_requirements_status))
+            if hasattr(resolver, "unused_dependency_paths"):
+                unused_dependencies.extend(
+                    resolver.unused_dependency_paths(toolbox_requirements_status)
+                )
         return set(unused_dependencies)
 
     def remove_unused_dependency_paths(self, envs):
@@ -94,8 +106,12 @@ class DependencyResolversView(object):
         toolbox_requirements_status = self.toolbox_requirements_status
         removed_environments = set()
         for resolver in self._dependency_resolvers:
-            if hasattr(resolver, 'unused_dependency_paths') and hasattr(resolver, 'uninstall_environments'):
-                unused_dependencies = resolver.unused_dependency_paths(toolbox_requirements_status)
+            if hasattr(resolver, "unused_dependency_paths") and hasattr(
+                resolver, "uninstall_environments"
+            ):
+                unused_dependencies = resolver.unused_dependency_paths(
+                    toolbox_requirements_status
+                )
                 can_remove = envs_to_remove & set(unused_dependencies)
                 exit_code = resolver.uninstall_environments(can_remove)
                 if exit_code == 0:
@@ -104,8 +120,10 @@ class DependencyResolversView(object):
         return list(removed_environments)
 
     def install_dependencies(self, requirements, **kwds):
-        kwds['install'] = True
-        return self._dependency_manager._requirements_to_dependencies_dict(requirements, **kwds)
+        kwds["install"] = True
+        return self._dependency_manager._requirements_to_dependencies_dict(
+            requirements, **kwds
+        )
 
     def install_dependency(self, index=None, **payload):
         """
@@ -136,10 +154,7 @@ class DependencyResolversView(object):
 
         name, version, type, extra_kwds = self._parse_dependency_info(payload)
         return resolver.install_dependency(
-            name=name,
-            version=version,
-            type=type,
-            **extra_kwds
+            name=name, version=version, type=type, **extra_kwds
         )
 
     def _dependency(self, index=None, **kwds):
@@ -147,11 +162,7 @@ class DependencyResolversView(object):
             index = int(index)
 
         name, version, type, extra_kwds = self._parse_dependency_info(kwds)
-        resolve_kwds = dict(
-            job_directory=None,
-            index=index,
-            **extra_kwds
-        )
+        resolve_kwds = dict(job_directory=None, index=index, **extra_kwds)
         dependency = self._dependency_manager.find_dep(
             name, version=version, type=type, **resolve_kwds
         )
@@ -161,7 +172,9 @@ class DependencyResolversView(object):
         extra_kwds = kwds.copy()
         name = extra_kwds.pop("name", None)
         if name is None:
-            raise exceptions.RequestParameterMissingException("Missing 'name' parameter required for resolution.")
+            raise exceptions.RequestParameterMissingException(
+                "Missing 'name' parameter required for resolution."
+            )
         version = extra_kwds.pop("version", None)
         type = extra_kwds.pop("type", "package")
         return name, version, type, extra_kwds
@@ -185,14 +198,22 @@ class DependencyResolversView(object):
         """
         List index for all active resolvers that have the 'install_dependency' attribute.
         """
-        return [index for index, resolver in enumerate(self._dependency_resolvers) if hasattr(resolver, "install_dependency") and not resolver.disabled]
+        return [
+            index
+            for index, resolver in enumerate(self._dependency_resolvers)
+            if hasattr(resolver, "install_dependency") and not resolver.disabled
+        ]
 
     @property
     def uninstallable_resolvers(self):
         """
         List index for all active resolvers that can uninstall dependencies that have been installed through this resolver.
         """
-        return [index for index, resolver in enumerate(self._dependency_resolvers) if resolver.can_uninstall_dependencies and not resolver.disabled]
+        return [
+            index
+            for index, resolver in enumerate(self._dependency_resolvers)
+            if resolver.can_uninstall_dependencies and not resolver.disabled
+        ]
 
     @property
     def tool_ids_by_requirements(self):
@@ -209,12 +230,22 @@ class DependencyResolversView(object):
 
     @property
     def toolbox_requirements_status(self):
-        return {r: self.get_requirements_status(tool_requirements_d={tids[0]: r},
-                                                installed_tool_dependencies=self._app.toolbox.tools_by_id[tids[0]].installed_tool_dependencies)
-                for r, tids in self.tool_ids_by_requirements.items()}
+        return {
+            r: self.get_requirements_status(
+                tool_requirements_d={tids[0]: r},
+                installed_tool_dependencies=self._app.toolbox.tools_by_id[
+                    tids[0]
+                ].installed_tool_dependencies,
+            )
+            for r, tids in self.tool_ids_by_requirements.items()
+        }
 
-    def get_requirements_status(self, tool_requirements_d, installed_tool_dependencies=None):
-        dependencies = self.show_dependencies(tool_requirements_d, installed_tool_dependencies)
+    def get_requirements_status(
+        self, tool_requirements_d, installed_tool_dependencies=None
+    ):
+        dependencies = self.show_dependencies(
+            tool_requirements_d, installed_tool_dependencies
+        )
         # dependencies is a dict keyed on tool_ids, value is a ToolRequirements object for that tool.
         # We use the union of resolvable ToolRequirements to get resolved dependencies without duplicates.
         requirements = [r.resolvable for r in tool_requirements_d.values()]
@@ -236,5 +267,9 @@ class DependencyResolversView(object):
                 resolver.clean()
                 return "OK"
         else:
-            [resolver.clean(**kwds) for resolver in self._dependency_resolvers if hasattr(resolver, 'clean')]
+            [
+                resolver.clean(**kwds)
+                for resolver in self._dependency_resolvers
+                if hasattr(resolver, "clean")
+            ]
             return "OK"

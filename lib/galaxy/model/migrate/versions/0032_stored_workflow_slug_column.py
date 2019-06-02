@@ -26,9 +26,11 @@ def upgrade(migrate_engine):
     assert c is StoredWorkflow_table.c.slug
 
     # Create slug index.
-    if migrate_engine.name != 'sqlite':
+    if migrate_engine.name != "sqlite":
         try:
-            i = Index("ix_stored_workflow_slug", StoredWorkflow_table.c.slug, mysql_length=200)
+            i = Index(
+                "ix_stored_workflow_slug", StoredWorkflow_table.c.slug, mysql_length=200
+            )
             i.create()
         except Exception:
             # Mysql doesn't have a named index, but alter should work

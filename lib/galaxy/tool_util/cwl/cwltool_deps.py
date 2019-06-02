@@ -12,13 +12,7 @@ except ImportError:
     requests = None
 
 try:
-    from cwltool import (
-        main,
-        workflow,
-        job,
-        process,
-        pathmapper,
-    )
+    from cwltool import main, workflow, job, process, pathmapper
 except (ImportError, SyntaxError):
     # Drop SyntaxError once cwltool supports Python 3
     main = None
@@ -28,7 +22,9 @@ except (ImportError, SyntaxError):
     pathmapper = None
 
 try:
-    from cwltool.context import LoadingContext  # Introduced in cwltool 1.0.20180615183820
+    from cwltool.context import (
+        LoadingContext,
+    )  # Introduced in cwltool 1.0.20180615183820
 except (ImportError, SyntaxError):
     LoadingContext = None
 
@@ -78,15 +74,15 @@ def ensure_cwltool_available():
 
 
 __all__ = (
-    'main',
-    'ref_resolver',
-    'load_tool',
-    'LoadingContext',
-    'workflow',
-    'process',
-    'pathmapper',
-    'ensure_cwltool_available',
-    'schema_salad',
-    'shellescape',
-    'needs_shell_quoting',
+    "main",
+    "ref_resolver",
+    "load_tool",
+    "LoadingContext",
+    "workflow",
+    "process",
+    "pathmapper",
+    "ensure_cwltool_available",
+    "schema_salad",
+    "shellescape",
+    "needs_shell_quoting",
 )

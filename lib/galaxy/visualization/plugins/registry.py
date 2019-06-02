@@ -9,15 +9,8 @@ import os
 import weakref
 
 from galaxy.exceptions import ObjectNotFound
-from galaxy.util import (
-    config_directories_from_setting,
-    odict,
-    parse_xml
-)
-from galaxy.visualization.plugins import (
-    config_parser,
-    plugin as vis_plugins
-)
+from galaxy.util import config_directories_from_setting, odict, parse_xml
+from galaxy.visualization.plugins import config_parser, plugin as vis_plugins
 
 log = logging.getLogger(__name__)
 
@@ -32,22 +25,25 @@ class VisualizationsRegistry(object):
         - validating and parsing params into resources (based on a context)
             used in the visualization template
     """
+
     #: base url to controller endpoint
-    BASE_URL = 'visualizations'
+    BASE_URL = "visualizations"
     #: name of files to search for additional template lookup directories
-    TEMPLATE_PATHS_CONFIG = 'additional_template_paths.xml'
+    TEMPLATE_PATHS_CONFIG = "additional_template_paths.xml"
     #: built-in visualizations
-    BUILT_IN_VISUALIZATIONS = [
-        'trackster',
-        'circster',
-        'sweepster',
-        'phyloviz'
-    ]
+    BUILT_IN_VISUALIZATIONS = ["trackster", "circster", "sweepster", "phyloviz"]
 
     def __str__(self):
         return self.__class__.__name__
 
-    def __init__(self, app, template_cache_dir=None, directories_setting=None, skip_bad_plugins=True, **kwargs):
+    def __init__(
+        self,
+        app,
+        template_cache_dir=None,
+        directories_setting=None,
+        skip_bad_plugins=True,
+        **kwargs
+    ):
         """
         Set up the manager and load all visualization plugins.
 
@@ -67,7 +63,9 @@ class VisualizationsRegistry(object):
         self.directories = []
         self.skip_bad_plugins = skip_bad_plugins
         self.plugins = odict.odict()
-        self.directories = config_directories_from_setting(directories_setting, app.config.root)
+        self.directories = config_directories_from_setting(
+            directories_setting, app.config.root
+        )
         self._load_configuration()
         self._load_plugins()
 
@@ -79,7 +77,9 @@ class VisualizationsRegistry(object):
         for directory in self.directories:
             possible_path = os.path.join(directory, self.TEMPLATE_PATHS_CONFIG)
             if os.path.exists(possible_path):
-                added_paths = self._parse_additional_template_paths(possible_path, directory)
+                added_paths = self._parse_additional_template_paths(
+                    possible_path, directory
+                )
                 self.additional_template_paths.extend(added_paths)
 
     def _parse_additional_template_paths(self, config_filepath, base_directory):
@@ -98,9 +98,11 @@ class VisualizationsRegistry(object):
         additional_paths = []
         xml_tree = parse_xml(config_filepath)
         paths_list = xml_tree.getroot()
-        for rel_path_elem in paths_list.findall('path'):
+        for rel_path_elem in paths_list.findall("path"):
             if rel_path_elem.text is not None:
-                additional_paths.append(os.path.join(base_directory, rel_path_elem.text))
+                additional_paths.append(
+                    os.path.join(base_directory, rel_path_elem.text)
+                )
         return additional_paths
 
     def _load_plugins(self):
@@ -115,13 +117,19 @@ class VisualizationsRegistry(object):
                 plugin = self._load_plugin(plugin_path)
                 if plugin and plugin.name not in self.plugins:
                     self.plugins[plugin.name] = plugin
-                    log.info('%s, loaded plugin: %s', self, plugin.name)
+                    log.info("%s, loaded plugin: %s", self, plugin.name)
                 elif plugin and plugin.name in self.plugins:
-                    log.warning('%s, plugin with name already exists: %s. Skipping...', self, plugin.name)
+                    log.warning(
+                        "%s, plugin with name already exists: %s. Skipping...",
+                        self,
+                        plugin.name,
+                    )
             except Exception:
                 if not self.skip_bad_plugins:
                     raise
-                log.exception('Plugin loading raised exception: %s. Skipping...', plugin_path)
+                log.exception(
+                    "Plugin loading raised exception: %s. Skipping...", plugin_path
+                )
         return self.plugins
 
     def _find_plugins(self):
@@ -164,10 +172,12 @@ class VisualizationsRegistry(object):
         if not os.path.isdir(plugin_path):
             # super won't work here - different criteria
             return False
-        if 'config' not in os.listdir(plugin_path):
+        if "config" not in os.listdir(plugin_path):
             return False
-        expected_config_filename = '%s.xml' % (os.path.split(plugin_path)[1])
-        if not os.path.isfile(os.path.join(plugin_path, 'config', expected_config_filename)):
+        expected_config_filename = "%s.xml" % (os.path.split(plugin_path)[1])
+        if not os.path.isfile(
+            os.path.join(plugin_path, "config", expected_config_filename)
+        ):
             return False
         return True
 
@@ -183,7 +193,7 @@ class VisualizationsRegistry(object):
         """
         plugin_name = os.path.split(plugin_path)[1]
         # TODO: this is the standard/older way to config
-        config_file = os.path.join(plugin_path, 'config', (plugin_name + '.xml'))
+        config_file = os.path.join(plugin_path, "config", (plugin_name + ".xml"))
         config = self.config_parser.parse_file(config_file)
         # config file is required, otherwise skip this visualization
         if config is not None:
@@ -196,36 +206,42 @@ class VisualizationsRegistry(object):
         # default class
         plugin_class = vis_plugins.VisualizationPlugin
         # jupyter, etc
-        if config['plugin_type'] == 'interactive_environment':
+        if config["plugin_type"] == "interactive_environment":
             plugin_class = vis_plugins.InteractiveEnvironmentPlugin
         # js only
-        elif config['entry_point']['type'] == 'script':
+        elif config["entry_point"]["type"] == "script":
             plugin_class = vis_plugins.ScriptVisualizationPlugin
         # js only using charts environment
-        elif config['entry_point']['type'] == 'chart':
+        elif config["entry_point"]["type"] == "chart":
             plugin_class = vis_plugins.ChartVisualizationPlugin
         # from a static file (html, etc)
-        elif config['entry_point']['type'] == 'html':
+        elif config["entry_point"]["type"] == "html":
             plugin_class = vis_plugins.StaticFileVisualizationPlugin
-        return plugin_class(self.app(), plugin_path, plugin_name, config, context=dict(
-            base_url=self.base_url,
-            template_cache_dir=self.template_cache_dir,
-            additional_template_paths=self.additional_template_paths
-        ))
+        return plugin_class(
+            self.app(),
+            plugin_path,
+            plugin_name,
+            config,
+            context=dict(
+                base_url=self.base_url,
+                template_cache_dir=self.template_cache_dir,
+                additional_template_paths=self.additional_template_paths,
+            ),
+        )
 
     def get_plugin(self, key):
         """
         Wrap to throw error if plugin not in registry.
         """
         if key not in self.plugins:
-            raise ObjectNotFound('Unknown or invalid visualization: ' + key)
+            raise ObjectNotFound("Unknown or invalid visualization: " + key)
         return self.plugins[key]
 
     def get_plugins(self):
         result = []
         for plugin in self.plugins.itervalues():
             result.append(plugin.to_dict())
-        return sorted(result, key=lambda k: k.get('html'))
+        return sorted(result, key=lambda k: k.get("html"))
 
     # -- building links to visualizations from objects --
     def get_visualizations(self, trans, target_object):
@@ -238,7 +254,7 @@ class VisualizationsRegistry(object):
             url_data = self.get_visualization(trans, vis_name, target_object)
             if url_data:
                 applicable_visualizations.append(url_data)
-        return sorted(applicable_visualizations, key=lambda k: k.get('html'))
+        return sorted(applicable_visualizations, key=lambda k: k.get("html"))
 
     def get_visualization(self, trans, visualization_name, target_object):
         """
@@ -248,12 +264,14 @@ class VisualizationsRegistry(object):
         """
         visualization = self.plugins.get(visualization_name, None)
         if visualization is not None:
-            data_sources = visualization.config['data_sources']
+            data_sources = visualization.config["data_sources"]
             for data_source in data_sources:
-                model_class = data_source['model_class']
+                model_class = data_source["model_class"]
                 if isinstance(target_object, model_class):
-                    tests = data_source['tests']
-                    if tests is None or self.is_object_applicable(trans, target_object, tests):
+                    tests = data_source["tests"]
+                    if tests is None or self.is_object_applicable(
+                        trans, target_object, tests
+                    ):
                         return visualization.to_dict()
 
     def is_object_applicable(self, trans, target_object, data_source_tests):
@@ -263,19 +281,21 @@ class VisualizationsRegistry(object):
         """
         # log.debug( 'is_object_applicable( self, trans, %s, %s )', target_object, data_source_tests )
         for test in data_source_tests:
-            test_type = test['type']
-            result_type = test['result_type']
-            test_result = test['result']
-            test_fn = test['fn']
+            test_type = test["type"]
+            result_type = test["result_type"]
+            test_result = test["result"]
+            test_fn = test["fn"]
             # log.debug( '%s %s: %s, %s, %s, %s', str( target_object ), 'is_object_applicable',
             #           test_type, result_type, test_result, test_fn )
 
-            if test_type == 'isinstance':
+            if test_type == "isinstance":
                 # parse test_result based on result_type (curr: only datatype has to do this)
-                if result_type == 'datatype':
+                if result_type == "datatype":
                     # convert datatypes to their actual classes (for use with isinstance)
                     datatype_class_name = test_result
-                    test_result = trans.app.datatypes_registry.get_datatype_class_by_name(datatype_class_name)
+                    test_result = trans.app.datatypes_registry.get_datatype_class_by_name(
+                        datatype_class_name
+                    )
                     if not test_result:
                         # but continue (with other tests) if can't find class by that name
                         # if self.debug:

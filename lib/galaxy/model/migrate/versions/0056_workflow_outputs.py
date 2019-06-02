@@ -12,10 +12,19 @@ log = logging.getLogger(__name__)
 
 metadata = MetaData()
 
-WorkflowOutput_table = Table("workflow_output", metadata,
-                             Column("id", Integer, primary_key=True),
-                             Column("workflow_step_id", Integer, ForeignKey("workflow_step.id"), index=True, nullable=False),
-                             Column("output_name", String(255), nullable=True))
+WorkflowOutput_table = Table(
+    "workflow_output",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column(
+        "workflow_step_id",
+        Integer,
+        ForeignKey("workflow_step.id"),
+        index=True,
+        nullable=False,
+    ),
+    Column("output_name", String(255), nullable=True),
+)
 
 tables = [WorkflowOutput_table]
 
@@ -28,7 +37,10 @@ def upgrade(migrate_engine):
         try:
             table.create()
         except Exception:
-            log.warning("Failed to create table '%s', ignoring (might result in wrong schema)" % table.name)
+            log.warning(
+                "Failed to create table '%s', ignoring (might result in wrong schema)"
+                % table.name
+            )
 
 
 def downgrade(migrate_engine):

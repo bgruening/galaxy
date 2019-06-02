@@ -21,10 +21,13 @@ log.addHandler(handler)
 
 metadata = MetaData()
 
-HistoryUserShareAssociation_table = Table("history_user_share_association", metadata,
-                                          Column("id", Integer, primary_key=True),
-                                          Column("history_id", Integer, ForeignKey("history.id"), index=True),
-                                          Column("user_id", Integer, ForeignKey("galaxy_user.id"), index=True))
+HistoryUserShareAssociation_table = Table(
+    "history_user_share_association",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("history_id", Integer, ForeignKey("history.id"), index=True),
+    Column("user_id", Integer, ForeignKey("galaxy_user.id"), index=True),
+)
 
 
 def upgrade(migrate_engine):
@@ -45,8 +48,8 @@ def upgrade(migrate_engine):
         log.debug("Failed loading table history")
     if History_table is not None:
         try:
-            col = Column('importable', Boolean, index=True, default=False)
-            col.create(History_table, index_name='ix_history_importable')
+            col = Column("importable", Boolean, index=True, default=False)
+            col.create(History_table, index_name="ix_history_importable")
             assert col is History_table.c.importable
         except Exception:
             log.exception("Adding column 'importable' to history table failed.")

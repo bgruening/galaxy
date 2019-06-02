@@ -16,7 +16,6 @@ from .util import error_on_exit_code, is_dict
 
 
 class YamlToolSource(ToolSource):
-
     def __init__(self, root_dict, source_path=None):
         self.root_dict = root_dict
         self._source_path = source_path
@@ -47,10 +46,10 @@ class YamlToolSource(ToolSource):
         return self.root_dict.get("sanitize", True)
 
     def parse_display_interface(self, default):
-        return self.root_dict.get('display_interface', default)
+        return self.root_dict.get("display_interface", default)
 
     def parse_require_login(self, default):
-        return self.root_dict.get('require_login', default)
+        return self.root_dict.get("require_login", default)
 
     def parse_command(self):
         return self.root_dict.get("command")
@@ -97,7 +96,9 @@ class YamlToolSource(ToolSource):
             if output_type == "data":
                 output_defs.append(self._parse_output(tool, name, output_dict))
             elif output_type == "collection":
-                output_collection_defs.append(self._parse_output_collection(tool, name, output_dict))
+                output_collection_defs.append(
+                    self._parse_output_collection(tool, name, output_dict)
+                )
             else:
                 message = "Unknown output_type [%s] encountered." % output_type
                 raise Exception(message)
@@ -129,7 +130,9 @@ class YamlToolSource(ToolSource):
         default_format_source = output_dict.get("format_source", None)
         default_metadata_source = output_dict.get("metadata_source", "")
         filters = []
-        dataset_collector_descriptions = dataset_collector_descriptions_from_output_dict(output_dict)
+        dataset_collector_descriptions = dataset_collector_descriptions_from_output_dict(
+            output_dict
+        )
 
         structure = ToolOutputCollectionStructure(
             collection_type=collection_type,
@@ -152,9 +155,7 @@ class YamlToolSource(ToolSource):
 
     def parse_tests_to_dict(self):
         tests = []
-        rval = dict(
-            tests=tests
-        )
+        rval = dict(tests=tests)
 
         for i, test_dict in enumerate(self.root_dict.get("tests", [])):
             tests.append(_parse_test(i, test_dict))
@@ -190,11 +191,7 @@ def _parse_test(i, test_dict):
             else:
                 file = value
                 attributes = {}
-            new_outputs.append({
-                "name": key,
-                "value": file,
-                "attributes": attributes
-            })
+            new_outputs.append({"name": key, "value": file, "attributes": attributes})
     else:
         for output in outputs:
             name = output["name"]
@@ -204,12 +201,7 @@ def _parse_test(i, test_dict):
 
     for output in new_outputs:
         attributes = output["attributes"]
-        defaults = {
-            'compare': 'diff',
-            'lines_diff': 0,
-            'delta': 1000,
-            'sort': False,
-        }
+        defaults = {"compare": "diff", "lines_diff": 0, "delta": 1000, "sort": False}
         # TODO
         attributes["extra_files"] = []
         # TODO
@@ -250,9 +242,7 @@ def __to_test_assert_list(assertions):
             children = assertion["children"]
             del assertion["children"]
         assert_dict = dict(
-            tag=assertion["that"],
-            attributes=assertion,
-            children=children,
+            tag=assertion["that"], attributes=assertion, children=children
         )
         assert_list.append(assert_dict)
 
@@ -260,7 +250,6 @@ def __to_test_assert_list(assertions):
 
 
 class YamlPageSource(PageSource):
-
     def __init__(self, inputs_list):
         self.inputs_list = inputs_list
 
@@ -269,7 +258,6 @@ class YamlPageSource(PageSource):
 
 
 class YamlInputSource(InputSource):
-
     def __init__(self, input_dict):
         self.input_dict = input_dict
 

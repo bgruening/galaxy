@@ -14,7 +14,6 @@ log = logging.getLogger(__name__)
 
 
 class MetricsController(BaseAPIController):
-
     def __init__(self, app):
         super(MetricsController, self).__init__(app)
         #: set to true to send additional debugging info to the log
@@ -48,7 +47,9 @@ class MetricsController(BaseAPIController):
         """
         user_id = trans.user.id if trans.user else None
         session_id = trans.galaxy_session.id if trans.galaxy_session else None
-        parsed_gen = self._parse_metrics(payload.get('metrics', None), user_id, session_id)
+        parsed_gen = self._parse_metrics(
+            payload.get("metrics", None), user_id, session_id
+        )
         self._send_metrics(trans, parsed_gen)
         response = self._get_server_pong(trans)
         return response
@@ -67,13 +68,13 @@ class MetricsController(BaseAPIController):
         """
         metrics = metrics or []
         for metric in metrics:
-            label = metric['namespace']
-            time = self._deserialize_isoformat_date(metric['time'])
+            label = metric["namespace"]
+            time = self._deserialize_isoformat_date(metric["time"])
             kwargs = {
-                'level'   : metric['level'],
-                'args'    : metric['args'],
-                'user'    : user_id,
-                'session' : session_id
+                "level": metric["level"],
+                "args": metric["args"],
+                "user": user_id,
+                "session": session_id,
             }
             yield (label, time, kwargs)
 
@@ -89,7 +90,7 @@ class MetricsController(BaseAPIController):
                 trans.app.trace_logger.log(label, event_time=int(time), **kwargs)
         elif self.debugging:
             for label, time, kwargs in metrics:
-                log.debug('%s %s %s', label, time, kwargs)
+                log.debug("%s %s %s", label, time, kwargs)
 
     def _get_server_pong(self, trans):
         """

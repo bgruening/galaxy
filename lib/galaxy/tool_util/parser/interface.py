@@ -1,7 +1,4 @@
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
+from abc import ABCMeta, abstractmethod
 
 import six
 
@@ -16,6 +13,7 @@ class ToolSource(object):
     """ This interface represents an abstract source to parse tool
     information from.
     """
+
     default_is_multi_byte = False
 
     @abstractmethod
@@ -228,14 +226,14 @@ class ToolSource(object):
         return []
 
     def parse_tests_to_dict(self):
-        return {'tests': []}
+        return {"tests": []}
 
     def __str__(self):
         source_path = getattr(self, "_soure_path", None)
         if source_path:
-            as_str = u'%s[%s]' % (self.__class__.__name__, source_path)
+            as_str = u"%s[%s]" % (self.__class__.__name__, source_path)
         else:
-            as_str = u'%s[In-memory]' % (self.__class__.__name__)
+            as_str = u"%s[In-memory]" % (self.__class__.__name__)
         return as_str
 
 
@@ -256,7 +254,6 @@ class PagesSource(object):
 
 @six.add_metaclass(ABCMeta)
 class PageSource(object):
-
     def parse_display(self):
         return None
 
@@ -392,7 +389,6 @@ class ToolStdioExitCode(object):
 
 
 class TestCollectionDef(object):
-
     def __init__(self, attrib, name, collection_type, elements):
         self.attrib = attrib
         self.collection_type = collection_type
@@ -410,21 +406,28 @@ class TestCollectionDef(object):
             element_identifier = element_attrib["name"]
             nested_collection_elem = element.find("collection")
             if nested_collection_elem is not None:
-                element_definition = TestCollectionDef.from_xml(nested_collection_elem, parse_param_elem)
+                element_definition = TestCollectionDef.from_xml(
+                    nested_collection_elem, parse_param_elem
+                )
             else:
                 element_definition = parse_param_elem(element)
-            elements.append({"element_identifier": element_identifier, "element_definition": element_definition})
+            elements.append(
+                {
+                    "element_identifier": element_identifier,
+                    "element_definition": element_definition,
+                }
+            )
 
         return TestCollectionDef(
-            attrib=attrib,
-            collection_type=collection_type,
-            elements=elements,
-            name=name,
+            attrib=attrib, collection_type=collection_type, elements=elements, name=name
         )
 
     def to_dict(self):
         def element_to_dict(element_dict):
-            element_identifier, element_def = element_dict["element_identifier"], element_dict["element_definition"]
+            element_identifier, element_def = (
+                element_dict["element_identifier"],
+                element_dict["element_definition"],
+            )
             if isinstance(element_def, TestCollectionDef):
                 element_def = element_def.to_dict()
             return {
@@ -450,7 +453,10 @@ class TestCollectionDef(object):
             element_def = element_dict["element_definition"]
             if element_def.get("model_class", None) == "TestCollectionDef":
                 element_def = TestCollectionDef.from_dict(element_def)
-            return {"element_identifier": element_dict["element_identifier"], "element_definition": element_def}
+            return {
+                "element_identifier": element_dict["element_identifier"],
+                "element_definition": element_def,
+            }
 
         return TestCollectionDef(
             attrib=as_dict["attributes"],
@@ -471,7 +477,6 @@ class TestCollectionDef(object):
 
 
 class TestCollectionOutputDef(object):
-
     def __init__(self, name, attrib, element_tests):
         self.name = name
         self.collection_type = attrib.get("type", None)
@@ -490,7 +495,5 @@ class TestCollectionOutputDef(object):
 
     def to_dict(self):
         return dict(
-            name=self.name,
-            attributes=self.attrib,
-            element_tests=self.element_tests
+            name=self.name, attributes=self.attrib, element_tests=self.element_tests
         )

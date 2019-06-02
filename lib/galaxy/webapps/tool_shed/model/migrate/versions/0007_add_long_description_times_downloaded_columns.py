@@ -55,8 +55,12 @@ def downgrade(migrate_engine):
     try:
         Repository_table.c.long_description.drop()
     except Exception:
-        log.exception("Dropping column long_description from the repository table failed.")
+        log.exception(
+            "Dropping column long_description from the repository table failed."
+        )
     try:
         Repository_table.c.times_downloaded.drop()
     except Exception:
-        log.exception("Dropping column times_downloaded from the repository table failed.")
+        log.exception(
+            "Dropping column times_downloaded from the repository table failed."
+        )

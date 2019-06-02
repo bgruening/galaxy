@@ -13,21 +13,14 @@ from galaxy import exceptions
 from galaxy import model
 from galaxy import util
 from galaxy.managers.jobs import JobManager, JobSearch
-from galaxy.web import (
-    expose_api,
-    expose_api_anonymous,
-)
-from galaxy.web.base.controller import (
-    BaseAPIController,
-    UsesVisualizationMixin
-)
+from galaxy.web import expose_api, expose_api_anonymous
+from galaxy.web.base.controller import BaseAPIController, UsesVisualizationMixin
 from galaxy.work.context import WorkRequestContext
 
 log = logging.getLogger(__name__)
 
 
 class JobController(BaseAPIController, UsesVisualizationMixin):
-
     def __init__(self, app):
         super(JobController, self).__init__(app)
         self.job_manager = JobManager(app)
@@ -66,14 +59,16 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         :rtype:     list
         :returns:   list of dictionaries containing summary job information
         """
-        state = kwd.get('state', None)
+        state = kwd.get("state", None)
         is_admin = trans.user_is_admin
-        user_details = kwd.get('user_details', False)
+        user_details = kwd.get("user_details", False)
 
         if is_admin:
             query = trans.sa_session.query(trans.app.model.Job)
         else:
-            query = trans.sa_session.query(trans.app.model.Job).filter(trans.app.model.Job.user == trans.user)
+            query = trans.sa_session.query(trans.app.model.Job).filter(
+                trans.app.model.Job.user == trans.user
+            )
 
         def build_and_apply_filters(query, objects, filter_func):
             if objects is not None:
@@ -86,32 +81,50 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
                     query = query.filter(or_(*t))
             return query
 
-        query = build_and_apply_filters(query, state, lambda s: trans.app.model.Job.state == s)
+        query = build_and_apply_filters(
+            query, state, lambda s: trans.app.model.Job.state == s
+        )
 
-        query = build_and_apply_filters(query, kwd.get('tool_id', None), lambda t: trans.app.model.Job.tool_id == t)
-        query = build_and_apply_filters(query, kwd.get('tool_id_like', None), lambda t: trans.app.model.Job.tool_id.like(t))
+        query = build_and_apply_filters(
+            query, kwd.get("tool_id", None), lambda t: trans.app.model.Job.tool_id == t
+        )
+        query = build_and_apply_filters(
+            query,
+            kwd.get("tool_id_like", None),
+            lambda t: trans.app.model.Job.tool_id.like(t),
+        )
 
-        query = build_and_apply_filters(query, kwd.get('date_range_min', None), lambda dmin: trans.app.model.Job.table.c.update_time >= dmin)
-        query = build_and_apply_filters(query, kwd.get('date_range_max', None), lambda dmax: trans.app.model.Job.table.c.update_time <= dmax)
+        query = build_and_apply_filters(
+            query,
+            kwd.get("date_range_min", None),
+            lambda dmin: trans.app.model.Job.table.c.update_time >= dmin,
+        )
+        query = build_and_apply_filters(
+            query,
+            kwd.get("date_range_max", None),
+            lambda dmax: trans.app.model.Job.table.c.update_time <= dmax,
+        )
 
-        history_id = kwd.get('history_id', None)
+        history_id = kwd.get("history_id", None)
         if history_id is not None:
             try:
                 decoded_history_id = self.decode_id(history_id)
-                query = query.filter(trans.app.model.Job.history_id == decoded_history_id)
+                query = query.filter(
+                    trans.app.model.Job.history_id == decoded_history_id
+                )
             except Exception:
                 raise exceptions.ObjectAttributeInvalidException()
 
         out = []
-        if kwd.get('order_by') == 'create_time':
+        if kwd.get("order_by") == "create_time":
             order_by = trans.app.model.Job.create_time.desc()
         else:
             order_by = trans.app.model.Job.update_time.desc()
         for job in query.order_by(order_by).all():
-            job_dict = job.to_dict('collection', system_details=is_admin)
+            job_dict = job.to_dict("collection", system_details=is_admin)
             j = self.encode_all_ids(trans, job_dict, True)
             if user_details:
-                j['user_email'] = job.user.email
+                j["user_email"] = job.user.email
             out.append(j)
 
         return out
@@ -134,31 +147,37 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         """
         job = self.__get_job(trans, id)
         is_admin = trans.user_is_admin
-        job_dict = self.encode_all_ids(trans, job.to_dict('element', system_details=is_admin), True)
-        full_output = util.asbool(kwd.get('full', 'false'))
+        job_dict = self.encode_all_ids(
+            trans, job.to_dict("element", system_details=is_admin), True
+        )
+        full_output = util.asbool(kwd.get("full", "false"))
         if full_output:
 
-            job_dict.update(dict(
-                tool_stdout=job.tool_stdout,
-                tool_stderr=job.tool_stderr,
-                job_stdout=job.job_stdout,
-                job_stderr=job.job_stderr,
-                stderr=job.stderr,
-                stdout=job.stdout,
-                job_messages=job.job_messages
-            ))
+            job_dict.update(
+                dict(
+                    tool_stdout=job.tool_stdout,
+                    tool_stderr=job.tool_stderr,
+                    job_stdout=job.job_stdout,
+                    job_stderr=job.job_stderr,
+                    stderr=job.stderr,
+                    stdout=job.stdout,
+                    job_messages=job.job_messages,
+                )
+            )
 
             if is_admin:
                 if job.user:
-                    job_dict['user_email'] = job.user.email
+                    job_dict["user_email"] = job.user.email
                 else:
-                    job_dict['user_email'] = None
+                    job_dict["user_email"] = None
 
                 def metric_to_dict(metric):
                     metric_name = metric.metric_name
                     metric_value = metric.metric_value
                     metric_plugin = metric.plugin
-                    title, value = trans.app.job_metrics.format(metric_plugin, metric_name, metric_value)
+                    title, value = trans.app.job_metrics.format(
+                        metric_plugin, metric_name, metric_value
+                    )
                     return dict(
                         title=title,
                         value=value,
@@ -167,7 +186,7 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
                         raw_value=str(metric_value),
                     )
 
-                job_dict['job_metrics'] = self._metrics_as_dict(trans, job)
+                job_dict["job_metrics"] = self._metrics_as_dict(trans, job)
         return job_dict
 
     @expose_api
@@ -192,7 +211,10 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         # TODO: check percent of failing jobs around a window on job.update_time for handler - report if high.
         # TODO: check percent of failing jobs around a window on job.update_time for destination_id - report if high.
         # TODO: sniff inputs (add flag to allow checking files?)
-        return {"has_empty_inputs": has_empty_inputs, "has_duplicate_inputs": has_duplicate_inputs}
+        return {
+            "has_empty_inputs": has_empty_inputs,
+            "has_duplicate_inputs": has_duplicate_inputs,
+        }
 
     @expose_api
     def inputs(self, trans, id, **kwd):
@@ -208,7 +230,9 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         :returns:   dictionary containing input dataset associations
         """
         job = self.__get_job(trans, id)
-        return self.__dictify_associations(trans, job.input_datasets, job.input_library_datasets)
+        return self.__dictify_associations(
+            trans, job.input_datasets, job.input_library_datasets
+        )
 
     @expose_api
     def outputs(self, trans, id, **kwd):
@@ -224,7 +248,9 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         :returns:   dictionary containing output dataset associations
         """
         job = self.__get_job(trans, id)
-        return self.__dictify_associations(trans, job.output_datasets, job.output_library_datasets)
+        return self.__dictify_associations(
+            trans, job.output_datasets, job.output_library_datasets
+        )
 
     @expose_api
     def delete(self, trans, id, **kwd):
@@ -263,8 +289,12 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         if job.state == job.states.PAUSED:
             job.resume()
         else:
-            exceptions.RequestParameterInvalidException("Job with id '%s' is not paused" % (job.tool_id))
-        return self.__dictify_associations(trans, job.output_datasets, job.output_library_datasets)
+            exceptions.RequestParameterInvalidException(
+                "Job with id '%s' is not paused" % (job.tool_id)
+            )
+        return self.__dictify_associations(
+            trans, job.output_datasets, job.output_library_datasets
+        )
 
     @expose_api_anonymous
     def metrics(self, trans, **kwd):
@@ -288,18 +318,22 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         :returns:   list containing job metrics
         """
         job = self.__get_job(trans, **kwd)
-        if not trans.user_is_admin and not trans.app.config.expose_potentially_sensitive_job_metrics:
+        if (
+            not trans.user_is_admin
+            and not trans.app.config.expose_potentially_sensitive_job_metrics
+        ):
             return []
 
         return self._metrics_as_dict(trans, job)
 
     def _metrics_as_dict(self, trans, job):
-
         def metric_to_dict(metric):
             metric_name = metric.metric_name
             metric_value = metric.metric_value
             metric_plugin = metric.plugin
-            title, value = trans.app.job_metrics.format(metric_plugin, metric_name, metric_value)
+            title, value = trans.app.job_metrics.format(
+                metric_plugin, metric_name, metric_value
+            )
             return dict(
                 title=title,
                 value=value,
@@ -308,7 +342,7 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
                 raw_value=str(metric_value),
             )
 
-        metrics = [m for m in job.metrics if m.plugin != 'env' or trans.user_is_admin]
+        metrics = [m for m in job.metrics if m.plugin != "env" or trans.user_is_admin]
         return list(map(metric_to_dict, metrics))
 
     @expose_api_anonymous
@@ -341,7 +375,9 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         """
         job = self.__get_job(trans, **kwd)
 
-        def inputs_recursive(input_params, param_values, depth=1, upgrade_messages=None):
+        def inputs_recursive(
+            input_params, param_values, depth=1, upgrade_messages=None
+        ):
             if upgrade_messages is None:
                 upgrade_messages = {}
 
@@ -351,32 +387,81 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
                 if input.name in param_values:
                     if input.type == "repeat":
                         for i in range(len(param_values[input.name])):
-                            rval.extend(inputs_recursive(input.inputs, param_values[input.name][i], depth=depth + 1))
+                            rval.extend(
+                                inputs_recursive(
+                                    input.inputs,
+                                    param_values[input.name][i],
+                                    depth=depth + 1,
+                                )
+                            )
                     elif input.type == "section":
                         # Get the value of the current Section parameter
                         rval.append(dict(text=input.name, depth=depth))
-                        rval.extend(inputs_recursive(input.inputs, param_values[input.name], depth=depth + 1, upgrade_messages=upgrade_messages.get(input.name)))
+                        rval.extend(
+                            inputs_recursive(
+                                input.inputs,
+                                param_values[input.name],
+                                depth=depth + 1,
+                                upgrade_messages=upgrade_messages.get(input.name),
+                            )
+                        )
                     elif input.type == "conditional":
                         try:
-                            current_case = param_values[input.name]['__current_case__']
+                            current_case = param_values[input.name]["__current_case__"]
                             is_valid = True
                         except Exception:
                             current_case = None
                             is_valid = False
                         if is_valid:
-                            rval.append(dict(text=input.test_param.label, depth=depth, value=input.cases[current_case].value))
-                            rval.extend(inputs_recursive(input.cases[current_case].inputs, param_values[input.name], depth=depth + 1, upgrade_messages=upgrade_messages.get(input.name)))
+                            rval.append(
+                                dict(
+                                    text=input.test_param.label,
+                                    depth=depth,
+                                    value=input.cases[current_case].value,
+                                )
+                            )
+                            rval.extend(
+                                inputs_recursive(
+                                    input.cases[current_case].inputs,
+                                    param_values[input.name],
+                                    depth=depth + 1,
+                                    upgrade_messages=upgrade_messages.get(input.name),
+                                )
+                            )
                         else:
-                            rval.append(dict(text=input.name, depth=depth, notes="The previously used value is no longer valid.", error=True))
+                            rval.append(
+                                dict(
+                                    text=input.name,
+                                    depth=depth,
+                                    notes="The previously used value is no longer valid.",
+                                    error=True,
+                                )
+                            )
                     elif input.type == "upload_dataset":
-                        rval.append(dict(text=input.group_title(param_values), depth=depth, value="%s uploaded datasets" % len(param_values[input.name])))
+                        rval.append(
+                            dict(
+                                text=input.group_title(param_values),
+                                depth=depth,
+                                value="%s uploaded datasets"
+                                % len(param_values[input.name]),
+                            )
+                        )
                     elif input.type == "data":
                         value = []
-                        for i, element in enumerate(util.listify(param_values[input.name])):
+                        for i, element in enumerate(
+                            util.listify(param_values[input.name])
+                        ):
                             if element.history_content_type == "dataset":
                                 hda = element
                                 encoded_id = trans.security.encode_id(hda.id)
-                                value.append({"src": "hda", "id": encoded_id, "hid": hda.hid, "name": hda.name})
+                                value.append(
+                                    {
+                                        "src": "hda",
+                                        "id": encoded_id,
+                                        "hid": hda.hid,
+                                        "name": hda.name,
+                                    }
+                                )
                             else:
                                 value.append({"hid": element.hid, "name": element.name})
                         rval.append(dict(text=input.label, depth=depth, value=value))
@@ -386,7 +471,16 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
                         else:
                             # value for label not required, fallback to input name (same as tool panel)
                             label = input.name
-                        rval.append(dict(text=label, depth=depth, value=input.value_to_display_text(param_values[input.name]), notes=upgrade_messages.get(input.name, '')))
+                        rval.append(
+                            dict(
+                                text=label,
+                                depth=depth,
+                                value=input.value_to_display_text(
+                                    param_values[input.name]
+                                ),
+                                notes=upgrade_messages.get(input.name, ""),
+                            )
+                        )
                 else:
                     # Parameter does not have a stored value.
                     # Get parameter label.
@@ -396,14 +490,20 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
                         label = input.label()
                     else:
                         label = input.label or input.name
-                    rval.append(dict(text=label, depth=depth, notes="not used (parameter was added after this job was run)"))
+                    rval.append(
+                        dict(
+                            text=label,
+                            depth=depth,
+                            notes="not used (parameter was added after this job was run)",
+                        )
+                    )
 
             return rval
 
         # Load the tool
         toolbox = self.app.toolbox
         tool = toolbox.get_tool(job.tool_id, job.tool_version)
-        assert tool is not None, 'Requested tool has not been loaded.'
+        assert tool is not None, "Requested tool has not been loaded."
 
         params_objects = None
         upgrade_messages = {}
@@ -415,12 +515,16 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         except Exception:
             params_objects = job.get_param_values(self.app, ignore_errors=True)
             # use different param_objects in the following line, since we want to display original values as much as possible
-            upgrade_messages = tool.check_and_update_param_values(job.get_param_values(self.app, ignore_errors=True),
-                                                                  trans,
-                                                                  update_values=False)
+            upgrade_messages = tool.check_and_update_param_values(
+                job.get_param_values(self.app, ignore_errors=True),
+                trans,
+                update_values=False,
+            )
             has_parameter_errors = True
 
-        parameters = inputs_recursive(tool.inputs, params_objects, depth=1, upgrade_messages=upgrade_messages)
+        parameters = inputs_recursive(
+            tool.inputs, params_objects, depth=1, upgrade_messages=upgrade_messages
+        )
         return {"parameters": parameters, "has_parameter_errors": has_parameter_errors}
 
     @expose_api_anonymous
@@ -441,11 +545,15 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         job = self.__get_job(trans, id)
         if not job:
             raise exceptions.ObjectNotFound("Could not access job with id '%s'" % id)
-        tool = self.app.toolbox.get_tool(job.tool_id, kwd.get('tool_version') or job.tool_version)
+        tool = self.app.toolbox.get_tool(
+            job.tool_id, kwd.get("tool_version") or job.tool_version
+        )
         if tool is None:
             raise exceptions.ObjectNotFound("Requested tool not found")
         if not tool.is_workflow_compatible:
-            raise exceptions.ConfigDoesNotAllowException("Tool '%s' cannot be rerun." % (job.tool_id))
+            raise exceptions.ConfigDoesNotAllowException(
+                "Tool '%s' cannot be rerun." % (job.tool_id)
+            )
         return tool.to_json(trans, {}, job=job)
 
     def __dictify_associations(self, trans, *association_lists):
@@ -474,13 +582,15 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         else:
             hda_ldda = kwd.get("hda_ldda", "hda")
             # Following checks dataset accessible
-            dataset_instance = self.get_hda_or_ldda(trans, hda_ldda=hda_ldda, dataset_id=dataset_id)
+            dataset_instance = self.get_hda_or_ldda(
+                trans, hda_ldda=hda_ldda, dataset_id=dataset_id
+            )
             return dataset_instance.creating_job
 
     @expose_api
     def create(self, trans, payload, **kwd):
         """ See the create method in tools.py in order to submit a job. """
-        raise exceptions.NotImplemented('Please POST to /api/tools instead.')
+        raise exceptions.NotImplemented("Please POST to /api/tools instead.")
 
     @expose_api
     def search(self, trans, payload, **kwd):
@@ -500,35 +610,46 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         the exact some input parameters and datasets. This can be used to minimize the amount of repeated work, and simply
         recycle the old results.
         """
-        tool_id = payload.get('tool_id')
+        tool_id = payload.get("tool_id")
         if tool_id is None:
             raise exceptions.ObjectAttributeMissingException("No tool id")
         tool = trans.app.toolbox.get_tool(tool_id)
         if tool is None:
             raise exceptions.ObjectNotFound("Requested tool not found")
-        if 'inputs' not in payload:
+        if "inputs" not in payload:
             raise exceptions.ObjectAttributeMissingException("No inputs defined")
-        inputs = payload.get('inputs', {})
+        inputs = payload.get("inputs", {})
         # Find files coming in as multipart file data and add to inputs.
         for k, v in payload.items():
-            if k.startswith('files_') or k.startswith('__files_'):
+            if k.startswith("files_") or k.startswith("__files_"):
                 inputs[k] = v
-        request_context = WorkRequestContext(app=trans.app, user=trans.user, history=trans.history)
-        all_params, all_errors, _, _ = tool.expand_incoming(trans=trans, incoming=inputs, request_context=request_context)
+        request_context = WorkRequestContext(
+            app=trans.app, user=trans.user, history=trans.history
+        )
+        all_params, all_errors, _, _ = tool.expand_incoming(
+            trans=trans, incoming=inputs, request_context=request_context
+        )
         if any(all_errors):
             return []
-        params_dump = [tool.params_to_strings(param, self.app, nested=True) for param in all_params]
+        params_dump = [
+            tool.params_to_strings(param, self.app, nested=True) for param in all_params
+        ]
         jobs = []
         for param_dump, param in zip(params_dump, all_params):
-            job = self.job_search.by_tool_input(trans=trans,
-                                                tool_id=tool_id,
-                                                tool_version=tool.version,
-                                                param=param,
-                                                param_dump=param_dump,
-                                                job_state=payload.get('state'))
+            job = self.job_search.by_tool_input(
+                trans=trans,
+                tool_id=tool_id,
+                tool_version=tool.version,
+                param=param,
+                param_dump=param_dump,
+                job_state=payload.get("state"),
+            )
             if job:
                 jobs.append(job)
-        return [self.encode_all_ids(trans, single_job.to_dict('element'), True) for single_job in jobs]
+        return [
+            self.encode_all_ids(trans, single_job.to_dict("element"), True)
+            for single_job in jobs
+        ]
 
     @expose_api_anonymous
     def error(self, trans, id, **kwd):
@@ -545,15 +666,20 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
         """
         # Get dataset on which this error was triggered
         try:
-            decoded_dataset_id = self.decode_id(kwd['dataset_id'])
+            decoded_dataset_id = self.decode_id(kwd["dataset_id"])
         except Exception:
             raise exceptions.MalformedId()
-        dataset = trans.sa_session.query(trans.app.model.HistoryDatasetAssociation).get(decoded_dataset_id)
+        dataset = trans.sa_session.query(trans.app.model.HistoryDatasetAssociation).get(
+            decoded_dataset_id
+        )
 
         # Get job
         job = self.__get_job(trans, id)
-        tool = trans.app.toolbox.get_tool(job.tool_id, tool_version=job.tool_version) or None
-        email = kwd.get('email')
+        tool = (
+            trans.app.toolbox.get_tool(job.tool_id, tool_version=job.tool_version)
+            or None
+        )
+        email = kwd.get("email")
         if not email and not trans.anonymous:
             email = trans.user.email
         messages = trans.app.error_reports.default_error_plugin.submit_report(
@@ -563,7 +689,7 @@ class JobController(BaseAPIController, UsesVisualizationMixin):
             user_submission=True,
             user=trans.user,
             email=email,
-            message=kwd.get('message')
+            message=kwd.get("message"),
         )
 
-        return {'messages': messages}
+        return {"messages": messages}

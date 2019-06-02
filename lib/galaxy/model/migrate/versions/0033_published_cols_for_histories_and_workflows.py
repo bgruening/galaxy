@@ -22,8 +22,8 @@ def upgrade(migrate_engine):
     # Create published column in history table.
     History_table = Table("history", metadata, autoload=True)
     c = Column("published", Boolean, index=True)
-    add_column(c, History_table, index_name='ix_history_published')
-    if migrate_engine.name != 'sqlite':
+    add_column(c, History_table, index_name="ix_history_published")
+    if migrate_engine.name != "sqlite":
         # Create index for published column in history table.
         try:
             i = Index("ix_history_published", History_table.c.published)
@@ -35,8 +35,8 @@ def upgrade(migrate_engine):
     # Create published column in stored workflows table.
     StoredWorkflow_table = Table("stored_workflow", metadata, autoload=True)
     c = Column("published", Boolean, index=True)
-    add_column(c, StoredWorkflow_table, index_name='ix_stored_workflow_published')
-    if migrate_engine.name != 'sqlite':
+    add_column(c, StoredWorkflow_table, index_name="ix_stored_workflow_published")
+    if migrate_engine.name != "sqlite":
         # Create index for published column in stored workflows table.
         try:
             i = Index("ix_stored_workflow_published", StoredWorkflow_table.c.published)
@@ -48,8 +48,8 @@ def upgrade(migrate_engine):
     # Create importable column in page table.
     Page_table = Table("page", metadata, autoload=True)
     c = Column("importable", Boolean, index=True)
-    add_column(c, Page_table, index_name='ix_page_importable')
-    if migrate_engine.name != 'sqlite':
+    add_column(c, Page_table, index_name="ix_page_importable")
+    if migrate_engine.name != "sqlite":
         # Create index for importable column in page table.
         try:
             i = Index("ix_page_importable", Page_table.c.importable)
@@ -63,6 +63,6 @@ def downgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
 
-    drop_column('published', 'history', metadata)
-    drop_column('published', 'stored_workflow', metadata)
-    drop_column('importable', 'page', metadata)
+    drop_column("published", "history", metadata)
+    drop_column("published", "stored_workflow", metadata)
+    drop_column("importable", "page", metadata)

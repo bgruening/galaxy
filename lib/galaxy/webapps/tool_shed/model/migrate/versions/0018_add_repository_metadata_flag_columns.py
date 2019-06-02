@@ -29,9 +29,9 @@ def upgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
     # Initialize.
-    if migrate_engine.name == 'mysql' or migrate_engine.name == 'sqlite':
+    if migrate_engine.name == "mysql" or migrate_engine.name == "sqlite":
         default_false = "0"
-    elif migrate_engine.name in ['postgresql', 'postgres']:
+    elif migrate_engine.name in ["postgresql", "postgres"]:
         default_false = "false"
 
     try:
@@ -47,7 +47,9 @@ def upgrade(migrate_engine):
             col = RepositoryMetadata_table.c.tool_test_errors
             col.drop()
         except Exception:
-            log.exception("Dropping column 'tool_test_errors' from repository_metadata table failed.")
+            log.exception(
+                "Dropping column 'tool_test_errors' from repository_metadata table failed."
+            )
 
         # Create the tool_test_results column to replace the ill-named tool_test_errors column just dropped above.
         c = Column("tool_test_results", JSONType, nullable=True)
@@ -55,16 +57,23 @@ def upgrade(migrate_engine):
             c.create(RepositoryMetadata_table)
             assert c is RepositoryMetadata_table.c.tool_test_results
         except Exception:
-            log.exception("Adding tool_test_results column to the repository_metadata table failed.")
+            log.exception(
+                "Adding tool_test_results column to the repository_metadata table failed."
+            )
 
         # Create the missing_test_components column.
         c = Column("missing_test_components", Boolean, default=False, index=True)
         try:
             c.create(RepositoryMetadata_table, index_name="ix_repository_metadata_mtc")
             assert c is RepositoryMetadata_table.c.missing_test_components
-            migrate_engine.execute("UPDATE repository_metadata SET missing_test_components=%s" % default_false)
+            migrate_engine.execute(
+                "UPDATE repository_metadata SET missing_test_components=%s"
+                % default_false
+            )
         except Exception:
-            log.exception("Adding missing_test_components column to the repository_metadata table failed.")
+            log.exception(
+                "Adding missing_test_components column to the repository_metadata table failed."
+            )
 
 
 def downgrade(migrate_engine):
@@ -77,13 +86,17 @@ def downgrade(migrate_engine):
     try:
         RepositoryMetadata_table.c.missing_test_components.drop()
     except Exception:
-        log.exception("Dropping column missing_test_components from the repository_metadata table failed.")
+        log.exception(
+            "Dropping column missing_test_components from the repository_metadata table failed."
+        )
 
     # Drop the tool_test_results column.
     try:
         RepositoryMetadata_table.c.tool_test_results.drop()
     except Exception:
-        log.exception("Dropping column tool_test_results from the repository_metadata table failed.")
+        log.exception(
+            "Dropping column tool_test_results from the repository_metadata table failed."
+        )
 
     # Create the tool_test_errors column.
     c = Column("tool_test_errors", JSONType, nullable=True)
@@ -91,4 +104,6 @@ def downgrade(migrate_engine):
         c.create(RepositoryMetadata_table)
         assert c is RepositoryMetadata_table.c.tool_test_errors
     except Exception:
-        log.exception("Adding tool_test_errors column to the repository_metadata table failed.")
+        log.exception(
+            "Adding tool_test_errors column to the repository_metadata table failed."
+        )

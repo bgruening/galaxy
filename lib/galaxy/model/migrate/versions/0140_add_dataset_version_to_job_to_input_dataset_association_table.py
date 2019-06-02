@@ -19,11 +19,15 @@ def upgrade(migrate_engine):
 
     # Add the version column to the job_to_input_dataset table
     try:
-        job_to_input_dataset_table = Table("job_to_input_dataset", metadata, autoload=True)
+        job_to_input_dataset_table = Table(
+            "job_to_input_dataset", metadata, autoload=True
+        )
         dataset_version_column.create(job_to_input_dataset_table)
         assert dataset_version_column is job_to_input_dataset_table.c.dataset_version
     except Exception:
-        log.exception("Adding column 'dataset_history_id' to job_to_input_dataset table failed.")
+        log.exception(
+            "Adding column 'dataset_history_id' to job_to_input_dataset table failed."
+        )
 
 
 def downgrade(migrate_engine):
@@ -33,8 +37,12 @@ def downgrade(migrate_engine):
 
     # Drop the job_to_input_dataset table's version column.
     try:
-        job_to_input_dataset_table = Table("job_to_input_dataset", metadata, autoload=True)
+        job_to_input_dataset_table = Table(
+            "job_to_input_dataset", metadata, autoload=True
+        )
         dataset_version_column = job_to_input_dataset_table.c.dataset_version
         dataset_version_column.drop()
     except Exception:
-        log.exception("Dropping 'dataset_version' column from job_to_input_dataset table failed.")
+        log.exception(
+            "Dropping 'dataset_version' column from job_to_input_dataset table failed."
+        )

@@ -5,11 +5,7 @@ import logging
 import os
 import shutil
 
-from galaxy import (
-    exceptions,
-    model,
-    util
-)
+from galaxy import exceptions, model, util
 from galaxy.web import (
     expose_api_anonymous_and_sessionless,
     expose_api_raw_anonymous_and_sessionless,
@@ -55,7 +51,7 @@ class JobFilesAPIController(BaseAPIController):
         """
         self.__authorize_job_access(trans, job_id, **kwargs)
         path = kwargs.get("path", None)
-        return open(path, 'rb')
+        return open(path, "rb")
 
     @expose_api_anonymous_and_sessionless
     def create(self, trans, job_id, payload, **kwargs):
@@ -86,19 +82,21 @@ class JobFilesAPIController(BaseAPIController):
         self.__check_job_can_write_to_path(trans, job, path)
 
         # Is this writing an unneeded file? Should this just copy in Python?
-        if '__file_path' in payload:
-            file_path = payload.get('__file_path')
+        if "__file_path" in payload:
+            file_path = payload.get("__file_path")
             upload_store = trans.app.config.nginx_upload_job_files_store
-            assert upload_store, ("Request appears to have been processed by"
-                                  " nginx_upload_module but Galaxy is not"
-                                  " configured to recognize it")
-            assert file_path.startswith(upload_store), \
-                ("Filename provided by nginx (%s) is not in correct"
-                 " directory (%s)" % (file_path, upload_store))
+            assert upload_store, (
+                "Request appears to have been processed by"
+                " nginx_upload_module but Galaxy is not"
+                " configured to recognize it"
+            )
+            assert file_path.startswith(upload_store), (
+                "Filename provided by nginx (%s) is not in correct"
+                " directory (%s)" % (file_path, upload_store)
+            )
             input_file = open(file_path)
         else:
-            input_file = payload.get("file",
-                                     payload.get("__file", None)).file
+            input_file = payload.get("file", payload.get("__file", None)).file
         try:
             shutil.move(input_file.name, path)
         finally:
@@ -139,8 +137,14 @@ class JobFilesAPIController(BaseAPIController):
         """
         in_work_dir = self.__in_working_directory(job, path, trans.app)
         allow_temp_dir_file = self.__is_allowed_temp_dir_file(trans.app, job, path)
-        if not in_work_dir and not allow_temp_dir_file and not self.__is_output_dataset_path(job, path):
-            raise exceptions.ItemAccessibilityException("Job is not authorized to write to supplied path.")
+        if (
+            not in_work_dir
+            and not allow_temp_dir_file
+            and not self.__is_output_dataset_path(job, path)
+        ):
+            raise exceptions.ItemAccessibilityException(
+                "Job is not authorized to write to supplied path."
+            )
 
     def __is_allowed_temp_dir_file(self, app, job, path):
         # grrr.. need to get away from new_file_path - these should be written
@@ -165,5 +169,7 @@ class JobFilesAPIController(BaseAPIController):
         return False
 
     def __in_working_directory(self, job, path, app):
-        working_directory = app.object_store.get_filename(job, base_dir='job_work', dir_only=True, extra_dir=str(job.id))
+        working_directory = app.object_store.get_filename(
+            job, base_dir="job_work", dir_only=True, extra_dir=str(job.id)
+        )
         return util.in_directory(path, working_directory)

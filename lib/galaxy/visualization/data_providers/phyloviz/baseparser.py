@@ -11,7 +11,10 @@ class Node(object):
         self.children = []
 
         self.isInternal = kwargs.get("isInternal", 0)
-        self.length, self.bootstrap = kwargs.get("length", 0), kwargs.get("bootstrap", None)
+        self.length, self.bootstrap = (
+            kwargs.get("length", 0),
+            kwargs.get("bootstrap", None),
+        )
         self.events = kwargs.get("events", "")
 
         # clean up boot strap values
@@ -31,10 +34,10 @@ class Node(object):
     def toJson(self):
         """Converts the data in the node to a dict representation of json"""
         thisJson = {
-            "name"      : self.name,
-            "id"        : self.id,
-            "depth"     : self.depth,
-            "dist"      : self.length
+            "name": self.name,
+            "id": self.id,
+            "depth": self.depth,
+            "dist": self.length,
         }
         thisJson = self.addChildrenToJson(thisJson)
         thisJson = self.addMiscToJson(thisJson)

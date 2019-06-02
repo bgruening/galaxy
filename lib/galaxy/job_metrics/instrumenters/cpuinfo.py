@@ -12,7 +12,6 @@ PROCESSOR_LINE = re.compile(r"processor\s*\:\s*(\d+)")
 
 
 class CpuInfoFormatter(formatting.JobMetricFormatter):
-
     def format(self, key, value):
         if key == "processor_count":
             return "Processor Count", "%s" % int(value)
@@ -24,6 +23,7 @@ class CpuInfoPlugin(InstrumentPlugin):
     """ Gather information about processor configuration from /proc/cpuinfo.
     Linux only.
     """
+
     plugin_type = "cpuinfo"
     formatter = CpuInfoFormatter()
 
@@ -31,7 +31,9 @@ class CpuInfoPlugin(InstrumentPlugin):
         self.verbose = util.asbool(kwargs.get("verbose", False))
 
     def pre_execute_instrument(self, job_directory):
-        return "cat /proc/cpuinfo > '%s'" % self.__instrument_cpuinfo_path(job_directory)
+        return "cat /proc/cpuinfo > '%s'" % self.__instrument_cpuinfo_path(
+            job_directory
+        )
 
     def job_properties(self, job_id, job_directory):
         properties = {}
@@ -60,4 +62,4 @@ class CpuInfoPlugin(InstrumentPlugin):
         return self._instrument_file_path(job_directory, "cpuinfo")
 
 
-__all__ = ('CpuInfoPlugin', )
+__all__ = ("CpuInfoPlugin",)

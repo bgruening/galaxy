@@ -37,4 +37,6 @@ def downgrade(migrate_engine):
         copied_from_job_id = jobs_table.c.copied_from_job_id
         copied_from_job_id.drop()
     except Exception:
-        log.exception("Dropping 'copied_from_job_id_column' column from job table failed.")
+        log.exception(
+            "Dropping 'copied_from_job_id_column' column from job table failed."
+        )

@@ -1,10 +1,6 @@
 import os
 import tempfile
-from abc import (
-    ABCMeta,
-    abstractmethod,
-    abstractproperty,
-)
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 import six
 

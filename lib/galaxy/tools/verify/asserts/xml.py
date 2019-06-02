@@ -27,7 +27,9 @@ def assert_is_valid_xml(output):
         to_xml(output)
     except Exception as e:
         # TODO: Narrow caught exception to just parsing failure
-        raise AssertionError("Expected valid XML, but could not parse output. %s" % str(e))
+        raise AssertionError(
+            "Expected valid XML, but could not parse output. %s" % str(e)
+        )
 
 
 def assert_has_element_with_path(output, path):
@@ -36,7 +38,10 @@ def assert_has_element_with_path(output, path):
     simplified subsets of XPath implemented by xml.etree;
     http://effbot.org/zone/element-xpath.htm for more information."""
     if xml_find(output, path) is None:
-        errmsg = "Expected to find XML element matching expression %s, not such match was found." % path
+        errmsg = (
+            "Expected to find XML element matching expression %s, not such match was found."
+            % path
+        )
         raise AssertionError(errmsg)
 
 
@@ -47,7 +52,11 @@ def assert_has_n_elements_with_path(output, path, n):
     n = int(n)
     num_elements = len(xml.findall(path))
     if num_elements != n:
-        errmsg = "Expected to find %d elements with path %s, but %d were found." % (n, path, num_elements)
+        errmsg = "Expected to find %d elements with path %s, but %d were found." % (
+            n,
+            path,
+            num_elements,
+        )
         raise AssertionError(errmsg)
 
 
@@ -56,7 +65,10 @@ def assert_element_text_matches(output, path, expression):
     path matches the specified regular expression."""
     text = xml_find_text(output, path)
     if re.match(expression, text) is None:
-        errmsg = "Expected element with path '%s' to contain text matching '%s', instead text '%s' was found." % (path, expression, text)
+        errmsg = (
+            "Expected element with path '%s' to contain text matching '%s', instead text '%s' was found."
+            % (path, expression, text)
+        )
         raise AssertionError(errmsg)
 
 
@@ -72,7 +84,10 @@ def assert_attribute_matches(output, path, attribute, expression):
     xml = xml_find(output, path)
     attribute_value = xml.attrib[attribute]
     if re.match(expression, attribute_value) is None:
-        errmsg = "Expected attribute '%s' on element with path '%s' to match '%s', instead attribute value was '%s'." % (attribute, path, expression, attribute_value)
+        errmsg = (
+            "Expected attribute '%s' on element with path '%s' to match '%s', instead attribute value was '%s'."
+            % (attribute, path, expression, attribute_value)
+        )
         raise AssertionError(errmsg)
 
 

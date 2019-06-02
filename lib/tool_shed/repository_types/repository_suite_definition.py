@@ -2,20 +2,16 @@ import logging
 
 import tool_shed.repository_types.util as rt_util
 from tool_shed.repository_types.metadata import TipOnly
-from tool_shed.util import (
-    basic_util,
-    hg_util
-)
+from tool_shed.util import basic_util, hg_util
 
 log = logging.getLogger(__name__)
 
 
 class RepositorySuiteDefinition(TipOnly):
-
     def __init__(self):
         self.type = rt_util.REPOSITORY_SUITE_DEFINITION
-        self.label = 'Repository suite definition'
-        self.valid_file_names = ['repository_dependencies.xml']
+        self.label = "Repository suite definition"
+        self.valid_file_names = ["repository_dependencies.xml"]
 
     def is_valid_for_type(self, app, repository, revisions_to_check=None):
         """

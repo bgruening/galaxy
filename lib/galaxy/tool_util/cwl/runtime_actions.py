@@ -4,14 +4,8 @@ import shutil
 
 from galaxy.util import safe_makedirs
 from .cwltool_deps import ref_resolver
-from .parser import (
-    JOB_JSON_FILE,
-    load_job_proxy,
-)
-from .util import (
-    SECONDARY_FILES_INDEX_PATH,
-    STORE_SECONDARY_FILES_WITH_BASENAME,
-)
+from .parser import JOB_JSON_FILE, load_job_proxy
+from .util import SECONDARY_FILES_INDEX_PATH, STORE_SECONDARY_FILES_WITH_BASENAME
 
 
 class FileDescription(object):
@@ -19,7 +13,6 @@ class FileDescription(object):
 
 
 class PathFileDescription(object):
-
     def __init__(self, path):
         self.path = path
 
@@ -29,7 +22,6 @@ class PathFileDescription(object):
 
 
 class LiteralFileDescription(object):
-
     def __init__(self, content):
         self.content = content
 
@@ -84,7 +76,9 @@ def handle_outputs(job_directory=None):
                 # TODO: handle directories
                 assert listed_file["class"] == "File"
                 file_description = file_dict_to_description(listed_file)
-                file_description.write_to(os.path.join(target_path, listed_file["basename"]))
+                file_description.write_to(
+                    os.path.join(target_path, listed_file["basename"])
+                )
         else:
             shutil.move(output_path, target_path)
         return {"cwl_filename": output["basename"]}
@@ -98,13 +92,13 @@ def handle_outputs(job_directory=None):
         if secondary_files:
 
             order = []
-            index_contents = {
-                "order": order
-            }
+            index_contents = {"order": order}
 
             for secondary_file in secondary_files:
                 if output_name is None:
-                    raise NotImplementedError("secondaryFiles are unimplemented for dynamic list elements")
+                    raise NotImplementedError(
+                        "secondaryFiles are unimplemented for dynamic list elements"
+                    )
 
                 # TODO: handle nested files...
                 secondary_file_description = file_dict_to_description(secondary_file)
@@ -116,7 +110,9 @@ def handle_outputs(job_directory=None):
                     prefix = ""
                     while True:
                         if secondary_file_basename.startswith(output_basename):
-                            secondary_file_name = prefix + secondary_file_basename[len(output_basename):]
+                            secondary_file_name = (
+                                prefix + secondary_file_basename[len(output_basename) :]
+                            )
                             break
                         prefix = "^%s" % prefix
                         if "." not in output_basename:
@@ -134,7 +130,9 @@ def handle_outputs(job_directory=None):
                 secondary_file_description.write_to(extra_target)
                 order.append(secondary_file_name)
 
-            with open(os.path.join(secondary_files_dir, "..", SECONDARY_FILES_INDEX_PATH), "w") as f:
+            with open(
+                os.path.join(secondary_files_dir, "..", SECONDARY_FILES_INDEX_PATH), "w"
+            ) as f:
                 json.dump(index_contents, f)
 
         return {"cwl_filename": output["basename"]}
@@ -170,25 +168,33 @@ def handle_outputs(job_directory=None):
             for index, el in enumerate(output):
                 if isinstance(el, dict) and el["class"] == "File":
                     output_path = _possible_uri_to_path(el["location"])
-                    elements.append({"name": str(index), "filename": output_path, "cwl_filename": el["basename"]})
+                    elements.append(
+                        {
+                            "name": str(index),
+                            "filename": output_path,
+                            "cwl_filename": el["basename"],
+                        }
+                    )
                 else:
                     target_path = "%s____%s" % (output_name, str(index))
                     with open(target_path, "w") as f:
                         f.write(json.dumps(el))
-                    elements.append({"name": str(index), "filename": target_path, "ext": "expression.json"})
+                    elements.append(
+                        {
+                            "name": str(index),
+                            "filename": target_path,
+                            "ext": "expression.json",
+                        }
+                    )
             provided_metadata[output_name] = {"elements": elements}
         else:
             target_path = job_proxy.output_path(output_name)
             with open(target_path, "w") as f:
                 f.write(json.dumps(output))
-            provided_metadata[output_name] = {
-                "ext": "expression.json",
-            }
+            provided_metadata[output_name] = {"ext": "expression.json"}
 
     with open("galaxy.json", "w") as f:
         json.dump(provided_metadata, f)
 
 
-__all__ = (
-    'handle_outputs',
-)
+__all__ = ("handle_outputs",)

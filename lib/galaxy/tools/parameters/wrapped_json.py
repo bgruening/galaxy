@@ -68,8 +68,10 @@ def _json_wrap_input(input, value, handle_files="skip"):
                     value = value[0]
                 json_value = _hda_to_object(value)
                 if input.load_contents:
-                    with open(str(value), mode='rb') as fh:
-                        json_value['contents'] = fh.read(input.load_contents).decode('utf-8', errors='replace')
+                    with open(str(value), mode="rb") as fh:
+                        json_value["contents"] = fh.read(input.load_contents).decode(
+                            "utf-8", errors="replace"
+                        )
                 return json_value
             else:
                 return None
@@ -105,21 +107,21 @@ def _hda_to_object(hda):
 
     for key, value in hda_dict.items():
         if key.startswith("metadata_"):
-            metadata_dict[key[len("metadata_"):]] = value
+            metadata_dict[key[len("metadata_") :]] = value
 
     return {
-        'file_ext': hda_dict['file_ext'],
-        'name': hda_dict['name'],
-        'metadata': metadata_dict,
+        "file_ext": hda_dict["file_ext"],
+        "name": hda_dict["name"],
+        "metadata": metadata_dict,
     }
 
 
 def _cast_if_not_none(value, cast_to, empty_to_none=False):
     # log.debug("value [%s], type[%s]" % (value, type(value)))
-    if value is None or (empty_to_none and str(value) == ''):
+    if value is None or (empty_to_none and str(value) == ""):
         return None
     else:
         return cast_to(value)
 
 
-__all__ = ('json_wrap', )
+__all__ = ("json_wrap",)

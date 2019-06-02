@@ -16,7 +16,7 @@ Contents:
 from functools import reduce
 
 __version__ = "0.1.2"
-__author__ = 'Joe Gregorio'
+__author__ = "Joe Gregorio"
 __email__ = "joe@bitworking.org"
 __credits__ = ""
 
@@ -35,8 +35,8 @@ def parse_mime_type(mime_type):
     full_type = parts[0].strip()
     # Java URLConnection class sends an Accept header that includes a single "*"
     # Turn it into a legal wildcard.
-    if full_type == '*':
-        full_type = '*/*'
+    if full_type == "*":
+        full_type = "*/*"
     (type, subtype) = full_type.split("/")
     return (type.strip(), subtype.strip(), params)
 
@@ -58,10 +58,14 @@ def parse_media_range(range):
     in with a proper default if necessary.
     """
     (type, subtype, params) = parse_mime_type(range)
-    if 'q' not in params or not params['q'] or \
-            not float(params['q']) or float(params['q']) > 1\
-            or float(params['q']) < 0:
-        params['q'] = '1'
+    if (
+        "q" not in params
+        or not params["q"]
+        or not float(params["q"])
+        or float(params["q"]) > 1
+        or float(params["q"]) < 0
+    ):
+        params["q"] = "1"
     return (type, subtype, params)
 
 
@@ -75,20 +79,26 @@ def fitness_and_quality_parsed(mime_type, parsed_ranges):
        must be a list of parsed media ranges. """
     best_fitness = -1
     best_fit_q = 0
-    (target_type, target_subtype, target_params) =\
-        parse_media_range(mime_type)
+    (target_type, target_subtype, target_params) = parse_media_range(mime_type)
     for (type, subtype, params) in parsed_ranges:
-        if (type == target_type or type == '*' or target_type == '*') and \
-                (subtype == target_subtype or subtype == '*' or target_subtype == '*'):
-            param_matches = reduce(lambda x, y: x + y, [1 for (key, value) in
-                                   target_params.items() if key != 'q' and
-                                   key in params and value == params[key]], 0)
+        if (type == target_type or type == "*" or target_type == "*") and (
+            subtype == target_subtype or subtype == "*" or target_subtype == "*"
+        ):
+            param_matches = reduce(
+                lambda x, y: x + y,
+                [
+                    1
+                    for (key, value) in target_params.items()
+                    if key != "q" and key in params and value == params[key]
+                ],
+                0,
+            )
             fitness = (type == target_type) and 100 or 0
             fitness += (subtype == target_subtype) and 10 or 0
             fitness += param_matches
             if fitness > best_fitness:
                 best_fitness = fitness
-                best_fit_q = params['q']
+                best_fit_q = params["q"]
 
     return best_fitness, float(best_fit_q)
 
@@ -127,26 +137,44 @@ def best_match(supported, header):
     'text/xml'
     """
     parsed_header = [parse_media_range(r) for r in header.split(",")]
-    weighted_matches = [(fitness_and_quality_parsed(mime_type, parsed_header), mime_type)
-                        for mime_type in supported]
+    weighted_matches = [
+        (fitness_and_quality_parsed(mime_type, parsed_header), mime_type)
+        for mime_type in supported
+    ]
     weighted_matches.sort()
-    return weighted_matches[-1][0][1] and weighted_matches[-1][1] or ''
+    return weighted_matches[-1][0][1] and weighted_matches[-1][1] or ""
 
 
 if __name__ == "__main__":
     import unittest
 
     class TestMimeParsing(unittest.TestCase):
-
         def test_parse_media_range(self):
-            self.assert_(('application', 'xml', {'q': '1'}) == parse_media_range('application/xml;q=1'))
-            self.assertEqual(('application', 'xml', {'q': '1'}), parse_media_range('application/xml'))
-            self.assertEqual(('application', 'xml', {'q': '1'}), parse_media_range('application/xml;q='))
-            self.assertEqual(('application', 'xml', {'q': '1'}), parse_media_range('application/xml ; q='))
-            self.assertEqual(('application', 'xml', {'q': '1', 'b': 'other'}), parse_media_range('application/xml ; q=1;b=other'))
-            self.assertEqual(('application', 'xml', {'q': '1', 'b': 'other'}), parse_media_range('application/xml ; q=2;b=other'))
+            self.assert_(
+                ("application", "xml", {"q": "1"})
+                == parse_media_range("application/xml;q=1")
+            )
+            self.assertEqual(
+                ("application", "xml", {"q": "1"}), parse_media_range("application/xml")
+            )
+            self.assertEqual(
+                ("application", "xml", {"q": "1"}),
+                parse_media_range("application/xml;q="),
+            )
+            self.assertEqual(
+                ("application", "xml", {"q": "1"}),
+                parse_media_range("application/xml ; q="),
+            )
+            self.assertEqual(
+                ("application", "xml", {"q": "1", "b": "other"}),
+                parse_media_range("application/xml ; q=1;b=other"),
+            )
+            self.assertEqual(
+                ("application", "xml", {"q": "1", "b": "other"}),
+                parse_media_range("application/xml ; q=2;b=other"),
+            )
             # Java URLConnection class sends an Accept header that includes a single *
-            self.assertEqual(('*', '*', {'q': '.2'}), parse_media_range(" *; q=.2"))
+            self.assertEqual(("*", "*", {"q": ".2"}), parse_media_range(" *; q=.2"))
 
         def test_rfc_2616_example(self):
             accept = "text/*;q=0.3, text/html;q=0.7, text/html;level=1, text/html;level=2;q=0.4, */*;q=0.5"
@@ -158,35 +186,62 @@ if __name__ == "__main__":
             self.assertEqual(0.7, quality("text/html;level=3", accept))
 
         def test_best_match(self):
-            mime_types_supported = ['application/xbel+xml', 'application/xml']
+            mime_types_supported = ["application/xbel+xml", "application/xml"]
             # direct match
-            self.assertEqual(best_match(mime_types_supported, 'application/xbel+xml'), 'application/xbel+xml')
+            self.assertEqual(
+                best_match(mime_types_supported, "application/xbel+xml"),
+                "application/xbel+xml",
+            )
             # direct match with a q parameter
-            self.assertEqual(best_match(mime_types_supported, 'application/xbel+xml; q=1'), 'application/xbel+xml')
+            self.assertEqual(
+                best_match(mime_types_supported, "application/xbel+xml; q=1"),
+                "application/xbel+xml",
+            )
             # direct match of our second choice with a q parameter
-            self.assertEqual(best_match(mime_types_supported, 'application/xml; q=1'), 'application/xml')
+            self.assertEqual(
+                best_match(mime_types_supported, "application/xml; q=1"),
+                "application/xml",
+            )
             # match using a subtype wildcard
-            self.assertEqual(best_match(mime_types_supported, 'application/*; q=1'), 'application/xml')
+            self.assertEqual(
+                best_match(mime_types_supported, "application/*; q=1"),
+                "application/xml",
+            )
             # match using a type wildcard
-            self.assertEqual(best_match(mime_types_supported, '*/*'), 'application/xml')
+            self.assertEqual(best_match(mime_types_supported, "*/*"), "application/xml")
 
-            mime_types_supported = ['application/xbel+xml', 'text/xml']
+            mime_types_supported = ["application/xbel+xml", "text/xml"]
             # match using a type versus a lower weighted subtype
-            self.assertEqual(best_match(mime_types_supported, 'text/*;q=0.5,*/*; q=0.1'), 'text/xml')
+            self.assertEqual(
+                best_match(mime_types_supported, "text/*;q=0.5,*/*; q=0.1"), "text/xml"
+            )
             # fail to match anything
-            self.assertEqual(best_match(mime_types_supported, 'text/html,application/atom+xml; q=0.9'), '')
+            self.assertEqual(
+                best_match(
+                    mime_types_supported, "text/html,application/atom+xml; q=0.9"
+                ),
+                "",
+            )
 
             # common AJAX scenario
-            mime_types_supported = ['application/json', 'text/html']
-            self.assertEqual(best_match(mime_types_supported, 'application/json, text/javascript, */*'), 'application/json')
+            mime_types_supported = ["application/json", "text/html"]
+            self.assertEqual(
+                best_match(
+                    mime_types_supported, "application/json, text/javascript, */*"
+                ),
+                "application/json",
+            )
             # verify fitness ordering
-            self.assertEqual(best_match(mime_types_supported, 'application/json, text/html;q=0.9'), 'application/json')
+            self.assertEqual(
+                best_match(mime_types_supported, "application/json, text/html;q=0.9"),
+                "application/json",
+            )
 
         def test_support_wildcards(self):
-            mime_types_supported = ['image/*', 'application/xml']
+            mime_types_supported = ["image/*", "application/xml"]
             # match using a type wildcard
-            self.assertEqual(best_match(mime_types_supported, 'image/png'), 'image/*')
+            self.assertEqual(best_match(mime_types_supported, "image/png"), "image/*")
             # match using a wildcard for both requested and supported
-            self.assertEqual(best_match(mime_types_supported, 'image/*'), 'image/*')
+            self.assertEqual(best_match(mime_types_supported, "image/*"), "image/*")
 
     unittest.main()

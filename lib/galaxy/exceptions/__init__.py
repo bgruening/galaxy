@@ -21,6 +21,7 @@ from ..exceptions import error_codes
 
 class MessageException(Exception):
     """Most generic Galaxy exception - indicates merely that some exceptional condition happened."""
+
     # status code to be set when used with API.
     status_code = 400
     # Error code information embedded into API json responses.
@@ -41,7 +42,9 @@ class ItemDeletionException(MessageException):
 
 class ObjectInvalid(Exception):
     """ Accessed object store ID is invalid """
+
     pass
+
 
 # Please keep the exceptions ordered by status code
 
@@ -156,6 +159,7 @@ class UserActivationRequiredException(MessageException):
 
 class ObjectNotFound(MessageException):
     """ Accessed object was not found """
+
     status_code = 404
     err_code = error_codes.USER_OBJECT_NOT_FOUND
 
@@ -164,6 +168,7 @@ class DeprecatedMethod(MessageException):
     """
     Method (or a particular form/arg signature) has been removed and won't be available later
     """
+
     status_code = 404
     # TODO:?? 410 Gone?
     err_code = error_codes.DEPRECATED_API_CALL
@@ -207,8 +212,16 @@ class NotImplemented(MessageException):
 
 
 class ContainerCLIError(Exception):
-    def __init__(self, msg=None, stdout=None, stderr=None, returncode=None,
-                 command=None, subprocess_command=None, **kwargs):
+    def __init__(
+        self,
+        msg=None,
+        stdout=None,
+        stderr=None,
+        returncode=None,
+        command=None,
+        subprocess_command=None,
+        **kwargs
+    ):
         super(ContainerCLIError, self).__init__(msg, **kwargs)
         self.stdout = stdout
         self.stderr = stderr

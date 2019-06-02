@@ -10,7 +10,6 @@ log = logging.getLogger(__name__)
 
 
 class Action(object):
-
     def __init__(self, action, description, model):
         self.action = action
         self.description = description
@@ -19,20 +18,28 @@ class Action(object):
 
 class RBACAgent(object):
     """Handle Galaxy Tool Shed security"""
+
     permitted_actions = Bunch()
 
     def associate_components(self, **kwd):
-        raise Exception('No valid method of associating provided components: %s' % kwd)
+        raise Exception("No valid method of associating provided components: %s" % kwd)
 
     def associate_user_role(self, user, role):
-        raise Exception('No valid method of associating a user with a role')
+        raise Exception("No valid method of associating a user with a role")
 
     def convert_permitted_action_strings(self, permitted_action_strings):
         """
         When getting permitted actions from an untrusted source like a
         form, ensure that they match our actual permitted actions.
         """
-        return [x for x in [self.permitted_actions.get(action_string) for action_string in permitted_action_strings] if x is not None]
+        return [
+            x
+            for x in [
+                self.permitted_actions.get(action_string)
+                for action_string in permitted_action_strings
+            ]
+            if x is not None
+        ]
 
     def create_private_user_role(self, user):
         raise Exception("Unimplemented Method")
@@ -49,14 +56,15 @@ class RBACAgent(object):
         return list(self.permitted_actions.__dict__.values())
 
     def get_item_actions(self, action, item):
-        raise Exception('No valid method of retrieving action (%s) for item %s.' % (action, item))
+        raise Exception(
+            "No valid method of retrieving action (%s) for item %s." % (action, item)
+        )
 
     def get_private_user_role(self, user):
         raise Exception("Unimplemented Method")
 
 
 class CommunityRBACAgent(RBACAgent):
-
     def __init__(self, model, permitted_actions=None):
         self.model = model
         if permitted_actions:
@@ -74,7 +82,7 @@ class CommunityRBACAgent(RBACAgent):
         """
         item_actions = self.get_item_actions(action, item)
         if not item_actions:
-            return action.model == 'restrict'
+            return action.model == "restrict"
         ret_val = False
         for item_action in item_actions:
             if item_action.role in roles:
@@ -83,17 +91,19 @@ class CommunityRBACAgent(RBACAgent):
         return ret_val
 
     def associate_components(self, **kwd):
-        if 'user' in kwd:
-            if 'group' in kwd:
-                return self.associate_user_group(kwd['user'], kwd['group'])
-            elif 'role' in kwd:
-                return self.associate_user_role(kwd['user'], kwd['role'])
-        elif 'role' in kwd:
-            if 'group' in kwd:
-                return self.associate_group_role(kwd['group'], kwd['role'])
-        elif 'repository' in kwd:
-            return self.associate_repository_category(kwd['repository'], kwd['category'])
-        raise Exception('No valid method of associating provided components: %s' % kwd)
+        if "user" in kwd:
+            if "group" in kwd:
+                return self.associate_user_group(kwd["user"], kwd["group"])
+            elif "role" in kwd:
+                return self.associate_user_role(kwd["user"], kwd["role"])
+        elif "role" in kwd:
+            if "group" in kwd:
+                return self.associate_group_role(kwd["group"], kwd["role"])
+        elif "repository" in kwd:
+            return self.associate_repository_category(
+                kwd["repository"], kwd["category"]
+            )
+        raise Exception("No valid method of associating provided components: %s" % kwd)
 
     def associate_group_role(self, group, role):
         assoc = self.model.GroupRoleAssociation(group, role)
@@ -121,7 +131,11 @@ class CommunityRBACAgent(RBACAgent):
 
     def create_private_user_role(self, user):
         # Create private role
-        role = self.model.Role(name=user.email, description='Private Role for ' + user.email, type=self.model.Role.types.PRIVATE)
+        role = self.model.Role(
+            name=user.email,
+            description="Private Role for " + user.email,
+            type=self.model.Role.types.PRIVATE,
+        )
         self.sa_session.add(role)
         self.sa_session.flush()
         # Add user to role
@@ -130,13 +144,23 @@ class CommunityRBACAgent(RBACAgent):
 
     def get_item_actions(self, action, item):
         # item must be one of: Dataset, Library, LibraryFolder, LibraryDataset, LibraryDatasetDatasetAssociation
-        return [permission for permission in item.actions if permission.action == action.action]
+        return [
+            permission
+            for permission in item.actions
+            if permission.action == action.action
+        ]
 
     def get_private_user_role(self, user, auto_create=False):
-        role = self.sa_session.query(self.model.Role) \
-                              .filter(and_(self.model.Role.table.c.name == user.email,
-                                           self.model.Role.table.c.type == self.model.Role.types.PRIVATE)) \
-                              .first()
+        role = (
+            self.sa_session.query(self.model.Role)
+            .filter(
+                and_(
+                    self.model.Role.table.c.name == user.email,
+                    self.model.Role.table.c.type == self.model.Role.types.PRIVATE,
+                )
+            )
+            .first()
+        )
         if not role:
             if auto_create:
                 return self.create_private_user_role(user)
@@ -145,12 +169,20 @@ class CommunityRBACAgent(RBACAgent):
         return role
 
     def get_repository_reviewer_role(self):
-        return self.sa_session.query(self.model.Role) \
-                              .filter(and_(self.model.Role.table.c.name == 'Repository Reviewer',
-                                           self.model.Role.table.c.type == self.model.Role.types.SYSTEM)) \
-                              .first()
+        return (
+            self.sa_session.query(self.model.Role)
+            .filter(
+                and_(
+                    self.model.Role.table.c.name == "Repository Reviewer",
+                    self.model.Role.table.c.type == self.model.Role.types.SYSTEM,
+                )
+            )
+            .first()
+        )
 
-    def set_entity_group_associations(self, groups=None, users=None, roles=None, delete_existing_assocs=True):
+    def set_entity_group_associations(
+        self, groups=None, users=None, roles=None, delete_existing_assocs=True
+    ):
         if groups is None:
             groups = []
         if users is None:
@@ -167,7 +199,14 @@ class CommunityRBACAgent(RBACAgent):
             for user in users:
                 self.associate_components(group=group, user=user)
 
-    def set_entity_role_associations(self, roles=None, users=None, groups=None, repositories=None, delete_existing_assocs=True):
+    def set_entity_role_associations(
+        self,
+        roles=None,
+        users=None,
+        groups=None,
+        repositories=None,
+        delete_existing_assocs=True,
+    ):
         if roles is None:
             roles = []
         if users is None:
@@ -186,7 +225,9 @@ class CommunityRBACAgent(RBACAgent):
             for group in groups:
                 self.associate_components(group=group, role=role)
 
-    def set_entity_user_associations(self, users=None, roles=None, groups=None, delete_existing_assocs=True):
+    def set_entity_user_associations(
+        self, users=None, roles=None, groups=None, delete_existing_assocs=True
+    ):
         if users is None:
             users = []
         if roles is None:
@@ -239,10 +280,17 @@ class CommunityRBACAgent(RBACAgent):
         if user.username == archive_owner:
             return True
         # A member of the IUC is authorized to create new repositories that are owned by another user.
-        iuc_group = self.sa_session.query(self.model.Group) \
-                                   .filter(and_(self.model.Group.table.c.name == 'Intergalactic Utilities Commission',
-                                                self.model.Group.table.c.deleted == false())) \
-                                   .first()
+        iuc_group = (
+            self.sa_session.query(self.model.Group)
+            .filter(
+                and_(
+                    self.model.Group.table.c.name
+                    == "Intergalactic Utilities Commission",
+                    self.model.Group.table.c.deleted == false(),
+                )
+            )
+            .first()
+        )
         if iuc_group is not None:
             for uga in iuc_group.users:
                 if uga.user.id == user.id:
@@ -271,9 +319,13 @@ class CommunityRBACAgent(RBACAgent):
 
 
 def get_permitted_actions(filter=None):
-    '''Utility method to return a subset of RBACAgent's permitted actions'''
+    """Utility method to return a subset of RBACAgent's permitted actions"""
     if filter is None:
         return RBACAgent.permitted_actions
     tmp_bunch = Bunch()
-    [tmp_bunch.__dict__.__setitem__(k, v) for k, v in RBACAgent.permitted_actions.items() if k.startswith(filter)]
+    [
+        tmp_bunch.__dict__.__setitem__(k, v)
+        for k, v in RBACAgent.permitted_actions.items()
+        if k.startswith(filter)
+    ]
     return tmp_bunch

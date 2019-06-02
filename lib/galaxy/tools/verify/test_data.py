@@ -6,11 +6,7 @@ import re
 import subprocess
 from string import Template
 
-from galaxy.util import (
-    asbool,
-    in_directory,
-    smart_str
-)
+from galaxy.util import asbool, in_directory, smart_str
 
 UPDATE_TEMPLATE = Template(
     "git --work-tree $dir --git-dir $dir/.git fetch && "
@@ -27,14 +23,19 @@ LIST_SEP = re.compile(r"\s*,\s*")
 
 
 class TestDataResolver(object):
-
-    def __init__(self, file_dirs=None, env_var='GALAXY_TEST_FILE_DIR', environ=os.environ):
+    def __init__(
+        self, file_dirs=None, env_var="GALAXY_TEST_FILE_DIR", environ=os.environ
+    ):
         if file_dirs is None:
             file_dirs = environ.get(env_var, None)
         if file_dirs is None:
-            file_dirs = "test-data,https://github.com/galaxyproject/galaxy-test-data.git"
+            file_dirs = (
+                "test-data,https://github.com/galaxyproject/galaxy-test-data.git"
+            )
         if file_dirs:
-            self.resolvers = [build_resolver(u, environ) for u in LIST_SEP.split(file_dirs)]
+            self.resolvers = [
+                build_resolver(u, environ) for u in LIST_SEP.split(file_dirs)
+            ]
         else:
             self.resolvers = []
 
@@ -48,7 +49,7 @@ class TestDataResolver(object):
 
     def get_filecontent(self, name):
         filename = self.get_filename(name=name)
-        with open(filename, mode='rb') as f:
+        with open(filename, mode="rb") as f:
             return f.read()
 
     def get_directory(self, name):
@@ -63,7 +64,6 @@ def build_resolver(uri, environ):
 
 
 class FileDataResolver(object):
-
     def __init__(self, file_dir):
         self.file_dir = file_dir
 
@@ -76,7 +76,6 @@ class FileDataResolver(object):
 
 
 class GitDataResolver(FileDataResolver):
-
     def __init__(self, repository, environ):
         self.repository = repository
         self.updated = False
@@ -108,17 +107,11 @@ class GitDataResolver(FileDataResolver):
 
     def execute(self, cmd):
         subprocess_kwds = dict(
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         print("Executing %s" % cmd)
         p = subprocess.Popen(cmd, **subprocess_kwds)
         stdout, stderr = p.communicate()
         if p.returncode != 0:
-            kwds = {
-                'dir': self.file_dir,
-                'stdout': stdout,
-                'stderr': stderr,
-            }
+            kwds = {"dir": self.file_dir, "stdout": stdout, "stderr": stderr}
             print(UPDATE_FAILED_TEMPLATE.substitute(**kwds))

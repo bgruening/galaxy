@@ -18,6 +18,7 @@ class JobManager(object):
     """
     Highest level interface to job management.
     """
+
     def __init__(self, app):
         self.app = app
         self.job_lock = False
@@ -30,14 +31,21 @@ class JobManager(object):
 
     def __check_jobs_at_startup(self):
         if self.app.job_config.use_messaging:
-            jobs_at_startup = self.app.model.context.query(Job).enable_eagerloads(False) \
-                .filter((Job.state == Job.states.NEW) & (Job.handler == null())).all()
+            jobs_at_startup = (
+                self.app.model.context.query(Job)
+                .enable_eagerloads(False)
+                .filter((Job.state == Job.states.NEW) & (Job.handler == null()))
+                .all()
+            )
             if jobs_at_startup:
                 log.info(
-                    'No handler assigned at startup for the following jobs, will dispatch via message: %s',
-                    ', '.join([str(j.id) for j in jobs_at_startup]))
+                    "No handler assigned at startup for the following jobs, will dispatch via message: %s",
+                    ", ".join([str(j.id) for j in jobs_at_startup]),
+                )
             for job in jobs_at_startup:
-                tool = self.app.toolbox.get_tool(job.tool_id, job.tool_version, exact=True)
+                tool = self.app.toolbox.get_tool(
+                    job.tool_id, job.tool_version, exact=True
+                )
                 self.enqueue(job, tool)
 
     def start(self):
@@ -47,7 +55,7 @@ class JobManager(object):
         self.job_handler.job_queue.put(job.id, tool_id)
 
     def _message_callback(self, job):
-        return JobHandlerMessage(task='setup', job_id=job.id)
+        return JobHandlerMessage(task="setup", job_id=job.id)
 
     def enqueue(self, job, tool=None):
         """Queue a job for execution.
@@ -71,12 +79,22 @@ class JobManager(object):
             configured_handler = tool.get_configured_job_handler(job.params)
             if configured_handler is not None:
                 p = " (with job params: %s)" % str(job.params) if job.params else ""
-                log.debug("(%s) Configured job handler for tool '%s'%s is: %s", job.log_str(), tool_id, p, configured_handler)
+                log.debug(
+                    "(%s) Configured job handler for tool '%s'%s is: %s",
+                    job.log_str(),
+                    tool_id,
+                    p,
+                    configured_handler,
+                )
         queue_callback = partial(self._queue_callback, job, tool_id)
         message_callback = partial(self._message_callback, job)
         try:
             return self.app.job_config.assign_handler(
-                job, configured=configured_handler, queue_callback=queue_callback, message_callback=message_callback)
+                job,
+                configured=configured_handler,
+                queue_callback=queue_callback,
+                message_callback=message_callback,
+            )
         except HandlerAssignmentError as exc:
             raise ToolExecutionError(exc.args[0], job=exc.obj)
 
@@ -100,6 +118,7 @@ class NoopManager(object):
     """
     Implements the JobManager interface but does nothing
     """
+
     def __init__(self, *args, **kwargs):
         self.job_handler = NoopHandler()
 
@@ -114,6 +133,7 @@ class NoopHandler(object):
     """
     Implements the JobHandler interface but does nothing
     """
+
     def __init__(self, *args, **kwargs):
         self.job_queue = NoopQueue()
         self.job_stop_queue = NoopQueue()

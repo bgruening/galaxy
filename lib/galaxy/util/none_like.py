@@ -20,11 +20,12 @@ class RecursiveNone(object):
 
     def __bool__(self):
         return False
+
     __nonzero__ = __bool__
 
 
 class NoneDataset(RecursiveNone):
-    def __init__(self, datatypes_registry=None, ext='data', dbkey='?'):
+    def __init__(self, datatypes_registry=None, ext="data", dbkey="?"):
         self.ext = self.extension = ext
         self.dbkey = dbkey
         if datatypes_registry is None:

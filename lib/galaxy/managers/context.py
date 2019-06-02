@@ -22,7 +22,9 @@ class ProvidesAppContext(object):
         Application-level logging of user actions.
         """
         if self.app.config.log_actions:
-            action = self.app.model.UserAction(action=action, context=context, params=text_type(dumps(params)))
+            action = self.app.model.UserAction(
+                action=action, context=context, params=text_type(dumps(params))
+            )
             try:
                 if user:
                     action.user = user
@@ -82,7 +84,7 @@ class ProvidesAppContext(object):
         context = app.model.context
         context.expunge_all()
         # This is a bit hacky, should refctor this. Maybe refactor to app -> expunge_all()
-        if hasattr(app, 'install_model'):
+        if hasattr(app, "install_model"):
             install_model = app.install_model
             if install_model != app.model:
                 install_model.context.expunge_all()
@@ -128,7 +130,11 @@ class ProvidesUserContext(object):
 
     @property
     def user_can_do_run_as(self):
-        run_as_users = [user for user in self.app.config.get("api_allow_run_as", "").split(",") if user]
+        run_as_users = [
+            user
+            for user in self.app.config.get("api_allow_run_as", "").split(",")
+            if user
+        ]
         if not run_as_users:
             return False
         user_in_run_as_users = self.user and self.user.email in run_as_users
@@ -138,7 +144,11 @@ class ProvidesUserContext(object):
 
     @property
     def user_is_active(self):
-        return not self.app.config.user_activation_on or self.user is None or self.user.active
+        return (
+            not self.app.config.user_activation_on
+            or self.user is None
+            or self.user.active
+        )
 
     def check_user_activation(self):
         """If user activation is enabled and the user is not activated throw an exception."""
@@ -155,10 +165,11 @@ class ProvidesUserContext(object):
             identifier_attr = self.app.config.ftp_upload_dir_identifier
             identifier_value = getattr(self.user, identifier_attr)
             template = self.app.config.ftp_upload_dir_template
-            path = string.Template(template).safe_substitute(dict(
-                ftp_upload_dir=base_dir,
-                ftp_upload_dir_identifier=identifier_value,
-            ))
+            path = string.Template(template).safe_substitute(
+                dict(
+                    ftp_upload_dir=base_dir, ftp_upload_dir_identifier=identifier_value
+                )
+            )
             return path
 
 
@@ -182,8 +193,9 @@ class ProvidesHistoryContext(object):
             # The API presents a Bunch for a history.  Until the API is
             # more fully featured for handling this, also return None.
             return None
-        datasets = self.sa_session.query(self.app.model.HistoryDatasetAssociation) \
-                                  .filter_by(deleted=False, history_id=self.history.id, extension="len")
+        datasets = self.sa_session.query(
+            self.app.model.HistoryDatasetAssociation
+        ).filter_by(deleted=False, history_id=self.history.id, extension="len")
         for ds in datasets:
             if dbkey == ds.dbkey:
                 return ds

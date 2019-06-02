@@ -24,16 +24,14 @@ class ToolLineageVersion(object):
         return self.version is None
 
     def to_dict(self):
-        return dict(
-            id=self.id,
-            version=self.version,
-        )
+        return dict(id=self.id, version=self.version)
 
 
 class ToolLineage(object):
     """ Simple tool's loaded directly from file system with lineage
     determined solely by PEP 440 versioning scheme.
     """
+
     lineages_by_id = {}
     lock = threading.Lock()
 
@@ -71,7 +69,10 @@ class ToolLineage(object):
         Return an ordered list of lineages (ToolLineageVersion) in this
         chain, from oldest to newest.
         """
-        return [ToolLineageVersion(tool_id, tool_version) for tool_id, tool_version in zip(self.tool_ids, self.tool_versions)]
+        return [
+            ToolLineageVersion(tool_id, tool_version)
+            for tool_id, tool_version in zip(self.tool_ids, self.tool_versions)
+        ]
 
     def get_version_ids(self, reverse=False):
         if reverse:
@@ -82,5 +83,5 @@ class ToolLineage(object):
         return dict(
             tool_id=self.tool_id,
             tool_versions=list(self.tool_versions),
-            lineage_type='stock',
+            lineage_type="stock",
         )

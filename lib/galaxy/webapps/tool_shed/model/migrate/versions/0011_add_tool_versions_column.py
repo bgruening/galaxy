@@ -35,7 +35,9 @@ def upgrade(migrate_engine):
         c.create(RepositoryMetadata_table)
         assert c is RepositoryMetadata_table.c.tool_versions
     except Exception:
-        log.exception("Adding tool_versions column to the repository_metadata table failed.")
+        log.exception(
+            "Adding tool_versions column to the repository_metadata table failed."
+        )
 
 
 def downgrade(migrate_engine):
@@ -46,4 +48,6 @@ def downgrade(migrate_engine):
     try:
         RepositoryMetadata_table.c.tool_versions.drop()
     except Exception:
-        log.exception("Dropping column tool_versions from the repository_metadata table failed.")
+        log.exception(
+            "Dropping column tool_versions from the repository_metadata table failed."
+        )

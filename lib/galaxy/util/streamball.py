@@ -37,6 +37,7 @@ class StreamBall(object):
         class tarfileobj(object):
             def write(self, *args, **kwargs):
                 response_write(*args, **kwargs)
+
         tf = tarfile.open(mode=self.mode, fileobj=tarfileobj())
         for (file, rel) in self.members:
             tf.add(file, arcname=rel)
@@ -58,16 +59,18 @@ class ZipBall(object):
             os.unlink(self._tmpf)
             os.rmdir(self._tmpd)
         except OSError:
-            log.exception("Unable to remove temporary library download archive and directory")
+            log.exception(
+                "Unable to remove temporary library download archive and directory"
+            )
         return []
 
 
 def stream_archive(trans, path, upstream_gzip=False):
-    archive_type_string = 'w|gz'
-    archive_ext = 'tgz'
+    archive_type_string = "w|gz"
+    archive_ext = "tgz"
     if upstream_gzip:
-        archive_type_string = 'w|'
-        archive_ext = 'tar'
+        archive_type_string = "w|"
+        archive_ext = "tar"
     archive = StreamBall(mode=archive_type_string)
     for root, directories, files in safe_walk(path):
         for filename in files:
@@ -76,7 +79,9 @@ def stream_archive(trans, path, upstream_gzip=False):
             archive.add(file=os.path.join(path, p), relpath=relpath)
     archive_name = "%s.%s" % (os.path.basename(path), archive_ext)
     trans.response.set_content_type("application/x-tar")
-    trans.response.headers["Content-Disposition"] = 'attachment; filename="{}"'.format(archive_name)
+    trans.response.headers["Content-Disposition"] = 'attachment; filename="{}"'.format(
+        archive_name
+    )
     archive.wsgi_status = trans.response.wsgi_status()
     archive.wsgi_headeritems = trans.response.wsgi_headeritems()
     return archive.stream

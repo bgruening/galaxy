@@ -31,7 +31,7 @@ class LazyProcess(object):
             self.allow_process_request = False
         if self.running:
             self.process.terminate()
-            time.sleep(.01)
+            time.sleep(0.01)
             if self.running:
                 self.process.kill()
 

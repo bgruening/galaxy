@@ -106,7 +106,9 @@ def parse_process_statistics(statistics):
     return statistics
 
 
-def generate_process_statistics(collectl_playback_cli, pid, statistics=DEFAULT_STATISTICS):
+def generate_process_statistics(
+    collectl_playback_cli, pid, statistics=DEFAULT_STATISTICS
+):
     """ Playback collectl file and generate summary statistics.
     """
     with tempfile.NamedTemporaryFile() as tmp_tsv:
@@ -123,7 +125,10 @@ def _read_process_statistics(tsv_file, pid, statistics):
         if current_interval is None:
             for header, expected_header in zip(row, PROCESS_COLUMNS):
                 if header.lower() != expected_header.lower():
-                    raise Exception("Unknown header value encountered while processing collectl playback - %s" % header)
+                    raise Exception(
+                        "Unknown header value encountered while processing collectl playback - %s"
+                        % header
+                    )
 
             # First row, check contains correct header.
             current_interval = CollectlProcessInterval()
@@ -143,7 +148,6 @@ def _read_process_statistics(tsv_file, pid, statistics):
 
 
 class CollectlProcessSummarizer(object):
-
     def __init__(self, pid, statistics):
         self.pid = pid
         self.statistics = statistics
@@ -213,7 +217,10 @@ class CollectlProcessSummarizer(object):
             for row in rows:
                 pid = row[PID_INDEX]
                 parent_pid = row[PARENT_PID_INDEX]
-                if parent_pid in pids_in_process_tree and pid not in pids_in_process_tree:
+                if (
+                    parent_pid in pids_in_process_tree
+                    and pid not in pids_in_process_tree
+                ):
                     pids_in_process_tree.add(pid)
                     added = True
         return pids_in_process_tree
@@ -252,4 +259,4 @@ def _tuplize_statistic(statistic):
     return statistic
 
 
-__all__ = ('generate_process_statistics', )
+__all__ = ("generate_process_statistics",)

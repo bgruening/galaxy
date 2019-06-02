@@ -26,12 +26,14 @@ context = scoped_session(sessionmaker(autoflush=False, autocommit=True))
 
 
 class DeferredJob(object):
-    states = Bunch(NEW='new',
-                   WAITING='waiting',
-                   QUEUED='queued',
-                   RUNNING='running',
-                   OK='ok',
-                   ERROR='error')
+    states = Bunch(
+        NEW="new",
+        WAITING="waiting",
+        QUEUED="queued",
+        RUNNING="running",
+        OK="ok",
+        ERROR="error",
+    )
 
     def __init__(self, state=None, plugin=None, params=None):
         self.state = state
@@ -39,13 +41,16 @@ class DeferredJob(object):
         self.params = params
 
 
-DeferredJob.table = Table("deferred_job", metadata,
-                          Column("id", Integer, primary_key=True),
-                          Column("create_time", DateTime, default=now),
-                          Column("update_time", DateTime, default=now, onupdate=now),
-                          Column("state", String(64), index=True),
-                          Column("plugin", String(128), index=True),
-                          Column("params", JSONType))
+DeferredJob.table = Table(
+    "deferred_job",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("create_time", DateTime, default=now),
+    Column("update_time", DateTime, default=now, onupdate=now),
+    Column("state", String(64), index=True),
+    Column("plugin", String(128), index=True),
+    Column("params", JSONType),
+)
 
 mapper(DeferredJob, DeferredJob.table, properties={})
 
@@ -55,17 +60,17 @@ def upgrade(migrate_engine):
 
     liftoverjobs = dict()
 
-    jobs = context.query(DeferredJob).filter_by(plugin='LiftOverTransferPlugin').all()
+    jobs = context.query(DeferredJob).filter_by(plugin="LiftOverTransferPlugin").all()
 
     for job in jobs:
-        if job.params['parentjob'] not in liftoverjobs:
-            liftoverjobs[job.params['parentjob']] = []
-        liftoverjobs[job.params['parentjob']].append(job.id)
+        if job.params["parentjob"] not in liftoverjobs:
+            liftoverjobs[job.params["parentjob"]] = []
+        liftoverjobs[job.params["parentjob"]].append(job.id)
 
     for parent in liftoverjobs:
         lifts = liftoverjobs[parent]
         deferred = context.query(DeferredJob).filter_by(id=parent).first()
-        deferred.params['liftover'] = lifts
+        deferred.params["liftover"] = lifts
 
     context.flush()
 
@@ -73,15 +78,15 @@ def upgrade(migrate_engine):
 def downgrade(migrate_engine):
     metadata.bind = migrate_engine
 
-    jobs = context.query(DeferredJob).filter_by(plugin='GenomeTransferPlugin').all()
+    jobs = context.query(DeferredJob).filter_by(plugin="GenomeTransferPlugin").all()
 
     for job in jobs:
-        if len(job.params['liftover']) == 0:
+        if len(job.params["liftover"]) == 0:
             continue
         transfers = []
-        for lift in job.params['liftover']:
+        for lift in job.params["liftover"]:
             liftoverjob = context.query(DeferredJob).filter_by(id=lift).first()
-            transfers.append(liftoverjob.params['transfer_job_id'])
-        job.params['liftover'] = transfers
+            transfers.append(liftoverjob.params["transfer_job_id"])
+        job.params["liftover"] = transfers
 
     context.flush()

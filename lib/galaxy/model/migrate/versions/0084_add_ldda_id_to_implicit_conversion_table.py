@@ -5,17 +5,9 @@ from __future__ import print_function
 
 import logging
 
-from sqlalchemy import (
-    Column,
-    ForeignKey,
-    Integer,
-    MetaData
-)
+from sqlalchemy import Column, ForeignKey, Integer, MetaData
 
-from galaxy.model.migrate.versions.util import (
-    add_column,
-    drop_column
-)
+from galaxy.model.migrate.versions.util import add_column, drop_column
 
 log = logging.getLogger(__name__)
 metadata = MetaData()
@@ -27,15 +19,26 @@ def upgrade(migrate_engine):
     metadata.reflect()
 
     # SQLAlchemy Migrate has a bug when adding a column with both a ForeignKey and a index in SQLite
-    if migrate_engine.name != 'sqlite':
-        c = Column("ldda_id", Integer, ForeignKey("library_dataset_dataset_association.id"), index=True, nullable=True)
+    if migrate_engine.name != "sqlite":
+        c = Column(
+            "ldda_id",
+            Integer,
+            ForeignKey("library_dataset_dataset_association.id"),
+            index=True,
+            nullable=True,
+        )
     else:
         c = Column("ldda_id", Integer, index=True, nullable=True)
-    add_column(c, 'implicitly_converted_dataset_association', metadata, index_name='ix_implicitly_converted_ds_assoc_ldda_id')
+    add_column(
+        c,
+        "implicitly_converted_dataset_association",
+        metadata,
+        index_name="ix_implicitly_converted_ds_assoc_ldda_id",
+    )
 
 
 def downgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
 
-    drop_column('ldda_id', 'implicitly_converted_dataset_association', metadata)
+    drop_column("ldda_id", "implicitly_converted_dataset_association", metadata)

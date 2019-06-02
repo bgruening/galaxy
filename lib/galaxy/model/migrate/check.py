@@ -3,18 +3,16 @@ import os.path
 import sys
 
 from migrate.versioning import repository, schema
-from sqlalchemy import (
-    create_engine,
-    MetaData,
-    Table
-)
+from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy_utils import create_database, database_exists
 
 log = logging.getLogger(__name__)
 
 # path relative to galaxy
-migrate_repository_directory = os.path.abspath(os.path.dirname(__file__)).replace(os.getcwd() + os.path.sep, '', 1)
+migrate_repository_directory = os.path.abspath(os.path.dirname(__file__)).replace(
+    os.getcwd() + os.path.sep, "", 1
+)
 migrate_repository = repository.Repository(migrate_repository_directory)
 
 
@@ -60,7 +58,7 @@ def create_or_verify_database(url, galaxy_config_file, engine_options={}, app=No
         migrate_to_current_version(engine, db_schema)
 
     meta = MetaData(bind=engine)
-    if new_database or (app and getattr(app.config, 'database_auto_migrate', False)):
+    if new_database or (app and getattr(app.config, "database_auto_migrate", False)):
         migrate()
         return
 
@@ -78,17 +76,21 @@ def create_or_verify_database(url, galaxy_config_file, engine_options={}, app=No
     try:
         hda_table = Table("history_dataset_association", meta, autoload=True)
     except NoSuchTableError:
-        raise Exception("Your database is older than hg revision 1464:c7acaa1bb88f and will need to be updated manually")
+        raise Exception(
+            "Your database is older than hg revision 1464:c7acaa1bb88f and will need to be updated manually"
+        )
     # There is a 'history_dataset_association' table, so we (hopefully) have
     # version 1 of the database, but without the migrate_version table. This
     # happens if the user has a build from right before migration was added.
     # Verify that this is true, if it is any older they'll have to update
     # manually
-    if 'copied_from_history_dataset_association_id' not in hda_table.c:
+    if "copied_from_history_dataset_association_id" not in hda_table.c:
         # The 'copied_from_history_dataset_association_id' column was added in
         # rev 1464:c7acaa1bb88f.  This is the oldest revision we currently do
         # automated versioning for, so stop here
-        raise Exception("Your database is older than hg revision 1464:c7acaa1bb88f and will need to be updated manually")
+        raise Exception(
+            "Your database is older than hg revision 1464:c7acaa1bb88f and will need to be updated manually"
+        )
     # At revision 1464:c7acaa1bb88f or greater (database version 1), make sure
     # that the db has version information. This is the trickiest case -- we
     # have a database but no version control, and are assuming it is a certain
@@ -107,17 +109,32 @@ def create_or_verify_database(url, galaxy_config_file, engine_options={}, app=No
     # Verify that the code and the DB are in sync
     db_schema = schema.ControlledSchema(engine, migrate_repository)
     if migrate_repository.versions.latest != db_schema.version:
-        config_arg = ''
-        if galaxy_config_file and os.path.abspath(os.path.join(os.getcwd(), 'config', 'galaxy.ini')) != galaxy_config_file:
-            config_arg = ' -c %s' % galaxy_config_file.replace(os.path.abspath(os.getcwd()), '.')
-        expect_msg = "Your database has version '%d' but this code expects version '%d'" % (db_schema.version, migrate_repository.versions.latest)
+        config_arg = ""
+        if (
+            galaxy_config_file
+            and os.path.abspath(os.path.join(os.getcwd(), "config", "galaxy.ini"))
+            != galaxy_config_file
+        ):
+            config_arg = " -c %s" % galaxy_config_file.replace(
+                os.path.abspath(os.getcwd()), "."
+            )
+        expect_msg = (
+            "Your database has version '%d' but this code expects version '%d'"
+            % (db_schema.version, migrate_repository.versions.latest)
+        )
         instructions = ""
         if db_schema.version > migrate_repository.versions.latest:
             instructions = "To downgrade the database schema you have to checkout the Galaxy version that you were running previously. "
-            cmd_msg = "sh manage_db.sh%s downgrade %d" % (config_arg, migrate_repository.versions.latest)
+            cmd_msg = "sh manage_db.sh%s downgrade %d" % (
+                config_arg,
+                migrate_repository.versions.latest,
+            )
         else:
             cmd_msg = "sh manage_db.sh%s upgrade" % config_arg
-        backup_msg = "Please backup your database and then migrate the database schema by running '%s'." % cmd_msg
+        backup_msg = (
+            "Please backup your database and then migrate the database schema by running '%s'."
+            % cmd_msg
+        )
         raise Exception("%s. %s%s" % (expect_msg, instructions, backup_msg))
     else:
         log.info("At database version %d" % db_schema.version)
@@ -132,7 +149,7 @@ def migrate_to_current_version(engine, schema):
         raise e
     for ver, change in changeset:
         nextver = ver + changeset.step
-        log.info('Migrating %s -> %s... ' % (ver, nextver))
+        log.info("Migrating %s -> %s... " % (ver, nextver))
         old_stdout = sys.stdout
 
         class FakeStdout(object):
@@ -144,6 +161,7 @@ def migrate_to_current_version(engine, schema):
 
             def flush(self):
                 pass
+
         sys.stdout = FakeStdout()
         try:
             schema.runchange(ver, change, changeset.step)

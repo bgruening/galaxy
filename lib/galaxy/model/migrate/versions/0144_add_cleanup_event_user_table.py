@@ -16,11 +16,19 @@ metadata = MetaData()
 
 # New table to log cleanup events
 CleanupEventUserAssociation_table = Table(
-    "cleanup_event_user_association", metadata,
+    "cleanup_event_user_association",
+    metadata,
     Column("id", Integer, primary_key=True),
     Column("create_time", DateTime, default=now),
-    Column("cleanup_event_id", Integer, ForeignKey("cleanup_event.id"), index=True, nullable=True),
-    Column("user_id", Integer, ForeignKey("galaxy_user.id"), index=True))
+    Column(
+        "cleanup_event_id",
+        Integer,
+        ForeignKey("cleanup_event.id"),
+        index=True,
+        nullable=True,
+    ),
+    Column("user_id", Integer, ForeignKey("galaxy_user.id"), index=True),
+)
 
 
 def upgrade(migrate_engine):

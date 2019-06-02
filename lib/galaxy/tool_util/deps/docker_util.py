@@ -22,59 +22,41 @@ DEFAULT_SET_USER = "$UID"
 DEFAULT_RUN_EXTRA_ARGUMENTS = None
 
 
-def kill_command(
-    container,
-    signal=None,
-    **kwds
-):
+def kill_command(container, signal=None, **kwds):
     args = (["-s", signal] if signal else []) + [container]
     return command_list("kill", args, **kwds)
 
 
-def logs_command(
-    container,
-    **kwds
-):
+def logs_command(container, **kwds):
     return command_list("logs", [container], **kwds)
 
 
-def build_command(
-    image,
-    docker_build_path,
-    **kwds
-):
+def build_command(image, docker_build_path, **kwds):
     if os.path.isfile(docker_build_path):
         docker_build_path = os.path.dirname(os.path.abspath(docker_build_path))
     return command_list("build", ["-t", image, docker_build_path], **kwds)
 
 
-def build_save_image_command(
-    image,
-    destination,
-    **kwds
-):
+def build_save_image_command(image, destination, **kwds):
     return command_list("save", ["-o", destination, image], **kwds)
 
 
-def build_pull_command(
-    tag,
-    **kwds
-):
+def build_pull_command(tag, **kwds):
     return command_list("pull", [tag], **kwds)
 
 
-def build_docker_cache_command(
-    image,
-    **kwds
-):
+def build_docker_cache_command(image, **kwds):
     inspect_image_command = command_shell("inspect", [image], **kwds)
     pull_image_command = command_shell("pull", [image], **kwds)
-    cache_command = "%s > /dev/null 2>&1\n[ $? -ne 0 ] && %s > /dev/null 2>&1\n" % (inspect_image_command, pull_image_command)
+    cache_command = "%s > /dev/null 2>&1\n[ $? -ne 0 ] && %s > /dev/null 2>&1\n" % (
+        inspect_image_command,
+        pull_image_command,
+    )
     return cache_command
 
 
 def build_docker_images_command(truncate=True, **kwds):
-    args = ["--no-trunc"] if not truncate else[]
+    args = ["--no-trunc"] if not truncate else []
     return command_shell("images", args, **kwds)
 
 
@@ -104,10 +86,7 @@ def build_docker_run_command(
     host=DEFAULT_HOST,
 ):
     command_parts = _docker_prefix(
-        docker_cmd=docker_cmd,
-        sudo=sudo,
-        sudo_cmd=sudo_cmd,
-        host=host
+        docker_cmd=docker_cmd, sudo=sudo, sudo_cmd=sudo_cmd, host=host
     )
     command_parts.append("run")
     if interactive:

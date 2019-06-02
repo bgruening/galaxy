@@ -5,17 +5,10 @@ from galaxy.actions.library import (
     validate_path_upload,
     validate_server_directory_upload,
 )
-from galaxy.exceptions import (
-    RequestParameterInvalidException
-)
-from galaxy.model.store.discover import (
-    get_required_item,
-    replace_request_syntax_sugar,
-)
+from galaxy.exceptions import RequestParameterInvalidException
+from galaxy.model.store.discover import get_required_item, replace_request_syntax_sugar
 from galaxy.tools.actions.upload_common import validate_url
-from galaxy.util import (
-    relpath,
-)
+from galaxy.util import relpath
 
 log = logging.getLogger(__name__)
 
@@ -39,17 +32,27 @@ def validate_and_normalize_targets(trans, payload):
     targets = payload.get("targets", [])
 
     for target in targets:
-        destination = get_required_item(target, "destination", "Each target must specify a 'destination'")
-        destination_type = get_required_item(destination, "type", "Each target destination must specify a 'type'")
+        destination = get_required_item(
+            target, "destination", "Each target must specify a 'destination'"
+        )
+        destination_type = get_required_item(
+            destination, "type", "Each target destination must specify a 'type'"
+        )
         if "object_id" in destination:
-            raise RequestParameterInvalidException("object_id not allowed to appear in the request.")
+            raise RequestParameterInvalidException(
+                "object_id not allowed to appear in the request."
+            )
 
         if destination_type not in VALID_DESTINATION_TYPES:
-            template = "Invalid target destination type [%s] encountered, must be one of %s"
+            template = (
+                "Invalid target destination type [%s] encountered, must be one of %s"
+            )
             msg = template % (destination_type, VALID_DESTINATION_TYPES)
             raise RequestParameterInvalidException(msg)
         if destination_type == "library":
-            library_name = get_required_item(destination, "name", "Must specify a library name")
+            library_name = get_required_item(
+                destination, "name", "Must specify a library name"
+            )
             description = destination.get("description", "")
             synopsis = destination.get("synopsis", "")
             library = trans.app.library_manager.create(
@@ -59,28 +62,38 @@ def validate_and_normalize_targets(trans, payload):
             for key in ["name", "description", "synopsis"]:
                 if key in destination:
                     del destination[key]
-            destination["library_folder_id"] = trans.app.security.encode_id(library.root_folder.id)
+            destination["library_folder_id"] = trans.app.security.encode_id(
+                library.root_folder.id
+            )
 
     # Unlike upload.py we don't transmit or use run_as_real_user in the job - we just make sure
     # in_place and purge_source are set on the individual upload fetch sources as needed based
     # on this.
-    run_as_real_user = trans.app.config.external_chown_script is not None  # See comment in upload.py
-    purge_ftp_source = getattr(trans.app.config, 'ftp_upload_purge', True) and not run_as_real_user
+    run_as_real_user = (
+        trans.app.config.external_chown_script is not None
+    )  # See comment in upload.py
+    purge_ftp_source = (
+        getattr(trans.app.config, "ftp_upload_purge", True) and not run_as_real_user
+    )
 
     payload["check_content"] = trans.app.config.check_upload_content
 
     def check_src(item):
         if "object_id" in item:
-            raise RequestParameterInvalidException("object_id not allowed to appear in the request.")
+            raise RequestParameterInvalidException(
+                "object_id not allowed to appear in the request."
+            )
 
         # Normalize file:// URLs into paths.
         if item["src"] == "url" and item["url"].startswith("file://"):
             item["src"] = "path"
-            item["path"] = item["url"][len("file://"):]
+            item["path"] = item["url"][len("file://") :]
             del item["path"]
 
         if "in_place" in item:
-            raise RequestParameterInvalidException("in_place cannot be set in the upload request")
+            raise RequestParameterInvalidException(
+                "in_place cannot be set in the upload request"
+            )
 
         src = item["src"]
 
@@ -90,7 +103,9 @@ def validate_and_normalize_targets(trans, payload):
             _handle_invalid_link_data_only_type(item)
         elements_from = item.get("elements_from", None)
         if elements_from and elements_from not in ELEMENTS_FROM_TYPE:
-            raise RequestParameterInvalidException("Invalid elements_from/items_from found in request")
+            raise RequestParameterInvalidException(
+                "Invalid elements_from/items_from found in request"
+            )
 
         if src == "path" or (src == "url" and item["url"].startswith("file:")):
             # Validate is admin, leave alone.
@@ -109,20 +124,26 @@ def validate_and_normalize_targets(trans, payload):
             user_ftp_dir = trans.user_ftp_dir
             is_directory = False
 
-            assert not os.path.islink(user_ftp_dir), "User FTP directory cannot be a symbolic link"
+            assert not os.path.islink(
+                user_ftp_dir
+            ), "User FTP directory cannot be a symbolic link"
             for (dirpath, dirnames, filenames) in os.walk(user_ftp_dir):
                 for filename in filenames:
                     if ftp_path == filename:
                         path = relpath(os.path.join(dirpath, filename), user_ftp_dir)
                         if not os.path.islink(os.path.join(dirpath, filename)):
-                            full_path = os.path.abspath(os.path.join(user_ftp_dir, path))
+                            full_path = os.path.abspath(
+                                os.path.join(user_ftp_dir, path)
+                            )
                             break
 
                 for dirname in dirnames:
                     if ftp_path == dirname:
                         path = relpath(os.path.join(dirpath, dirname), user_ftp_dir)
                         if not os.path.islink(os.path.join(dirpath, dirname)):
-                            full_path = os.path.abspath(os.path.join(user_ftp_dir, path))
+                            full_path = os.path.abspath(
+                                os.path.join(user_ftp_dir, path)
+                            )
                             is_directory = True
                             break
 
@@ -144,7 +165,9 @@ def validate_and_normalize_targets(trans, payload):
                                 break
 
             if not full_path:
-                raise RequestParameterInvalidException("Failed to find referenced ftp_path or symbolic link was enountered")
+                raise RequestParameterInvalidException(
+                    "Failed to find referenced ftp_path or symbolic link was enountered"
+                )
 
             item["src"] = "path"
             item["path"] = full_path
@@ -158,7 +181,9 @@ def validate_and_normalize_targets(trans, payload):
                     break
 
             if not looks_like_url:
-                raise RequestParameterInvalidException("Invalid URL [%s] found in src definition." % url)
+                raise RequestParameterInvalidException(
+                    "Invalid URL [%s] found in src definition." % url
+                )
 
             validate_url(url, trans.app.config.fetch_url_whitelist_ips)
             item["in_place"] = run_as_real_user
@@ -178,13 +203,21 @@ def validate_and_normalize_targets(trans, payload):
 def _handle_invalid_link_data_only_type(item):
     link_data_only = item.get("link_data_only", False)
     if link_data_only:
-        raise RequestParameterInvalidException("link_data_only is invalid for src type [%s]" % item.get("src"))
+        raise RequestParameterInvalidException(
+            "link_data_only is invalid for src type [%s]" % item.get("src")
+        )
 
 
 def _handle_invalid_link_data_only_elements_type(item):
     link_data_only = item.get("link_data_only", False)
-    if link_data_only and item.get("elements_from", False) in ELEMENTS_FROM_TRANSIENT_TYPES:
-        raise RequestParameterInvalidException("link_data_only is invalid for derived elements from [%s]" % item.get("elements_from"))
+    if (
+        link_data_only
+        and item.get("elements_from", False) in ELEMENTS_FROM_TRANSIENT_TYPES
+    ):
+        raise RequestParameterInvalidException(
+            "link_data_only is invalid for derived elements from [%s]"
+            % item.get("elements_from")
+        )
 
 
 def _for_each_src(f, obj):

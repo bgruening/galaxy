@@ -28,7 +28,9 @@ def main(argv=None):
     galaxy_interactor = GalaxyInteractorApi(**galaxy_interactor_kwds)
     raw_test_index = args.test_index
     if raw_test_index == ALL_TESTS:
-        tool_test_dicts = galaxy_interactor.get_tool_tests(tool_id, tool_version=tool_version)
+        tool_test_dicts = galaxy_interactor.get_tool_tests(
+            tool_id, tool_version=tool_version
+        )
         test_indices = list(range(len(tool_test_dicts)))
     else:
         test_indices = [int(raw_test_index)]
@@ -51,16 +53,23 @@ def main(argv=None):
         test_identifier = "tool %s test # %d" % (tool_id_and_version, test_index)
 
         def register(job_data):
-            test_results.append({
-                'id': tool_id + "-" + str(test_index),
-                'has_data': True,
-                'data': job_data,
-            })
+            test_results.append(
+                {
+                    "id": tool_id + "-" + str(test_index),
+                    "has_data": True,
+                    "data": job_data,
+                }
+            )
 
         try:
             verify_tool(
-                tool_id, galaxy_interactor, test_index=test_index, tool_version=tool_version,
-                register_job_data=register, quiet=not verbose, force_path_paste=args.force_path_paste
+                tool_id,
+                galaxy_interactor,
+                test_index=test_index,
+                tool_version=tool_version,
+                register_job_data=register,
+                quiet=not verbose,
+                force_path_paste=args.force_path_paste,
             )
 
             if verbose:
@@ -71,10 +80,7 @@ def main(argv=None):
                 print("%s failed, %s" % (test_identifier, e))
             exceptions.append(e)
 
-    report_obj = {
-        'version': '0.1',
-        'tests': test_results,
-    }
+    report_obj = {"version": "0.1", "tests": test_results}
     output_json = args.output_json
     if output_json:
         if args.output_json == "-":
@@ -90,17 +96,40 @@ def main(argv=None):
 
 def _arg_parser():
     parser = argparse.ArgumentParser(description=DESCRIPTION)
-    parser.add_argument('-u', '--galaxy-url', default="http://localhost:8080", help='Galaxy URL')
-    parser.add_argument('-k', '--key', default=None, help='Galaxy User API Key')
-    parser.add_argument('-a', '--admin-key', default=None, help='Galaxy Admin API Key')
-    parser.add_argument('--force_path_paste', default=False, action="store_true", help='This requires Galaxy-side config option "allow_path_paste" enabled. Allows for fetching test data locally. Only for admins.')
-    parser.add_argument('-t', '--tool-id', default=None, help='Tool ID')
-    parser.add_argument('--tool-version', default=None, help='Tool Version')
-    parser.add_argument('-i', '--test-index', default=ALL_TESTS, help='Tool Test Index (starting at 0) - by default all tests will run.')
-    parser.add_argument('-o', '--output', default=None, help='directory to dump outputs to')
-    parser.add_argument('--append', default=False, action="store_true", help="Extend a test record json (created with --output-json) with additional tests.")
-    parser.add_argument('-j', '--output-json', default=None, help='output metadata json')
-    parser.add_argument('--verbose', default=False, action="store_true", help="Verbose logging.")
+    parser.add_argument(
+        "-u", "--galaxy-url", default="http://localhost:8080", help="Galaxy URL"
+    )
+    parser.add_argument("-k", "--key", default=None, help="Galaxy User API Key")
+    parser.add_argument("-a", "--admin-key", default=None, help="Galaxy Admin API Key")
+    parser.add_argument(
+        "--force_path_paste",
+        default=False,
+        action="store_true",
+        help='This requires Galaxy-side config option "allow_path_paste" enabled. Allows for fetching test data locally. Only for admins.',
+    )
+    parser.add_argument("-t", "--tool-id", default=None, help="Tool ID")
+    parser.add_argument("--tool-version", default=None, help="Tool Version")
+    parser.add_argument(
+        "-i",
+        "--test-index",
+        default=ALL_TESTS,
+        help="Tool Test Index (starting at 0) - by default all tests will run.",
+    )
+    parser.add_argument(
+        "-o", "--output", default=None, help="directory to dump outputs to"
+    )
+    parser.add_argument(
+        "--append",
+        default=False,
+        action="store_true",
+        help="Extend a test record json (created with --output-json) with additional tests.",
+    )
+    parser.add_argument(
+        "-j", "--output-json", default=None, help="output metadata json"
+    )
+    parser.add_argument(
+        "--verbose", default=False, action="store_true", help="Verbose logging."
+    )
     return parser
 
 

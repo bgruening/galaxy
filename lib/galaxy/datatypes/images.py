@@ -26,9 +26,10 @@ log = logging.getLogger(__name__)
 
 class Image(data.Data):
     """Class describing an image"""
-    edam_data = 'data_2968'
+
+    edam_data = "data_2968"
     edam_format = "format_3547"
-    file_ext = ''
+    file_ext = ""
 
     def __init__(self, **kwd):
         super(Image, self).__init__(**kwd)
@@ -36,11 +37,11 @@ class Image(data.Data):
 
     def set_peek(self, dataset, is_multi_byte=False):
         if not dataset.dataset.purged:
-            dataset.peek = 'Image in %s format' % dataset.extension
+            dataset.peek = "Image in %s format" % dataset.extension
             dataset.blurb = nice_size(dataset.get_size())
         else:
-            dataset.peek = 'file does not exist'
-            dataset.blurb = 'file purged from disk'
+            dataset.peek = "file does not exist"
+            dataset.blurb = "file purged from disk"
 
     def sniff(self, filename):
         """Determine if the file is in this format"""
@@ -53,7 +54,7 @@ class Jpg(Image):
 
     def __init__(self, **kwd):
         super(Jpg, self).__init__(**kwd)
-        self.image_formats = ['JPEG']
+        self.image_formats = ["JPEG"]
 
 
 class Png(Image):
@@ -158,7 +159,7 @@ class Pdf(Image):
 
     def sniff(self, filename):
         """Determine if the file is in pdf format."""
-        with open(filename, 'rb') as fh:
+        with open(filename, "rb") as fh:
             return fh.read(4) == b"%PDF"
 
 
@@ -167,14 +168,20 @@ def create_applet_tag_peek(class_name, archive, params):
 <object classid="java:%s"
       type="application/x-java-applet"
       height="30" width="200" align="center" >
-      <param name="archive" value="%s"/>""" % (class_name, archive)
+      <param name="archive" value="%s"/>""" % (
+        class_name,
+        archive,
+    )
     for name, value in params.items():
         text += """<param name="%s" value="%s"/>""" % (name, value)
     text += """
 <object classid="clsid:8AD9C840-044E-11D1-B3E9-00805F499D93"
         height="30" width="200" >
         <param name="code" value="%s" />
-        <param name="archive" value="%s"/>""" % (class_name, archive)
+        <param name="archive" value="%s"/>""" % (
+        class_name,
+        archive,
+    )
     for name, value in params.items():
         text += """<param name="%s" value="%s"/>""" % (name, value)
     text += """<div class="errormessage">You must install and enable Java in your browser in order to access this applet.<div></object>
@@ -185,31 +192,43 @@ def create_applet_tag_peek(class_name, archive, params):
 
 class Gmaj(data.Data):
     """Class describing a GMAJ Applet"""
+
     edam_format = "format_3547"
     file_ext = "gmaj.zip"
     copy_safe_peek = False
 
     def set_peek(self, dataset, is_multi_byte=False):
         if not dataset.dataset.purged:
-            if hasattr(dataset, 'history_id'):
+            if hasattr(dataset, "history_id"):
                 params = {
                     "bundle": "display?id=%s&tofile=yes&toext=.zip" % dataset.id,
                     "buttonlabel": "Launch GMAJ",
                     "nobutton": "false",
                     "urlpause": "100",
                     "debug": "false",
-                    "posturl": "history_add_to?%s" % "&".join("%s=%s" % (x[0], quote_plus(str(x[1]))) for x in [('copy_access_from', dataset.id), ('history_id', dataset.history_id), ('ext', 'maf'), ('name', 'GMAJ Output on data %s' % dataset.hid), ('info', 'Added by GMAJ'), ('dbkey', dataset.dbkey)])
+                    "posturl": "history_add_to?%s"
+                    % "&".join(
+                        "%s=%s" % (x[0], quote_plus(str(x[1])))
+                        for x in [
+                            ("copy_access_from", dataset.id),
+                            ("history_id", dataset.history_id),
+                            ("ext", "maf"),
+                            ("name", "GMAJ Output on data %s" % dataset.hid),
+                            ("info", "Added by GMAJ"),
+                            ("dbkey", dataset.dbkey),
+                        ]
+                    ),
                 }
                 class_name = "edu.psu.bx.gmaj.MajApplet.class"
                 archive = "/static/gmaj/gmaj.jar"
                 dataset.peek = create_applet_tag_peek(class_name, archive, params)
-                dataset.blurb = 'GMAJ Multiple Alignment Viewer'
+                dataset.blurb = "GMAJ Multiple Alignment Viewer"
             else:
                 dataset.peek = "After you add this item to your history, you will be able to launch the GMAJ applet."
-                dataset.blurb = 'GMAJ Multiple Alignment Viewer'
+                dataset.blurb = "GMAJ Multiple Alignment Viewer"
         else:
-            dataset.peek = 'file does not exist'
-            dataset.blurb = 'file purged from disk'
+            dataset.peek = "file does not exist"
+            dataset.blurb = "file purged from disk"
 
     def display_peek(self, dataset):
         try:
@@ -219,7 +238,7 @@ class Gmaj(data.Data):
 
     def get_mime(self):
         """Returns the mime type of the datatype"""
-        return 'application/zip'
+        return "application/zip"
 
     def sniff(self, filename):
         """
@@ -232,7 +251,7 @@ class Gmaj(data.Data):
         contains_gmaj_file = False
         with zipfile.ZipFile(filename, "r") as zip_file:
             for name in zip_file.namelist():
-                if name.split(".")[1].strip().lower() == 'gmaj':
+                if name.split(".")[1].strip().lower() == "gmaj":
                     contains_gmaj_file = True
                     break
         if not contains_gmaj_file:
@@ -247,28 +266,42 @@ class Html(HtmlFromText):
 
 class Laj(data.Text):
     """Class describing a LAJ Applet"""
+
     file_ext = "laj"
     copy_safe_peek = False
 
     def set_peek(self, dataset, is_multi_byte=False):
         if not dataset.dataset.purged:
-            if hasattr(dataset, 'history_id'):
+            if hasattr(dataset, "history_id"):
                 params = {
                     "alignfile1": "display?id=%s" % dataset.id,
                     "buttonlabel": "Launch LAJ",
                     "title": "LAJ in Galaxy",
-                    "posturl": quote_plus("history_add_to?%s" % "&".join("%s=%s" % (key, value) for key, value in {'history_id': dataset.history_id, 'ext': 'lav', 'name': 'LAJ Output', 'info': 'Added by LAJ', 'dbkey': dataset.dbkey, 'copy_access_from': dataset.id}.items())),
-                    "noseq": "true"
+                    "posturl": quote_plus(
+                        "history_add_to?%s"
+                        % "&".join(
+                            "%s=%s" % (key, value)
+                            for key, value in {
+                                "history_id": dataset.history_id,
+                                "ext": "lav",
+                                "name": "LAJ Output",
+                                "info": "Added by LAJ",
+                                "dbkey": dataset.dbkey,
+                                "copy_access_from": dataset.id,
+                            }.items()
+                        )
+                    ),
+                    "noseq": "true",
                 }
                 class_name = "edu.psu.cse.bio.laj.LajApplet.class"
                 archive = "/static/laj/laj.jar"
                 dataset.peek = create_applet_tag_peek(class_name, archive, params)
             else:
                 dataset.peek = "After you add this item to your history, you will be able to launch the LAJ applet."
-                dataset.blurb = 'LAJ Multiple Alignment Viewer'
+                dataset.blurb = "LAJ Multiple Alignment Viewer"
         else:
-            dataset.peek = 'file does not exist'
-            dataset.blurb = 'file purged from disk'
+            dataset.peek = "file does not exist"
+            dataset.blurb = "file purged from disk"
 
     def display_peek(self, dataset):
         try:

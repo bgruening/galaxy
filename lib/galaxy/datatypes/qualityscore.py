@@ -3,10 +3,7 @@ Qualityscore class
 """
 import logging
 
-from . import (
-    data,
-    sniff
-)
+from . import data, sniff
 
 log = logging.getLogger(__name__)
 
@@ -15,6 +12,7 @@ class QualityScore(data.Text):
     """
     until we know more about quality score formats
     """
+
     edam_data = "data_2048"
     edam_format = "format_3606"
     file_ext = "qual"
@@ -25,6 +23,7 @@ class QualityScoreSOLiD(QualityScore):
     """
     until we know more about quality score formats
     """
+
     edam_format = "format_3610"
     file_ext = "qualsolid"
 
@@ -49,16 +48,18 @@ class QualityScoreSOLiD(QualityScore):
                 else:
                     break  # EOF
             line = line.strip()
-            if line and not line.startswith('#'):  # first non-empty non-comment line
-                if line.startswith('>'):
+            if line and not line.startswith("#"):  # first non-empty non-comment line
+                if line.startswith(">"):
                     line = fh.readline().strip()
-                    if line == '' or line.startswith('>'):
+                    if line == "" or line.startswith(">"):
                         break
                     try:
                         [int(x) for x in line.split()]
-                        if not(readlen):
+                        if not (readlen):
                             readlen = len(line.split())
-                        assert len(line.split()) == readlen  # SOLiD reads should be of the same length
+                        assert (
+                            len(line.split()) == readlen
+                        )  # SOLiD reads should be of the same length
                     except Exception:
                         break
                     goodblock += 1
@@ -69,7 +70,10 @@ class QualityScoreSOLiD(QualityScore):
         return False
 
     def set_meta(self, dataset, **kwd):
-        if self.max_optional_metadata_filesize >= 0 and dataset.get_size() > self.max_optional_metadata_filesize:
+        if (
+            self.max_optional_metadata_filesize >= 0
+            and dataset.get_size() > self.max_optional_metadata_filesize
+        ):
             dataset.metadata.data_lines = None
             return
         return QualityScore.set_meta(self, dataset, **kwd)
@@ -80,6 +84,7 @@ class QualityScore454(QualityScore):
     """
     until we know more about quality score formats
     """
+
     edam_format = "format_3611"
     file_ext = "qual454"
 
@@ -99,10 +104,10 @@ class QualityScore454(QualityScore):
             if not line:
                 break  # EOF
             line = line.strip()
-            if line and not line.startswith('#'):  # first non-empty non-comment line
-                if line.startswith('>'):
+            if line and not line.startswith("#"):  # first non-empty non-comment line
+                if line.startswith(">"):
                     line = fh.readline().strip()
-                    if line == '' or line.startswith('>'):
+                    if line == "" or line.startswith(">"):
                         break
                     try:
                         [int(x) for x in line.split()]
@@ -118,6 +123,7 @@ class QualityScoreSolexa(QualityScore):
     """
     until we know more about quality score formats
     """
+
     edam_format = "format_3608"
     file_ext = "qualsolexa"
 
@@ -126,5 +132,6 @@ class QualityScoreIllumina(QualityScore):
     """
     until we know more about quality score formats
     """
+
     edam_format = "format_3609"
     file_ext = "qualillumina"

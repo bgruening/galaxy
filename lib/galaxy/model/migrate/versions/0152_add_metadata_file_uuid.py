@@ -20,8 +20,8 @@ def upgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
 
-    uuid_column = Column('uuid', UUIDType())
-    add_column(uuid_column, 'metadata_file', metadata)
+    uuid_column = Column("uuid", UUIDType())
+    add_column(uuid_column, "metadata_file", metadata)
 
 
 def downgrade(migrate_engine):
@@ -29,4 +29,4 @@ def downgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
 
-    drop_column('uuid', 'metadata_file', metadata)
+    drop_column("uuid", "metadata_file", metadata)

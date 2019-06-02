@@ -1,10 +1,7 @@
 import logging
 
 import galaxy.exceptions
-from galaxy import (
-    model,
-    security
-)
+from galaxy import model, security
 from galaxy.managers import users
 
 log = logging.getLogger(__name__)
@@ -38,7 +35,7 @@ class RBACPermission(object):
 
     def error_unless_permitted(self, item, user, trans=None):
         if not self.is_permitted(item, user, trans=trans):
-            error_info = dict(model_class=item.__class__, id=getattr(item, 'id', None))
+            error_info = dict(model_class=item.__class__, id=getattr(item, "id", None))
             raise self.permission_failed_error_class(**error_info)
 
     def grant(self, item, user, flush=True):
@@ -52,7 +49,7 @@ class RBACPermission(object):
 
     def _error_unless_role_permitted(self, item, role):
         if not self._role_is_permitted(item, role):
-            error_info = dict(model_class=item.__class__, id=getattr(item, 'id', None))
+            error_info = dict(model_class=item.__class__, id=getattr(item, "id", None))
             raise self.permission_failed_error_class(**error_info)
 
     def _grant_role(self, item, role, flush=True):
@@ -75,6 +72,7 @@ class DatasetRBACPermission(RBACPermission):
     - manage permissions : can a role manage the permissions on a dataset
     - access : can a role read/look at/copy a dataset
     """
+
     permissions_class = model.DatasetPermissions
     action_name = None
 
@@ -99,7 +97,9 @@ class DatasetRBACPermission(RBACPermission):
         if not found:
             return None
         if len(found) > 1:
-            raise galaxy.exceptions.InconsistentDatabase(dataset=dataset.id, role=role.id)
+            raise galaxy.exceptions.InconsistentDatabase(
+                dataset=dataset.id, role=role.id
+            )
         return found[0]
 
     def set(self, dataset, roles, flush=True):
@@ -167,6 +167,7 @@ class ManageDatasetRBACPermission(DatasetRBACPermission):
     When checking permissions for a user, if any of the user's roles
     have permission on the dataset
     """
+
     # TODO: We may also be able to infer/record the dataset 'owner' as well.
     action_name = security.RBACAgent.permitted_actions.DATASET_MANAGE_PERMISSIONS.action
     permission_failed_error_class = DatasetManagePermissionFailedException
@@ -227,6 +228,7 @@ class AccessDatasetRBACPermission(DatasetRBACPermission):
     An user must have all the Roles of all the access permissions associated
     with a dataset in order to access it.
     """
+
     action_name = security.RBACAgent.permitted_actions.DATASET_ACCESS.action
     permission_failed_error_class = DatasetAccessPermissionFailedException
 
@@ -238,10 +240,13 @@ class AccessDatasetRBACPermission(DatasetRBACPermission):
         current_roles = self._roles(dataset)
         # NOTE: that because of short circuiting this allows
         #   anonymous access to public datasets
-        return (self._is_public_based_on_roles(current_roles) or
-                # admin is always permitted
-                self.user_manager.is_admin(user) or
-                self._user_has_all_roles(user, current_roles))
+        return (
+            self._is_public_based_on_roles(current_roles)
+            or
+            # admin is always permitted
+            self.user_manager.is_admin(user)
+            or self._user_has_all_roles(user, current_roles)
+        )
 
     def grant(self, item, user):
         pass
@@ -274,6 +279,9 @@ class AccessDatasetRBACPermission(DatasetRBACPermission):
 
     def _role_is_permitted(self, dataset, role):
         current_roles = self._roles(dataset)
-        return (self._is_public_based_on_roles(current_roles) or
-                # if there's only one role and this is it, let em in
-                ((len(current_roles) == 1) and (role == current_roles[0])))
+        return (
+            self._is_public_based_on_roles(current_roles)
+            or
+            # if there's only one role and this is it, let em in
+            ((len(current_roles) == 1) and (role == current_roles[0]))
+        )

@@ -1,21 +1,12 @@
 import os
 import string
-from abc import (
-    ABCMeta,
-    abstractmethod
-)
+from abc import ABCMeta, abstractmethod
 
 import six
 
 from galaxy.containers.docker_model import DockerVolume
-from galaxy.util import (
-    asbool,
-    in_directory
-)
-from . import (
-    docker_util,
-    singularity_util
-)
+from galaxy.util import asbool, in_directory
+from . import docker_util, singularity_util
 from .requirements import (
     DEFAULT_CONTAINER_RESOLVE_DEPENDENCIES,
     DEFAULT_CONTAINER_SHELL,
@@ -24,7 +15,7 @@ from .requirements import (
 DOCKER_CONTAINER_TYPE = "docker"
 SINGULARITY_CONTAINER_TYPE = "singularity"
 
-LOAD_CACHED_IMAGE_COMMAND_TEMPLATE = r'''
+LOAD_CACHED_IMAGE_COMMAND_TEMPLATE = r"""
 python << EOF
 from __future__ import print_function
 
@@ -51,13 +42,20 @@ if not found:
     cmd = "cat ${cached_image_file} | ${load_cmd}"
     subprocess.check_call(cmd, shell=True)
 EOF
-'''
+"""
 
 
 @six.add_metaclass(ABCMeta)
 class Container(object):
-
-    def __init__(self, container_id, app_info, tool_info, destination_info, job_info, container_description):
+    def __init__(
+        self,
+        container_id,
+        app_info,
+        tool_info,
+        destination_info,
+        job_info,
+        container_description,
+    ):
         self.container_id = container_id
         self.app_info = app_info
         self.tool_info = tool_info
@@ -71,11 +69,19 @@ class Container(object):
 
     @property
     def resolve_dependencies(self):
-        return DEFAULT_CONTAINER_RESOLVE_DEPENDENCIES if not self.container_description else self.container_description.resolve_dependencies
+        return (
+            DEFAULT_CONTAINER_RESOLVE_DEPENDENCIES
+            if not self.container_description
+            else self.container_description.resolve_dependencies
+        )
 
     @property
     def shell(self):
-        return DEFAULT_CONTAINER_SHELL if not self.container_description else self.container_description.shell
+        return (
+            DEFAULT_CONTAINER_SHELL
+            if not self.container_description
+            else self.container_description.shell
+        )
 
     @abstractmethod
     def containerize_command(self, command):
@@ -110,7 +116,9 @@ def preprocess_volumes(volumes_raw_str, container_type):
     for volume_raw_str in volumes_raw_strs:
         volume_parts = volume_raw_str.split(":")
         if len(volume_parts) > 2:
-            raise Exception("Unparsable volumes string in configuration [%s]" % volumes_raw_str)
+            raise Exception(
+                "Unparsable volumes string in configuration [%s]" % volumes_raw_str
+            )
         if len(volume_parts) == 1:
             volume_parts.append("rw")
         volumes.append(volume_parts)
@@ -198,7 +206,10 @@ class HasDockerLikeVolumes(object):
             end_index = volumes_str.find(",", tool_directory_index)
             if end_index < 0:
                 end_index = len(volumes_str)
-            volumes_str = volumes_str[0:tool_directory_index] + volumes_str[end_index:len(volumes_str)]
+            volumes_str = (
+                volumes_str[0:tool_directory_index]
+                + volumes_str[end_index : len(volumes_str)]
+            )
 
         return volumes_str
 
@@ -218,7 +229,9 @@ class DockerContainer(Container, HasDockerLikeVolumes):
         return docker_host_props
 
     def build_pull_command(self):
-        return docker_util.build_pull_command(self.container_id, **self.docker_host_props)
+        return docker_util.build_pull_command(
+            self.container_id, **self.docker_host_props
+        )
 
     def containerize_command(self, command):
         env_directives = []
@@ -230,14 +243,19 @@ class DockerContainer(Container, HasDockerLikeVolumes):
         # pass through only what tool needs however. (See todo in ToolInfo.)
         for key, value in six.iteritems(self.destination_info):
             if key.startswith("docker_env_"):
-                env = key[len("docker_env_"):]
+                env = key[len("docker_env_") :]
                 env_directives.append('"%s=%s"' % (env, value))
 
         working_directory = self.job_info.working_directory
         if not working_directory:
-            raise Exception("Cannot containerize command [%s] without defined working directory." % working_directory)
+            raise Exception(
+                "Cannot containerize command [%s] without defined working directory."
+                % working_directory
+            )
 
-        volumes_raw = self._expand_volume_str(self.destination_info.get("docker_volumes", "$defaults"))
+        volumes_raw = self._expand_volume_str(
+            self.destination_info.get("docker_volumes", "$defaults")
+        )
         preprocessed_volumes_list = preprocess_volumes(volumes_raw, self.container_type)
         # TODO: Remove redundant volumes...
         volumes = [DockerVolume.from_str(v) for v in preprocessed_volumes_list]
@@ -245,17 +263,25 @@ class DockerContainer(Container, HasDockerLikeVolumes):
         # with CWL. This is part of that spec and should make it easier to share containers between CWL
         # and Galaxy.
         if self.job_info.tmp_directory is not None:
-            volumes.append(DockerVolume.from_str("%s:/tmp:rw" % self.job_info.tmp_directory))
-        volumes_from = self.destination_info.get("docker_volumes_from", docker_util.DEFAULT_VOLUMES_FROM)
+            volumes.append(
+                DockerVolume.from_str("%s:/tmp:rw" % self.job_info.tmp_directory)
+            )
+        volumes_from = self.destination_info.get(
+            "docker_volumes_from", docker_util.DEFAULT_VOLUMES_FROM
+        )
 
         docker_host_props = self.docker_host_props
 
         cached_image_file = self.__get_cached_image_file()
         if not cached_image_file:
             # TODO: Add option to cache it once here and create cached_image_file.
-            cache_command = docker_util.build_docker_cache_command(self.container_id, **docker_host_props)
+            cache_command = docker_util.build_docker_cache_command(
+                self.container_id, **docker_host_props
+            )
         else:
-            cache_command = self.__cache_from_file_command(cached_image_file, docker_host_props)
+            cache_command = self.__cache_from_file_command(
+                cached_image_file, docker_host_props
+            )
         run_command = docker_util.build_docker_run_command(
             command,
             self.container_id,
@@ -263,27 +289,35 @@ class DockerContainer(Container, HasDockerLikeVolumes):
             volumes_from=volumes_from,
             env_directives=env_directives,
             working_directory=working_directory,
-            net=self.prop("net", "none"),  # By default, docker instance has networking disabled
+            net=self.prop(
+                "net", "none"
+            ),  # By default, docker instance has networking disabled
             auto_rm=asbool(self.prop("auto_rm", docker_util.DEFAULT_AUTO_REMOVE)),
             set_user=self.prop("set_user", docker_util.DEFAULT_SET_USER),
-            run_extra_arguments=self.prop("run_extra_arguments", docker_util.DEFAULT_RUN_EXTRA_ARGUMENTS),
+            run_extra_arguments=self.prop(
+                "run_extra_arguments", docker_util.DEFAULT_RUN_EXTRA_ARGUMENTS
+            ),
             **docker_host_props
         )
         return "%s\n%s" % (cache_command, run_command)
 
     def __cache_from_file_command(self, cached_image_file, docker_host_props):
-        images_cmd = docker_util.build_docker_images_command(truncate=False, **docker_host_props)
+        images_cmd = docker_util.build_docker_images_command(
+            truncate=False, **docker_host_props
+        )
         load_cmd = docker_util.build_docker_load_command(**docker_host_props)
 
         return string.Template(LOAD_CACHED_IMAGE_COMMAND_TEMPLATE).safe_substitute(
             cached_image_file=cached_image_file,
             images_cmd=images_cmd,
-            load_cmd=load_cmd
+            load_cmd=load_cmd,
         )
 
     def __get_cached_image_file(self):
         container_id = self.container_id
-        cache_directory = os.path.abspath(self.__get_destination_overridable_property("container_image_cache_path"))
+        cache_directory = os.path.abspath(
+            self.__get_destination_overridable_property("container_image_cache_path")
+        )
         cache_path = docker_cache_path(cache_directory, container_id)
         return cache_path if os.path.exists(cache_path) else None
 
@@ -307,12 +341,16 @@ class SingularityContainer(Container, HasDockerLikeVolumes):
 
     def get_singularity_target_kwds(self):
         return dict(
-            singularity_cmd=self.prop("cmd", singularity_util.DEFAULT_SINGULARITY_COMMAND),
+            singularity_cmd=self.prop(
+                "cmd", singularity_util.DEFAULT_SINGULARITY_COMMAND
+            ),
             sudo=asbool(self.prop("sudo", singularity_util.DEFAULT_SUDO)),
             sudo_cmd=self.prop("sudo_cmd", singularity_util.DEFAULT_SUDO_COMMAND),
         )
 
-    def build_mulled_singularity_pull_command(self, cache_directory, namespace="biocontainers"):
+    def build_mulled_singularity_pull_command(
+        self, cache_directory, namespace="biocontainers"
+    ):
         return singularity_util.pull_mulled_singularity_command(
             docker_image_identifier=self.container_id,
             cache_directory=cache_directory,
@@ -331,14 +369,19 @@ class SingularityContainer(Container, HasDockerLikeVolumes):
         # pass through only what tool needs however. (See todo in ToolInfo.)
         for key, value in six.iteritems(self.destination_info):
             if key.startswith("singularity_env_"):
-                real_key = key[len("singularity_env_"):]
+                real_key = key[len("singularity_env_") :]
                 env.append((real_key, value))
 
         working_directory = self.job_info.working_directory
         if not working_directory:
-            raise Exception("Cannot containerize command [%s] without defined working directory." % working_directory)
+            raise Exception(
+                "Cannot containerize command [%s] without defined working directory."
+                % working_directory
+            )
 
-        volumes_raw = self._expand_volume_str(self.destination_info.get("singularity_volumes", "$defaults"))
+        volumes_raw = self._expand_volume_str(
+            self.destination_info.get("singularity_volumes", "$defaults")
+        )
         preprocessed_volumes_list = preprocess_volumes(volumes_raw, self.container_type)
         volumes = [DockerVolume.from_str(v) for v in preprocessed_volumes_list]
 
@@ -348,25 +391,24 @@ class SingularityContainer(Container, HasDockerLikeVolumes):
             volumes=volumes,
             env=env,
             working_directory=working_directory,
-            run_extra_arguments=self.prop("run_extra_arguments", singularity_util.DEFAULT_RUN_EXTRA_ARGUMENTS),
+            run_extra_arguments=self.prop(
+                "run_extra_arguments", singularity_util.DEFAULT_RUN_EXTRA_ARGUMENTS
+            ),
             **self.get_singularity_target_kwds()
         )
         return run_command
 
 
-CONTAINER_CLASSES = dict(
-    docker=DockerContainer,
-    singularity=SingularityContainer,
-)
+CONTAINER_CLASSES = dict(docker=DockerContainer, singularity=SingularityContainer)
 
 
 class NullContainer(object):
-
     def __init__(self):
         pass
 
     def __bool__(self):
         return False
+
     __nonzero__ = __bool__
 
 

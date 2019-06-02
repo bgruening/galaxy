@@ -40,7 +40,7 @@ def aggressive_error_checks():
         _oom_regex("java.lang.OutOfMemoryError"),
         _oom_regex("Out of memory"),
         _error_regex("exception:"),
-        _error_regex("error:")
+        _error_regex("error:"),
     ]
     return exit_codes, regexes
 

@@ -72,15 +72,22 @@ def __load_plugins_from_dicts(plugins_dict, configs, extra_kwds):
 
 
 def plugin_source_from_path(path):
-    if path.endswith(".yaml") or path.endswith(".yml") or path.endswith(".yaml.sample") or path.endswith(".yml.sample"):
-        return ('dict', __read_yaml(path))
+    if (
+        path.endswith(".yaml")
+        or path.endswith(".yml")
+        or path.endswith(".yaml.sample")
+        or path.endswith(".yml.sample")
+    ):
+        return ("dict", __read_yaml(path))
     else:
-        return ('xml', ElementTree.parse(path).getroot())
+        return ("xml", ElementTree.parse(path).getroot())
 
 
 def __read_yaml(path):
     if yaml is None:
-        raise ImportError("Attempting to read YAML configuration file - but PyYAML dependency unavailable.")
+        raise ImportError(
+            "Attempting to read YAML configuration file - but PyYAML dependency unavailable."
+        )
 
     with open(path, "rb") as f:
         return yaml.safe_load(f)

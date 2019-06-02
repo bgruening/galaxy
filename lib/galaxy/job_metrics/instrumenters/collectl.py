@@ -6,11 +6,7 @@ import shutil
 from galaxy import util
 from . import InstrumentPlugin
 from .. import formatting
-from ..collectl import (
-    cli,
-    processes,
-    subsystems
-)
+from ..collectl import cli, processes, subsystems
 
 log = logging.getLogger(__name__)
 
@@ -31,19 +27,25 @@ EMPTY_COLLECTL_FILE_MESSAGE = "Skipping process summary due to empty file... job
 
 
 class CollectlFormatter(formatting.JobMetricFormatter):
-
     def format(self, key, value):
         if key == "pid":
             return ("Process ID", int(value))
         elif key == "raw_log_path":
             return ("Relative Path of Full Collectl Log", value)
         elif key == "process_max_AccumT":
-            return ("Job Runtime (System+User)", formatting.seconds_to_str(float(value)))
+            return (
+                "Job Runtime (System+User)",
+                formatting.seconds_to_str(float(value)),
+            )
         else:
             _, stat_type, resource_type = key.split("_", 2)
             if resource_type.startswith("Vm"):
                 value_str = "%s KB" % int(value)
-            elif resource_type in ["RSYS", "WSYS"] and stat_type in ["count", "max", "sum"]:
+            elif resource_type in ["RSYS", "WSYS"] and stat_type in [
+                "count",
+                "max",
+                "sum",
+            ]:
                 value_str = "%d (# system calls)" % int(value)
             else:
                 value_str = str(value)
@@ -55,6 +57,7 @@ class CollectlPlugin(InstrumentPlugin):
     """ Run collectl along with job to capture system and/or process data
     according to specified collectl subsystems.
     """
+
     plugin_type = "collectl"
     formatter = CollectlFormatter()
 
@@ -67,22 +70,30 @@ class CollectlPlugin(InstrumentPlugin):
             saved_logs_path = kwargs["app"].config.resolve_path(saved_logs_path)
         self.saved_logs_path = saved_logs_path
         self.__configure_collectl_recorder_args(kwargs)
-        self.summarize_process_data = util.asbool(kwargs.get("summarize_process_data", True))
-        self.log_collectl_program_output = util.asbool(kwargs.get("log_collectl_program_output", False))
+        self.summarize_process_data = util.asbool(
+            kwargs.get("summarize_process_data", True)
+        )
+        self.log_collectl_program_output = util.asbool(
+            kwargs.get("log_collectl_program_output", False)
+        )
         if self.summarize_process_data:
             if subsystems.get_subsystem("process") not in self.subsystems:
-                raise Exception("Collectl plugin misconfigured - cannot summarize_process_data without process subsystem being enabled.")
+                raise Exception(
+                    "Collectl plugin misconfigured - cannot summarize_process_data without process subsystem being enabled."
+                )
 
             process_statistics = kwargs.get("process_statistics", None)
             # None will let processes module use default set of statistics
             # defined there.
-            self.process_statistics = processes.parse_process_statistics(process_statistics)
+            self.process_statistics = processes.parse_process_statistics(
+                process_statistics
+            )
 
     def pre_execute_instrument(self, job_directory):
         commands = []
         # Capture PID of process so we can walk its ancestors when building
         # statistics for the whole job.
-        commands.append('''echo "$$" > '%s' ''' % self.__pid_file(job_directory))
+        commands.append("""echo "$$" > '%s' """ % self.__pid_file(job_directory))
         # Run collectl in record mode to capture process and system level
         # statistics according to supplied subsystems.
         commands.append(self.__collectl_record_command(job_directory))
@@ -102,12 +113,13 @@ class CollectlPlugin(InstrumentPlugin):
             rel_path = filter(self._is_instrumented_collectl_log, contents)[0]
             path = os.path.join(job_directory, rel_path)
         except IndexError:
-            message = "Failed to find collectl log in directory %s, files were %s" % (job_directory, contents)
+            message = "Failed to find collectl log in directory %s, files were %s" % (
+                job_directory,
+                contents,
+            )
             raise Exception(message)
 
-        properties = dict(
-            pid=int(pid),
-        )
+        properties = dict(pid=int(pid))
 
         if self.saved_logs_path:
             destination_rel_dir = os.path.join(*util.directory_hash_id(job_id))
@@ -170,14 +182,16 @@ class CollectlPlugin(InstrumentPlugin):
         playback_cli_args = dict(
             collectl_path=self.local_collectl_path,
             playback_path=collectl_log_path,
-            sep="9"
+            sep="9",
         )
         if not os.stat(collectl_log_path).st_size:
             log.debug(EMPTY_COLLECTL_FILE_MESSAGE)
             return []
 
         playback_cli = cli.CollectlCli(**playback_cli_args)
-        return processes.generate_process_statistics(playback_cli, pid, self.process_statistics)
+        return processes.generate_process_statistics(
+            playback_cli, pid, self.process_statistics
+        )
 
     def __collectl_recorder_cli(self, job_directory):
         cli_args = self.collectl_recorder_args.copy()
@@ -190,10 +204,7 @@ class CollectlPlugin(InstrumentPlugin):
             redirect_to = self._instrument_file_path(job_directory, "program_output")
         else:
             redirect_to = "/dev/null"
-        return "%s > %s 2>&1 &" % (
-            collectl_cli.build_command_line(),
-            redirect_to,
-        )
+        return "%s > %s 2>&1 &" % (collectl_cli.build_command_line(), redirect_to)
 
     def __pid_file(self, job_directory):
         return self._instrument_file_path(job_directory, "pid")
@@ -215,4 +226,4 @@ def procfilt_argument(procfilt_on):
         return ""
 
 
-__all__ = ('CollectlPlugin', )
+__all__ = ("CollectlPlugin",)

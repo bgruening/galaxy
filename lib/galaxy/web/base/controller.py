@@ -6,26 +6,16 @@ import re
 
 from six import string_types
 from sqlalchemy import true
-from webob.exc import (
-    HTTPBadRequest,
-    HTTPInternalServerError,
-    HTTPNotImplemented
-)
+from webob.exc import HTTPBadRequest, HTTPInternalServerError, HTTPNotImplemented
 
-from galaxy import (
-    exceptions,
-    model,
-    security,
-    util,
-    web
-)
+from galaxy import exceptions, model, security, util, web
 from galaxy.datatypes.interval import ChromatinInteractions
 from galaxy.managers import (
     api_keys,
     base as managers_base,
     configuration,
     users,
-    workflows
+    workflows,
 )
 from galaxy.model import (
     ExtendedMetadata,
@@ -37,15 +27,8 @@ from galaxy.model import (
 from galaxy.model.item_attrs import UsesAnnotations
 from galaxy.util.dictifiable import Dictifiable
 from galaxy.util.sanitize_html import sanitize_html
-from galaxy.web import (
-    error,
-    url_for
-)
-from galaxy.web.form_builder import (
-    AddressField,
-    CheckboxField,
-    PasswordField
-)
+from galaxy.web import error, url_for
+from galaxy.web.form_builder import AddressField, CheckboxField, PasswordField
 from galaxy.workflow.modules import WorkflowModuleInjector
 
 log = logging.getLogger(__name__)
@@ -80,11 +63,26 @@ class BaseController(object):
         """ Returns the class object that a string denotes. Without this method, we'd have to do eval(<class_name>). """
         return managers_base.get_class(class_name)
 
-    def get_object(self, trans, id, class_name, check_ownership=False, check_accessible=False, deleted=None):
+    def get_object(
+        self,
+        trans,
+        id,
+        class_name,
+        check_ownership=False,
+        check_accessible=False,
+        deleted=None,
+    ):
         """
         Convenience method to get a model object with the specified checks.
         """
-        return managers_base.get_object(trans, id, class_name, check_ownership=check_ownership, check_accessible=check_accessible, deleted=deleted)
+        return managers_base.get_object(
+            trans,
+            id,
+            class_name,
+            check_ownership=check_ownership,
+            check_accessible=check_accessible,
+            deleted=deleted,
+        )
 
     # this should be here - but catching errors from sharable item controllers that *should* have SharableItemMixin
     #   but *don't* then becomes difficult
@@ -93,14 +91,41 @@ class BaseController(object):
     #    # meant to be overridden in SharableSecurityMixin
     #    return item
 
-    def get_user(self, trans, id, check_ownership=False, check_accessible=False, deleted=None):
-        return self.get_object(trans, id, 'User', check_ownership=False, check_accessible=False, deleted=deleted)
+    def get_user(
+        self, trans, id, check_ownership=False, check_accessible=False, deleted=None
+    ):
+        return self.get_object(
+            trans,
+            id,
+            "User",
+            check_ownership=False,
+            check_accessible=False,
+            deleted=deleted,
+        )
 
-    def get_group(self, trans, id, check_ownership=False, check_accessible=False, deleted=None):
-        return self.get_object(trans, id, 'Group', check_ownership=False, check_accessible=False, deleted=deleted)
+    def get_group(
+        self, trans, id, check_ownership=False, check_accessible=False, deleted=None
+    ):
+        return self.get_object(
+            trans,
+            id,
+            "Group",
+            check_ownership=False,
+            check_accessible=False,
+            deleted=deleted,
+        )
 
-    def get_role(self, trans, id, check_ownership=False, check_accessible=False, deleted=None):
-        return self.get_object(trans, id, 'Role', check_ownership=False, check_accessible=False, deleted=deleted)
+    def get_role(
+        self, trans, id, check_ownership=False, check_accessible=False, deleted=None
+    ):
+        return self.get_object(
+            trans,
+            id,
+            "Role",
+            check_ownership=False,
+            check_accessible=False,
+            deleted=deleted,
+        )
 
     # ---- parsing query params
     def decode_id(self, id):
@@ -114,11 +139,13 @@ class BaseController(object):
         """
         return trans.security.encode_all_ids(rval, recursive=recursive)
 
-    def parse_filter_params(self, qdict, filter_attr_key='q', filter_value_key='qv', attr_op_split_char='-'):
+    def parse_filter_params(
+        self, qdict, filter_attr_key="q", filter_value_key="qv", attr_op_split_char="-"
+    ):
         """
         """
         # TODO: import DEFAULT_OP from FilterParser
-        DEFAULT_OP = 'eq'
+        DEFAULT_OP = "eq"
         if filter_attr_key not in qdict:
             return []
         # precondition: attrs/value pairs are in-order in the qstring
@@ -148,6 +175,7 @@ class BaseController(object):
     def parse_limit_offset(self, qdict):
         """
         """
+
         def _parse_pos_int(i):
             try:
                 new_val = int(i)
@@ -157,8 +185,8 @@ class BaseController(object):
                 pass
             return None
 
-        limit = _parse_pos_int(qdict.get('limit', None))
-        offset = _parse_pos_int(qdict.get('offset', None))
+        limit = _parse_pos_int(qdict.get("limit", None))
+        offset = _parse_pos_int(qdict.get("offset", None))
         return (limit, offset)
 
 
@@ -166,41 +194,79 @@ Root = BaseController
 
 
 class BaseUIController(BaseController):
-
-    def get_object(self, trans, id, class_name, check_ownership=False, check_accessible=False, deleted=None):
+    def get_object(
+        self,
+        trans,
+        id,
+        class_name,
+        check_ownership=False,
+        check_accessible=False,
+        deleted=None,
+    ):
         try:
-            return BaseController.get_object(self, trans, id, class_name,
-                                             check_ownership=check_ownership, check_accessible=check_accessible, deleted=deleted)
+            return BaseController.get_object(
+                self,
+                trans,
+                id,
+                class_name,
+                check_ownership=check_ownership,
+                check_accessible=check_accessible,
+                deleted=deleted,
+            )
         except exceptions.MessageException:
-            raise       # handled in the caller
+            raise  # handled in the caller
         except Exception:
-            log.exception("Exception in get_object check for %s %s:", class_name, str(id))
-            raise Exception('Server error retrieving %s id ( %s ).' % (class_name, str(id)))
+            log.exception(
+                "Exception in get_object check for %s %s:", class_name, str(id)
+            )
+            raise Exception(
+                "Server error retrieving %s id ( %s )." % (class_name, str(id))
+            )
 
     def message_exception(self, trans, message, sanitize=True):
         trans.response.status = 400
-        return {'err_msg': util.sanitize_text(message) if sanitize else message}
+        return {"err_msg": util.sanitize_text(message) if sanitize else message}
 
 
 class BaseAPIController(BaseController):
-
-    def get_object(self, trans, id, class_name, check_ownership=False, check_accessible=False, deleted=None):
+    def get_object(
+        self,
+        trans,
+        id,
+        class_name,
+        check_ownership=False,
+        check_accessible=False,
+        deleted=None,
+    ):
         try:
-            return BaseController.get_object(self, trans, id, class_name,
-                                             check_ownership=check_ownership, check_accessible=check_accessible, deleted=deleted)
+            return BaseController.get_object(
+                self,
+                trans,
+                id,
+                class_name,
+                check_ownership=check_ownership,
+                check_accessible=check_accessible,
+                deleted=deleted,
+            )
 
         except exceptions.ItemDeletionException as e:
-            raise HTTPBadRequest(detail="Invalid %s id ( %s ) specified: %s" % (class_name, str(id), str(e)))
+            raise HTTPBadRequest(
+                detail="Invalid %s id ( %s ) specified: %s"
+                % (class_name, str(id), str(e))
+            )
         except exceptions.MessageException as e:
             raise HTTPBadRequest(detail=e.err_msg)
         except Exception as e:
-            log.exception("Exception in get_object check for %s %s.", class_name, str(id))
+            log.exception(
+                "Exception in get_object check for %s %s.", class_name, str(id)
+            )
             raise HTTPInternalServerError(comment=str(e))
 
     def validate_in_users_and_groups(self, trans, payload):
         """
         For convenience, in_users and in_groups can be encoded IDs or emails/group names in the API.
         """
+
         def get_id(item, model_class, column):
             try:
                 return trans.security.decode_id(item)
@@ -208,40 +274,55 @@ class BaseAPIController(BaseController):
                 pass  # maybe an email/group name
             # this will raise if the item is invalid
             return trans.sa_session.query(model_class).filter(column == item).first().id
+
         new_in_users = []
         new_in_groups = []
         invalid = []
-        for item in util.listify(payload.get('in_users', [])):
+        for item in util.listify(payload.get("in_users", [])):
             try:
-                new_in_users.append(get_id(item, trans.app.model.User, trans.app.model.User.table.c.email))
+                new_in_users.append(
+                    get_id(
+                        item, trans.app.model.User, trans.app.model.User.table.c.email
+                    )
+                )
             except Exception:
                 invalid.append(item)
-        for item in util.listify(payload.get('in_groups', [])):
+        for item in util.listify(payload.get("in_groups", [])):
             try:
-                new_in_groups.append(get_id(item, trans.app.model.Group, trans.app.model.Group.table.c.name))
+                new_in_groups.append(
+                    get_id(
+                        item, trans.app.model.Group, trans.app.model.Group.table.c.name
+                    )
+                )
             except Exception:
                 invalid.append(item)
         if invalid:
-            msg = "The following value(s) for associated users and/or groups could not be parsed: %s." % ', '.join(invalid)
+            msg = (
+                "The following value(s) for associated users and/or groups could not be parsed: %s."
+                % ", ".join(invalid)
+            )
             msg += "  Valid values are email addresses of users, names of groups, or IDs of both."
             raise Exception(msg)
-        payload['in_users'] = list(map(str, new_in_users))
-        payload['in_groups'] = list(map(str, new_in_groups))
+        payload["in_users"] = list(map(str, new_in_users))
+        payload["in_groups"] = list(map(str, new_in_groups))
 
     def not_implemented(self, trans, **kwd):
         raise HTTPNotImplemented()
 
     def _parse_serialization_params(self, kwd, default_view):
-        view = kwd.get('view', None)
-        keys = kwd.get('keys')
+        view = kwd.get("view", None)
+        keys = kwd.get("keys")
         if isinstance(keys, string_types):
-            keys = keys.split(',')
+            keys = keys.split(",")
         return dict(view=view, keys=keys, default_view=default_view)
 
     def _parse_order_by(self, manager, order_by_string):
-        ORDER_BY_SEP_CHAR = ','
+        ORDER_BY_SEP_CHAR = ","
         if ORDER_BY_SEP_CHAR in order_by_string:
-            return [manager.parse_order_by(o) for o in order_by_string.split(ORDER_BY_SEP_CHAR)]
+            return [
+                manager.parse_order_by(o)
+                for o in order_by_string.split(ORDER_BY_SEP_CHAR)
+            ]
         return manager.parse_order_by(order_by_string)
 
 
@@ -255,8 +336,17 @@ class JSAppLauncher(BaseUIController):
     #: window-scoped js function to call to start the app (will be passed options, bootstrapped)
     DEFAULT_ENTRY_FN = "app"
     #: keys used when serializing current user for bootstrapped data
-    USER_BOOTSTRAP_KEYS = ('id', 'email', 'username', 'is_admin', 'tags_used',
-                           'total_disk_usage', 'nice_total_disk_usage', 'quota_percent', 'preferences')
+    USER_BOOTSTRAP_KEYS = (
+        "id",
+        "email",
+        "username",
+        "is_admin",
+        "tags_used",
+        "total_disk_usage",
+        "nice_total_disk_usage",
+        "quota_percent",
+        "preferences",
+    )
 
     def __init__(self, app):
         super(JSAppLauncher, self).__init__(app)
@@ -283,9 +373,9 @@ class JSAppLauncher(BaseUIController):
         self._check_require_login(trans)
         return self._bootstrapped_client(trans, **kwd)
 
-    def _bootstrapped_client(self, trans, app_name='analysis', **kwd):
+    def _bootstrapped_client(self, trans, app_name="analysis", **kwd):
         js_options = self._get_js_options(trans)
-        js_options['config'].update(self._get_extended_config(trans))
+        js_options["config"].update(self._get_extended_config(trans))
         return self.template(trans, app_name, options=js_options, **kwd)
 
     def _get_js_options(self, trans, root=None):
@@ -295,37 +385,47 @@ class JSAppLauncher(BaseUIController):
 
         Defaults to `config`, `user`, and the root url. Pass kwargs to update further.
         """
-        root = root or web.url_for('/')
+        root = root or web.url_for("/")
         js_options = {
-            'root'               : root,
-            'user'               : self.user_serializer.serialize(trans.user, self.USER_BOOTSTRAP_KEYS, trans=trans),
-            'config'             : self._get_site_configuration(trans),
-            'params'             : dict(trans.request.params),
-            'session_csrf_token' : trans.session_csrf_token,
+            "root": root,
+            "user": self.user_serializer.serialize(
+                trans.user, self.USER_BOOTSTRAP_KEYS, trans=trans
+            ),
+            "config": self._get_site_configuration(trans),
+            "params": dict(trans.request.params),
+            "session_csrf_token": trans.session_csrf_token,
         }
         return js_options
 
     def _get_extended_config(self, trans):
         config = {
-            'active_view'                   : 'analysis',
-            'enable_cloud_launch'           : trans.app.config.get_bool('enable_cloud_launch', False),
-            'enable_webhooks'               : True if trans.app.webhooks_registry.webhooks else False,
+            "active_view": "analysis",
+            "enable_cloud_launch": trans.app.config.get_bool(
+                "enable_cloud_launch", False
+            ),
+            "enable_webhooks": True if trans.app.webhooks_registry.webhooks else False,
             # TODO: next two should be redundant - why can't we build one from the other?
-            'toolbox'                       : trans.app.toolbox.to_dict(trans, in_panel=False),
-            'toolbox_in_panel'              : trans.app.toolbox.to_dict(trans),
-            'message_box_visible'           : trans.app.config.message_box_visible,
-            'show_inactivity_warning'       : trans.app.config.user_activation_on and trans.user and not trans.user.active
+            "toolbox": trans.app.toolbox.to_dict(trans, in_panel=False),
+            "toolbox_in_panel": trans.app.toolbox.to_dict(trans),
+            "message_box_visible": trans.app.config.message_box_visible,
+            "show_inactivity_warning": trans.app.config.user_activation_on
+            and trans.user
+            and not trans.user.active,
         }
 
         # TODO: move to user
-        stored_workflow_menu_entries = config['stored_workflow_menu_entries'] = []
-        for menu_item in getattr(trans.user, 'stored_workflow_menu_entries', []):
-            stored_workflow_menu_entries.append({
-                'encoded_stored_workflow_id': trans.security.encode_id(menu_item.stored_workflow_id),
-                'stored_workflow': {
-                    'name': util.unicodify(menu_item.stored_workflow.name)
+        stored_workflow_menu_entries = config["stored_workflow_menu_entries"] = []
+        for menu_item in getattr(trans.user, "stored_workflow_menu_entries", []):
+            stored_workflow_menu_entries.append(
+                {
+                    "encoded_stored_workflow_id": trans.security.encode_id(
+                        menu_item.stored_workflow_id
+                    ),
+                    "stored_workflow": {
+                        "name": util.unicodify(menu_item.stored_workflow.name)
+                    },
                 }
-            })
+            )
 
         return config
 
@@ -337,12 +437,21 @@ class JSAppLauncher(BaseUIController):
             serializer = self.config_serializer
             if self.user_manager.is_admin(trans.user, trans=trans):
                 serializer = self.admin_config_serializer
-            return serializer.serialize_to_view(self.app.config, view='all')
+            return serializer.serialize_to_view(self.app.config, view="all")
         except Exception as exc:
             log.exception(exc)
             return {}
 
-    def template(self, trans, app_name, entry_fn='app', options=None, bootstrapped_data=None, masthead=True, **additional_options):
+    def template(
+        self,
+        trans,
+        app_name,
+        entry_fn="app",
+        options=None,
+        bootstrapped_data=None,
+        masthead=True,
+        **additional_options
+    ):
         """
         Render and return the single page mako template that starts the app.
 
@@ -363,7 +472,7 @@ class JSAppLauncher(BaseUIController):
             js_app_entry_fn=(entry_fn or self.DEFAULT_ENTRY_FN),
             options=options,
             bootstrapped=(bootstrapped_data or {}),
-            masthead=masthead
+            masthead=masthead,
         )
 
 
@@ -376,6 +485,7 @@ class Datatype(object):
         self.type_extension = type_extension
         self.mimetype = mimetype
         self.display_in_upload = display_in_upload
+
 
 #
 # -- Mixins for working with Galaxy objects. --
@@ -396,79 +506,115 @@ class CreatesApiKeysMixin(object):
 class SharableItemSecurityMixin(object):
     """ Mixin for handling security for sharable items. """
 
-    def security_check(self, trans, item, check_ownership=False, check_accessible=False):
+    def security_check(
+        self, trans, item, check_ownership=False, check_accessible=False
+    ):
         """ Security checks for an item: checks if (a) user owns item or (b) item is accessible to user. """
-        return managers_base.security_check(trans, item, check_ownership=check_ownership, check_accessible=check_accessible)
+        return managers_base.security_check(
+            trans,
+            item,
+            check_ownership=check_ownership,
+            check_accessible=check_accessible,
+        )
 
 
 class ExportsHistoryMixin(object):
-
     def serve_ready_history_export(self, trans, jeha):
         assert jeha.ready
         if jeha.compressed:
-            trans.response.set_content_type('application/x-gzip')
+            trans.response.set_content_type("application/x-gzip")
         else:
-            trans.response.set_content_type('application/x-tar')
+            trans.response.set_content_type("application/x-tar")
         disposition = 'attachment; filename="%s"' % jeha.export_name
         trans.response.headers["Content-Disposition"] = disposition
         archive = trans.app.object_store.get_filename(jeha.dataset)
-        return open(archive, mode='rb')
+        return open(archive, mode="rb")
 
-    def queue_history_export(self, trans, history, gzip=True, include_hidden=False, include_deleted=False):
+    def queue_history_export(
+        self, trans, history, gzip=True, include_hidden=False, include_deleted=False
+    ):
         # Convert options to booleans.
         if isinstance(gzip, string_types):
-            gzip = (gzip in ['True', 'true', 'T', 't'])
+            gzip = gzip in ["True", "true", "T", "t"]
         if isinstance(include_hidden, string_types):
-            include_hidden = (include_hidden in ['True', 'true', 'T', 't'])
+            include_hidden = include_hidden in ["True", "true", "T", "t"]
         if isinstance(include_deleted, string_types):
-            include_deleted = (include_deleted in ['True', 'true', 'T', 't'])
+            include_deleted = include_deleted in ["True", "true", "T", "t"]
 
         # Run job to do export.
-        history_exp_tool = trans.app.toolbox.get_tool('__EXPORT_HISTORY__')
+        history_exp_tool = trans.app.toolbox.get_tool("__EXPORT_HISTORY__")
         params = {
-            'history_to_export': history,
-            'compress': gzip,
-            'include_hidden': include_hidden,
-            'include_deleted': include_deleted
+            "history_to_export": history,
+            "compress": gzip,
+            "include_hidden": include_hidden,
+            "include_deleted": include_deleted,
         }
 
-        history_exp_tool.execute(trans, incoming=params, history=history, set_output_hid=True)
+        history_exp_tool.execute(
+            trans, incoming=params, history=history, set_output_hid=True
+        )
 
 
 class ImportsHistoryMixin(object):
-
     def queue_history_import(self, trans, archive_type, archive_source):
         # Run job to do import.
-        history_imp_tool = trans.app.toolbox.get_tool('__IMPORT_HISTORY__')
-        incoming = {'__ARCHIVE_SOURCE__' : archive_source, '__ARCHIVE_TYPE__' : archive_type}
+        history_imp_tool = trans.app.toolbox.get_tool("__IMPORT_HISTORY__")
+        incoming = {
+            "__ARCHIVE_SOURCE__": archive_source,
+            "__ARCHIVE_TYPE__": archive_type,
+        }
         history_imp_tool.execute(trans, incoming=incoming)
 
 
 class UsesLibraryMixin(object):
-
     def get_library(self, trans, id, check_ownership=False, check_accessible=True):
-        l = self.get_object(trans, id, 'Library')
-        if check_accessible and not (trans.user_is_admin or trans.app.security_agent.can_access_library(trans.get_current_user_roles(), l)):
+        l = self.get_object(trans, id, "Library")
+        if check_accessible and not (
+            trans.user_is_admin
+            or trans.app.security_agent.can_access_library(
+                trans.get_current_user_roles(), l
+            )
+        ):
             error("LibraryFolder is not accessible to the current user")
         return l
 
 
 class UsesLibraryMixinItems(SharableItemSecurityMixin):
+    def get_library_folder(
+        self, trans, id, check_ownership=False, check_accessible=True
+    ):
+        return self.get_object(
+            trans,
+            id,
+            "LibraryFolder",
+            check_ownership=False,
+            check_accessible=check_accessible,
+        )
 
-    def get_library_folder(self, trans, id, check_ownership=False, check_accessible=True):
-        return self.get_object(trans, id, 'LibraryFolder',
-                               check_ownership=False, check_accessible=check_accessible)
-
-    def get_library_dataset_dataset_association(self, trans, id, check_ownership=False, check_accessible=True):
+    def get_library_dataset_dataset_association(
+        self, trans, id, check_ownership=False, check_accessible=True
+    ):
         # Deprecated in lieu to galaxy.managers.lddas.LDDAManager.get() but not
         # reusing that exactly because of subtle differences in exception handling
         # logic (API controller override get_object to be slightly different).
-        return self.get_object(trans, id, 'LibraryDatasetDatasetAssociation',
-                               check_ownership=False, check_accessible=check_accessible)
+        return self.get_object(
+            trans,
+            id,
+            "LibraryDatasetDatasetAssociation",
+            check_ownership=False,
+            check_accessible=check_accessible,
+        )
 
-    def get_library_dataset(self, trans, id, check_ownership=False, check_accessible=True):
-        return self.get_object(trans, id, 'LibraryDataset',
-                               check_ownership=False, check_accessible=check_accessible)
+    def get_library_dataset(
+        self, trans, id, check_ownership=False, check_accessible=True
+    ):
+        return self.get_object(
+            trans,
+            id,
+            "LibraryDataset",
+            check_ownership=False,
+            check_accessible=check_accessible,
+        )
 
     # TODO: it makes no sense that I can get roles from a user but not user.is_admin()
     # def can_user_add_to_library_item( self, trans, user, item ):
@@ -479,8 +625,9 @@ class UsesLibraryMixinItems(SharableItemSecurityMixin):
     def can_current_user_add_to_library_item(self, trans, item):
         if not trans.user:
             return False
-        return (trans.user_is_admin or
-                trans.app.security_agent.can_add_library_item(trans.get_current_user_roles(), item))
+        return trans.user_is_admin or trans.app.security_agent.can_add_library_item(
+            trans.get_current_user_roles(), item
+        )
 
     def check_user_can_add_to_library_item(self, trans, item, check_accessible=True):
         """
@@ -496,32 +643,57 @@ class UsesLibraryMixinItems(SharableItemSecurityMixin):
             return True
 
         if check_accessible:
-            if not trans.app.security_agent.can_access_library_item(current_user_roles, item, trans.user):
-                raise exceptions.ItemAccessibilityException('You do not have access to the requested item')
+            if not trans.app.security_agent.can_access_library_item(
+                current_user_roles, item, trans.user
+            ):
+                raise exceptions.ItemAccessibilityException(
+                    "You do not have access to the requested item"
+                )
 
-        if not trans.app.security_agent.can_add_library_item(trans.get_current_user_roles(), item):
+        if not trans.app.security_agent.can_add_library_item(
+            trans.get_current_user_roles(), item
+        ):
             # Slight misuse of ItemOwnershipException?
             raise exceptions.ItemOwnershipException("User cannot add to library item.")
 
-    def _copy_hdca_to_library_folder(self, trans, hda_manager, from_hdca_id, folder_id, ldda_message=''):
+    def _copy_hdca_to_library_folder(
+        self, trans, hda_manager, from_hdca_id, folder_id, ldda_message=""
+    ):
         """
         Fetches the collection identified by `from_hcda_id` and dispatches individual collection elements to
         _copy_hda_to_library_folder
         """
-        hdca = trans.sa_session.query(trans.app.model.HistoryDatasetCollectionAssociation).get(from_hdca_id)
-        if hdca.collection.collection_type != 'list':
-            raise exceptions.NotImplemented('Cannot add nested collections to library. Please flatten your collection first.')
+        hdca = trans.sa_session.query(
+            trans.app.model.HistoryDatasetCollectionAssociation
+        ).get(from_hdca_id)
+        if hdca.collection.collection_type != "list":
+            raise exceptions.NotImplemented(
+                "Cannot add nested collections to library. Please flatten your collection first."
+            )
         hdas = []
         for element in hdca.collection.elements:
             hdas.append((element.element_identifier, element.dataset_instance.id))
-        return [self._copy_hda_to_library_folder(trans,
-                                                 hda_manager=hda_manager,
-                                                 from_hda_id=hda_id,
-                                                 folder_id=folder_id,
-                                                 ldda_message=ldda_message,
-                                                 element_identifier=element_identifier) for (element_identifier, hda_id) in hdas]
+        return [
+            self._copy_hda_to_library_folder(
+                trans,
+                hda_manager=hda_manager,
+                from_hda_id=hda_id,
+                folder_id=folder_id,
+                ldda_message=ldda_message,
+                element_identifier=element_identifier,
+            )
+            for (element_identifier, hda_id) in hdas
+        ]
 
-    def _copy_hda_to_library_folder(self, trans, hda_manager, from_hda_id, folder_id, ldda_message='', element_identifier=None):
+    def _copy_hda_to_library_folder(
+        self,
+        trans,
+        hda_manager,
+        from_hda_id,
+        folder_id,
+        ldda_message="",
+        element_identifier=None,
+    ):
         """
         Copies hda ``from_hda_id`` to library folder ``folder_id``, optionally
         adding ``ldda_message`` to the new ldda's ``message``.
@@ -529,7 +701,10 @@ class UsesLibraryMixinItems(SharableItemSecurityMixin):
         ``library_contents.create`` will branch to this if called with 'from_hda_id'
         in its payload.
         """
-        log.debug('_copy_hda_to_library_folder: %s' % (str((from_hda_id, folder_id, ldda_message))))
+        log.debug(
+            "_copy_hda_to_library_folder: %s"
+            % (str((from_hda_id, folder_id, ldda_message)))
+        )
         # PRECONDITION: folder_id has already been altered to remove the folder prefix ('F')
         # TODO: allow name and other, editable ldda attrs?
         if ldda_message:
@@ -537,18 +712,30 @@ class UsesLibraryMixinItems(SharableItemSecurityMixin):
 
         # check permissions on (all three?) resources: hda, library, folder
         # TODO: do we really need the library??
-        hda = hda_manager.get_owned(from_hda_id, trans.user, current_history=trans.history)
+        hda = hda_manager.get_owned(
+            from_hda_id, trans.user, current_history=trans.history
+        )
         hda = hda_manager.error_if_uploading(hda)
         folder = self.get_library_folder(trans, folder_id, check_accessible=True)
 
         # TOOD: refactor to use check_user_can_add_to_library_item, eliminate boolean
         # can_current_user_add_to_library_item.
         if folder.parent_library.deleted:
-            raise exceptions.ObjectAttributeInvalidException('You cannot add datasets into deleted library. Undelete it first.')
+            raise exceptions.ObjectAttributeInvalidException(
+                "You cannot add datasets into deleted library. Undelete it first."
+            )
         if not self.can_current_user_add_to_library_item(trans, folder):
-            raise exceptions.InsufficientPermissionsException('You do not have proper permissions to add a dataset to this folder,')
+            raise exceptions.InsufficientPermissionsException(
+                "You do not have proper permissions to add a dataset to this folder,"
+            )
 
-        ldda = self.copy_hda_to_library_folder(trans, hda, folder, ldda_message=ldda_message, element_identifier=element_identifier)
+        ldda = self.copy_hda_to_library_folder(
+            trans,
+            hda,
+            folder,
+            ldda_message=ldda_message,
+            element_identifier=element_identifier,
+        )
         # I don't see a reason why hdas copied into libraries should not be visible.
         # If there is, refactor `ldda.visible = True` to do this only when adding HDCAs.
         ldda.visible = True
@@ -556,10 +743,18 @@ class UsesLibraryMixinItems(SharableItemSecurityMixin):
         ldda_dict = ldda.to_dict()
         rval = trans.security.encode_dict_ids(ldda_dict)
         update_time = ldda.update_time.strftime("%Y-%m-%d %I:%M %p")
-        rval['update_time'] = update_time
+        rval["update_time"] = update_time
         return rval
 
-    def copy_hda_to_library_folder(self, trans, hda, library_folder, roles=None, ldda_message='', element_identifier=None):
+    def copy_hda_to_library_folder(
+        self,
+        trans,
+        hda,
+        library_folder,
+        roles=None,
+        ldda_message="",
+        element_identifier=None,
+    ):
         # PRECONDITION: permissions for this action on hda and library_folder have been checked
         roles = roles or []
 
@@ -567,8 +762,13 @@ class UsesLibraryMixinItems(SharableItemSecurityMixin):
         # TODO: refactor library_common.add_history_datasets_to_library to use this for each hda to copy
 
         # create the new ldda and apply the folder perms to it
-        ldda = hda.to_library_dataset_dataset_association(trans, target_folder=library_folder,
-                                                          roles=roles, ldda_message=ldda_message, element_identifier=element_identifier)
+        ldda = hda.to_library_dataset_dataset_association(
+            trans,
+            target_folder=library_folder,
+            roles=roles,
+            ldda_message=ldda_message,
+            element_identifier=element_identifier,
+        )
         self._apply_library_folder_permissions_to_ldda(trans, library_folder, ldda)
         self._apply_hda_permissions_to_ldda(trans, hda, ldda)
         # TODO:?? not really clear on how permissions are being traded here
@@ -584,7 +784,9 @@ class UsesLibraryMixinItems(SharableItemSecurityMixin):
         # PRECONDITION: permissions for this action on library_folder and ldda have been checked
         security_agent = trans.app.security_agent
         security_agent.copy_library_permissions(trans, library_folder, ldda)
-        security_agent.copy_library_permissions(trans, library_folder, ldda.library_dataset)
+        security_agent.copy_library_permissions(
+            trans, library_folder, ldda.library_dataset
+        )
         return security_agent.get_permissions(ldda)
 
     def _apply_hda_permissions_to_ldda(self, trans, hda, ldda):
@@ -598,12 +800,18 @@ class UsesLibraryMixinItems(SharableItemSecurityMixin):
         security_agent = trans.app.security_agent
         dataset_permissions_dict = security_agent.get_permissions(hda.dataset)
         library_dataset = ldda.library_dataset
-        library_dataset_actions = [permission.action for permission in library_dataset.actions]
+        library_dataset_actions = [
+            permission.action for permission in library_dataset.actions
+        ]
 
         # except that: if DATASET_MANAGE_PERMISSIONS exists in the hda.dataset permissions,
         #   we need to instead apply those roles to the LIBRARY_MANAGE permission to the library dataset
-        dataset_manage_permissions_action = security_agent.get_action('DATASET_MANAGE_PERMISSIONS').action
-        library_manage_permissions_action = security_agent.get_action('LIBRARY_MANAGE').action
+        dataset_manage_permissions_action = security_agent.get_action(
+            "DATASET_MANAGE_PERMISSIONS"
+        ).action
+        library_manage_permissions_action = security_agent.get_action(
+            "LIBRARY_MANAGE"
+        ).action
         # TODO: test this and remove if in loop below
         # TODO: doesn't handle action.action
         # if dataset_manage_permissions_action in dataset_permissions_dict:
@@ -624,7 +832,9 @@ class UsesLibraryMixinItems(SharableItemSecurityMixin):
             # NOTE: only apply an hda perm if it's NOT set in the library_dataset perms (don't overwrite)
             if action not in library_dataset_actions:
                 for role in dataset_permissions_roles:
-                    ldps = trans.model.LibraryDatasetPermissions(action, library_dataset, role)
+                    ldps = trans.model.LibraryDatasetPermissions(
+                        action, library_dataset, role
+                    )
                     ldps = [ldps] if not isinstance(ldps, list) else ldps
                     for ldp in ldps:
                         trans.sa_session.add(ldp)
@@ -643,19 +853,25 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
     Mixin for controllers that use Visualization objects.
     """
 
-    def get_visualization(self, trans, id, check_ownership=True, check_accessible=False):
+    def get_visualization(
+        self, trans, id, check_ownership=True, check_accessible=False
+    ):
         """
         Get a Visualization from the database by id, verifying ownership.
         """
         # Load workflow from database
         try:
-            visualization = trans.sa_session.query(trans.model.Visualization).get(trans.security.decode_id(id))
+            visualization = trans.sa_session.query(trans.model.Visualization).get(
+                trans.security.decode_id(id)
+            )
         except TypeError:
             visualization = None
         if not visualization:
             error("Visualization not found")
         else:
-            return self.security_check(trans, visualization, check_ownership, check_accessible)
+            return self.security_check(
+                trans, visualization, check_ownership, check_accessible
+            )
 
     def get_visualizations_by_user(self, trans, user, order_by=None, query_only=False):
         """
@@ -680,7 +896,9 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
             return query
         return query.all()
 
-    def get_visualizations_shared_with_user(self, trans, user, order_by=None, query_only=False):
+    def get_visualizations_shared_with_user(
+        self, trans, user, order_by=None, query_only=False
+    ):
         """
         Return query or query results for visualizations shared with the given user.
 
@@ -694,7 +912,9 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
             order_by = DEFAULT_ORDER_BY
         if not isinstance(order_by, list):
             order_by = [order_by]
-        query = trans.sa_session.query(model.Visualization).join(model.VisualizationUserShareAssociation)
+        query = trans.sa_session.query(model.Visualization).join(
+            model.VisualizationUserShareAssociation
+        )
         query = query.filter(model.VisualizationUserShareAssociation.user_id == user.id)
         # remove duplicates when a user shares with themselves?
         query = query.filter(model.Visualization.user_id != user.id)
@@ -704,7 +924,9 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
             return query
         return query.all()
 
-    def get_published_visualizations(self, trans, exclude_user=None, order_by=None, query_only=False):
+    def get_published_visualizations(
+        self, trans, exclude_user=None, order_by=None, query_only=False
+    ):
         """
         Return query or query results for published visualizations optionally excluding
         the user in `exclude_user`.
@@ -738,10 +960,10 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         # TODO: deleted
         # TODO: importable
         return {
-            'id'        : visualization.id,
-            'title'     : visualization.title,
-            'type'      : visualization.type,
-            'dbkey'     : visualization.dbkey,
+            "id": visualization.id,
+            "title": visualization.title,
+            "type": visualization.type,
+            "dbkey": visualization.dbkey,
         }
 
     def get_visualization_dict(self, visualization):
@@ -751,16 +973,18 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         NOTE: that encoding ids isn't done here should happen at the caller level.
         """
         return {
-            'model_class': 'Visualization',
-            'id'         : visualization.id,
-            'title'      : visualization.title,
-            'type'       : visualization.type,
-            'user_id'    : visualization.user.id,
-            'dbkey'      : visualization.dbkey,
-            'slug'       : visualization.slug,
+            "model_class": "Visualization",
+            "id": visualization.id,
+            "title": visualization.title,
+            "type": visualization.type,
+            "user_id": visualization.user.id,
+            "dbkey": visualization.dbkey,
+            "slug": visualization.slug,
             # to_dict only the latest revision (allow older to be fetched elsewhere)
-            'latest_revision' : self.get_visualization_revision_dict(visualization.latest_revision),
-            'revisions' : [r.id for r in visualization.revisions],
+            "latest_revision": self.get_visualization_revision_dict(
+                visualization.latest_revision
+            ),
+            "revisions": [r.id for r in visualization.revisions],
         }
 
     def get_visualization_revision_dict(self, revision):
@@ -769,12 +993,12 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         NOTE: that encoding ids isn't done here should happen at the caller level.
         """
         return {
-            'model_class'      : 'VisualizationRevision',
-            'id'               : revision.id,
-            'visualization_id' : revision.visualization.id,
-            'title'            : revision.title,
-            'dbkey'            : revision.dbkey,
-            'config'           : revision.config,
+            "model_class": "VisualizationRevision",
+            "id": revision.id,
+            "visualization_id": revision.visualization.id,
+            "title": revision.title,
+            "dbkey": revision.dbkey,
+            "config": revision.config,
         }
 
     def import_visualization(self, trans, id, user=None):
@@ -789,37 +1013,57 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         # default to trans.user, error if anon
         if not user:
             if not trans.user:
-                raise exceptions.ItemAccessibilityException("You must be logged in to import Galaxy visualizations")
+                raise exceptions.ItemAccessibilityException(
+                    "You must be logged in to import Galaxy visualizations"
+                )
             user = trans.user
 
         # check accessibility
         visualization = self.get_visualization(trans, id, check_ownership=False)
         if not visualization.importable:
-            raise exceptions.ItemAccessibilityException("The owner of this visualization has disabled imports via this link.")
+            raise exceptions.ItemAccessibilityException(
+                "The owner of this visualization has disabled imports via this link."
+            )
         if visualization.deleted:
-            raise exceptions.ItemDeletionException("You can't import this visualization because it has been deleted.")
+            raise exceptions.ItemDeletionException(
+                "You can't import this visualization because it has been deleted."
+            )
 
         # copy vis and alter title
         # TODO: need to handle custom db keys.
-        imported_visualization = visualization.copy(user=user, title="imported: " + visualization.title)
+        imported_visualization = visualization.copy(
+            user=user, title="imported: " + visualization.title
+        )
         trans.sa_session.add(imported_visualization)
         trans.sa_session.flush()
         return imported_visualization
 
-    def create_visualization(self, trans, type, title="Untitled Visualization", slug=None,
-                             dbkey=None, annotation=None, config={}, save=True):
+    def create_visualization(
+        self,
+        trans,
+        type,
+        title="Untitled Visualization",
+        slug=None,
+        dbkey=None,
+        annotation=None,
+        config={},
+        save=True,
+    ):
         """
         Create visualiation and first revision.
         """
-        visualization = self._create_visualization(trans, title, type, dbkey, slug, annotation, save)
+        visualization = self._create_visualization(
+            trans, title, type, dbkey, slug, annotation, save
+        )
         # TODO: handle this error structure better either in _create or here
         if isinstance(visualization, dict):
             err_dict = visualization
-            raise ValueError(err_dict['title_err'] or err_dict['slug_err'])
+            raise ValueError(err_dict["title_err"] or err_dict["slug_err"])
 
         # Create and save first visualization revision
-        revision = trans.model.VisualizationRevision(visualization=visualization, title=title,
-                                                     config=config, dbkey=dbkey)
+        revision = trans.model.VisualizationRevision(
+            visualization=visualization, title=title, config=config, dbkey=dbkey
+        )
         visualization.latest_revision = revision
 
         if save:
@@ -837,20 +1081,34 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         """
         # precondition: only add new revision on owned vis's
         # TODO:?? should we default title, dbkey, config? to which: visualization or latest_revision?
-        revision = trans.model.VisualizationRevision(visualization, title, dbkey, config)
+        revision = trans.model.VisualizationRevision(
+            visualization, title, dbkey, config
+        )
         visualization.latest_revision = revision
         # TODO:?? does this automatically add revision to visualzation.revisions?
         trans.sa_session.add(revision)
         trans.sa_session.flush()
         return revision
 
-    def save_visualization(self, trans, config, type, id=None, title=None, dbkey=None, slug=None, annotation=None):
+    def save_visualization(
+        self,
+        trans,
+        config,
+        type,
+        id=None,
+        title=None,
+        dbkey=None,
+        slug=None,
+        annotation=None,
+    ):
         session = trans.sa_session
 
         # Create/get visualization.
         if not id:
             # Create new visualization.
-            vis = self._create_visualization(trans, title, type, dbkey, slug, annotation)
+            vis = self._create_visualization(
+                trans, title, type, dbkey, slug, annotation
+            )
         else:
             decoded_id = trans.security.decode_id(id)
             vis = session.query(trans.model.Visualization).get(decoded_id)
@@ -866,35 +1124,36 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
 
         # -- Validate config. --
 
-        if vis.type == 'trackster':
+        if vis.type == "trackster":
+
             def unpack_track(track_dict):
                 """ Unpack a track from its json. """
-                dataset_dict = track_dict['dataset']
+                dataset_dict = track_dict["dataset"]
                 return {
-                    "dataset_id": trans.security.decode_id(dataset_dict['id']),
-                    "hda_ldda": dataset_dict.get('hda_ldda', 'hda'),
-                    "track_type": track_dict['track_type'],
-                    "prefs": track_dict['prefs'],
-                    "mode": track_dict['mode'],
-                    "filters": track_dict['filters'],
-                    "tool_state": track_dict['tool_state']
+                    "dataset_id": trans.security.decode_id(dataset_dict["id"]),
+                    "hda_ldda": dataset_dict.get("hda_ldda", "hda"),
+                    "track_type": track_dict["track_type"],
+                    "prefs": track_dict["prefs"],
+                    "mode": track_dict["mode"],
+                    "filters": track_dict["filters"],
+                    "tool_state": track_dict["tool_state"],
                 }
 
             def unpack_collection(collection_json):
                 """ Unpack a collection from its json. """
                 unpacked_drawables = []
-                drawables = collection_json['drawables']
+                drawables = collection_json["drawables"]
                 for drawable_json in drawables:
-                    if 'track_type' in drawable_json:
+                    if "track_type" in drawable_json:
                         drawable = unpack_track(drawable_json)
                     else:
                         drawable = unpack_collection(drawable_json)
                     unpacked_drawables.append(drawable)
                 return {
-                    "obj_type": collection_json['obj_type'],
+                    "obj_type": collection_json["obj_type"],
                     "drawables": unpacked_drawables,
-                    "prefs": collection_json.get('prefs', []),
-                    "filters": collection_json.get('filters', None)
+                    "prefs": collection_json.get("prefs", []),
+                    "filters": collection_json.get("filters", None),
                 }
 
             # TODO: unpack and validate bookmarks:
@@ -902,16 +1161,21 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
                 return bookmarks_json
 
             # Unpack and validate view content.
-            view_content = unpack_collection(config['view'])
-            bookmarks = unpack_bookmarks(config['bookmarks'])
+            view_content = unpack_collection(config["view"])
+            bookmarks = unpack_bookmarks(config["bookmarks"])
             vis_rev.config = {"view": view_content, "bookmarks": bookmarks}
             # Viewport from payload
-            if 'viewport' in config:
-                chrom = config['viewport']['chrom']
-                start = config['viewport']['start']
-                end = config['viewport']['end']
-                overview = config['viewport']['overview']
-                vis_rev.config["viewport"] = {'chrom': chrom, 'start': start, 'end': end, 'overview': overview}
+            if "viewport" in config:
+                chrom = config["viewport"]["chrom"]
+                start = config["viewport"]["start"]
+                end = config["viewport"]["end"]
+                overview = config["viewport"]["overview"]
+                vis_rev.config["viewport"] = {
+                    "chrom": chrom,
+                    "start": start,
+                    "end": end,
+                    "overview": overview,
+                }
         else:
             # Default action is to save the config as is with no validation.
             vis_rev.config = config
@@ -920,7 +1184,10 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         session.add(vis_rev)
         session.flush()
         encoded_id = trans.security.encode_id(vis.id)
-        return {"vis_id": encoded_id, "url": url_for(controller='visualization', action=vis.type, id=encoded_id)}
+        return {
+            "vis_id": encoded_id,
+            "url": url_for(controller="visualization", action=vis.type, id=encoded_id),
+        }
 
     def get_tool_def(self, trans, hda):
         """ Returns definition of an interactive tool for an HDA. """
@@ -944,64 +1211,72 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         # -- Get tool definition and add input values from job. --
         tool_dict = tool.to_dict(trans, io_details=True)
         tool_param_values = dict([(p.name, p.value) for p in job.parameters])
-        tool_param_values = tool.params_from_strings(tool_param_values, trans.app, ignore_errors=True)
+        tool_param_values = tool.params_from_strings(
+            tool_param_values, trans.app, ignore_errors=True
+        )
 
         # Only get values for simple inputs for now.
-        inputs_dict = [i for i in tool_dict['inputs'] if i['type'] not in ['data', 'hidden_data', 'conditional']]
+        inputs_dict = [
+            i
+            for i in tool_dict["inputs"]
+            if i["type"] not in ["data", "hidden_data", "conditional"]
+        ]
         for t_input in inputs_dict:
             # Add value to tool.
-            if 'name' in t_input:
-                name = t_input['name']
+            if "name" in t_input:
+                name = t_input["name"]
                 if name in tool_param_values:
                     value = tool_param_values[name]
                     if isinstance(value, Dictifiable):
                         value = value.to_dict()
-                    t_input['value'] = value
+                    t_input["value"] = value
 
         return tool_dict
 
     def get_visualization_config(self, trans, visualization):
         """ Returns a visualization's configuration. Only works for trackster visualizations right now. """
         config = None
-        if visualization.type in ['trackster', 'genome']:
+        if visualization.type in ["trackster", "genome"]:
             # Unpack Trackster config.
             latest_revision = visualization.latest_revision
-            bookmarks = latest_revision.config.get('bookmarks', [])
+            bookmarks = latest_revision.config.get("bookmarks", [])
 
             def pack_track(track_dict):
-                dataset_id = track_dict['dataset_id']
-                hda_ldda = track_dict.get('hda_ldda', 'hda')
+                dataset_id = track_dict["dataset_id"]
+                hda_ldda = track_dict.get("hda_ldda", "hda")
                 dataset_id = trans.security.encode_id(dataset_id)
                 dataset = self.get_hda_or_ldda(trans, hda_ldda, dataset_id)
                 try:
-                    prefs = track_dict['prefs']
+                    prefs = track_dict["prefs"]
                 except KeyError:
                     prefs = {}
-                track_data_provider = trans.app.data_provider_registry.get_data_provider(trans,
-                                                                                         original_dataset=dataset,
-                                                                                         source='data')
+                track_data_provider = trans.app.data_provider_registry.get_data_provider(
+                    trans, original_dataset=dataset, source="data"
+                )
                 return {
                     "track_type": dataset.datatype.track_type,
                     "dataset": trans.security.encode_dict_ids(dataset.to_dict()),
                     "prefs": prefs,
-                    "mode": track_dict.get('mode', 'Auto'),
-                    "filters": track_dict.get('filters', {'filters' : track_data_provider.get_filters()}),
+                    "mode": track_dict.get("mode", "Auto"),
+                    "filters": track_dict.get(
+                        "filters", {"filters": track_data_provider.get_filters()}
+                    ),
                     "tool": self.get_tool_def(trans, dataset),
-                    "tool_state": track_dict.get('tool_state', {})
+                    "tool_state": track_dict.get("tool_state", {}),
                 }
 
             def pack_collection(collection_dict):
                 drawables = []
-                for drawable_dict in collection_dict['drawables']:
-                    if 'track_type' in drawable_dict:
+                for drawable_dict in collection_dict["drawables"]:
+                    if "track_type" in drawable_dict:
                         drawables.append(pack_track(drawable_dict))
                     else:
                         drawables.append(pack_collection(drawable_dict))
                 return {
-                    'obj_type': collection_dict['obj_type'],
-                    'drawables': drawables,
-                    'prefs': collection_dict.get('prefs', []),
-                    'filters': collection_dict.get('filters', {})
+                    "obj_type": collection_dict["obj_type"],
+                    "drawables": drawables,
+                    "prefs": collection_dict.get("prefs", []),
+                    "filters": collection_dict.get("filters", {}),
                 }
 
             def encode_dbkey(dbkey):
@@ -1011,32 +1286,39 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
                 """
                 encoded_dbkey = dbkey
                 user = visualization.user
-                if 'dbkeys' in user.preferences and str(dbkey) in user.preferences['dbkeys']:
+                if (
+                    "dbkeys" in user.preferences
+                    and str(dbkey) in user.preferences["dbkeys"]
+                ):
                     encoded_dbkey = "%s:%s" % (user.username, dbkey)
                 return encoded_dbkey
 
             # Set tracks.
             tracks = []
-            if 'tracks' in latest_revision.config:
+            if "tracks" in latest_revision.config:
                 # Legacy code.
-                for track_dict in visualization.latest_revision.config['tracks']:
+                for track_dict in visualization.latest_revision.config["tracks"]:
                     tracks.append(pack_track(track_dict))
-            elif 'view' in latest_revision.config:
-                for drawable_dict in visualization.latest_revision.config['view']['drawables']:
-                    if 'track_type' in drawable_dict:
+            elif "view" in latest_revision.config:
+                for drawable_dict in visualization.latest_revision.config["view"][
+                    "drawables"
+                ]:
+                    if "track_type" in drawable_dict:
                         tracks.append(pack_track(drawable_dict))
                     else:
                         tracks.append(pack_collection(drawable_dict))
 
-            config = {"title": visualization.title,
-                      "vis_id": trans.security.encode_id(visualization.id),
-                      "tracks": tracks,
-                      "bookmarks": bookmarks,
-                      "chrom": "",
-                      "dbkey": encode_dbkey(visualization.dbkey)}
+            config = {
+                "title": visualization.title,
+                "vis_id": trans.security.encode_id(visualization.id),
+                "tracks": tracks,
+                "bookmarks": bookmarks,
+                "chrom": "",
+                "dbkey": encode_dbkey(visualization.dbkey),
+            }
 
-            if 'viewport' in latest_revision.config:
-                config['viewport'] = latest_revision.config['viewport']
+            if "viewport" in latest_revision.config:
+                config["viewport"] = latest_revision.config["viewport"]
         else:
             # Default action is to return config unaltered.
             latest_revision = visualization.latest_revision
@@ -1049,7 +1331,9 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         Returns track configuration dict for a dataset.
         """
         # Get data provider.
-        track_data_provider = trans.app.data_provider_registry.get_data_provider(trans, original_dataset=dataset)
+        track_data_provider = trans.app.data_provider_registry.get_data_provider(
+            trans, original_dataset=dataset
+        )
 
         # Get track definition.
         return {
@@ -1057,19 +1341,28 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
             "name": dataset.name,
             "dataset": trans.security.encode_dict_ids(dataset.to_dict()),
             "prefs": {},
-            "filters": {'filters' : track_data_provider.get_filters()},
+            "filters": {"filters": track_data_provider.get_filters()},
             "tool": self.get_tool_def(trans, dataset),
-            "tool_state": {}
+            "tool_state": {},
         }
 
     def get_hda_or_ldda(self, trans, hda_ldda, dataset_id):
         """ Returns either HDA or LDDA for hda/ldda and id combination. """
         if hda_ldda == "hda":
-            return self.get_hda(trans, dataset_id, check_ownership=False, check_accessible=True)
+            return self.get_hda(
+                trans, dataset_id, check_ownership=False, check_accessible=True
+            )
         else:
             return self.get_library_dataset_dataset_association(trans, dataset_id)
 
-    def get_hda(self, trans, dataset_id, check_ownership=True, check_accessible=False, check_state=True):
+    def get_hda(
+        self,
+        trans,
+        dataset_id,
+        check_ownership=True,
+        check_accessible=False,
+        check_state=True,
+    ):
         """
         Get an HDA object by id performing security checks using
         the current transaction.
@@ -1082,7 +1375,9 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
             raise HTTPBadRequest("Invalid dataset id: %s." % str(dataset_id))
 
         try:
-            data = trans.sa_session.query(trans.app.model.HistoryDatasetAssociation).get(int(dataset_id))
+            data = trans.sa_session.query(
+                trans.app.model.HistoryDatasetAssociation
+            ).get(int(dataset_id))
         except Exception:
             raise HTTPBadRequest("Invalid dataset id: %s." % str(dataset_id))
 
@@ -1100,17 +1395,23 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         if check_accessible:
             current_user_roles = trans.get_current_user_roles()
 
-            if not trans.app.security_agent.can_access_dataset(current_user_roles, data.dataset):
+            if not trans.app.security_agent.can_access_dataset(
+                current_user_roles, data.dataset
+            ):
                 error("You are not allowed to access this dataset")
 
             if check_state and data.state == trans.model.Dataset.states.UPLOAD:
-                return trans.show_error_message("Please wait until this dataset finishes uploading " +
-                                                "before attempting to view it.")
+                return trans.show_error_message(
+                    "Please wait until this dataset finishes uploading "
+                    + "before attempting to view it."
+                )
         return data
 
     # -- Helper functions --
 
-    def _create_visualization(self, trans, title, type, dbkey=None, slug=None, annotation=None, save=True):
+    def _create_visualization(
+        self, trans, title, type, dbkey=None, slug=None, annotation=None, save=True
+    ):
         """ Create visualization but not first revision. Returns Visualization object. """
         user = trans.get_user()
 
@@ -1120,14 +1421,21 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
             title_err = "visualization name is required"
         elif slug and not _is_valid_slug(slug):
             slug_err = "visualization identifier must consist of only lowercase letters, numbers, and the '-' character"
-        elif slug and trans.sa_session.query(trans.model.Visualization).filter_by(user=user, slug=slug, deleted=False).first():
+        elif (
+            slug
+            and trans.sa_session.query(trans.model.Visualization)
+            .filter_by(user=user, slug=slug, deleted=False)
+            .first()
+        ):
             slug_err = "visualization identifier must be unique"
 
         if title_err or slug_err:
-            return {'title_err': title_err, 'slug_err': slug_err}
+            return {"title_err": title_err, "slug_err": slug_err}
 
         # Create visualization
-        visualization = trans.model.Visualization(user=user, title=title, dbkey=dbkey, type=type)
+        visualization = trans.model.Visualization(
+            user=user, title=title, dbkey=dbkey, type=type
+        )
         if slug:
             visualization.slug = slug
         else:
@@ -1136,7 +1444,9 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
             annotation = sanitize_html(annotation)
             # TODO: if this is to stay in the mixin, UsesAnnotations should be added to the superclasses
             #   right now this is depending on the classes that include this mixin to have UsesAnnotations
-            self.add_item_annotation(trans.sa_session, trans.user, visualization, annotation)
+            self.add_item_annotation(
+                trans.sa_session, trans.user, visualization, annotation
+            )
 
         if save:
             session = trans.sa_session
@@ -1159,26 +1469,32 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
         chroms_info = self.app.genomes.chroms(trans, dbkey=query_dbkey)
 
         # If there are no messages (messages indicate data is not ready/available), get data.
-        messages_list = [data_source_dict['message'] for data_source_dict in data_sources.values()]
+        messages_list = [
+            data_source_dict["message"] for data_source_dict in data_sources.values()
+        ]
         message = self._get_highest_priority_msg(messages_list)
         if message:
             rval = message
         else:
             # HACK: chromatin interactions tracks use data as source.
-            source = 'index'
+            source = "index"
             if isinstance(dataset.datatype, ChromatinInteractions):
-                source = 'data'
+                source = "data"
 
-            data_provider = trans.app.data_provider_registry.get_data_provider(trans,
-                                                                               original_dataset=dataset,
-                                                                               source=source)
+            data_provider = trans.app.data_provider_registry.get_data_provider(
+                trans, original_dataset=dataset, source=source
+            )
             # HACK: pass in additional params which are used for only some
             # types of data providers; level, cutoffs used for summary tree,
             # num_samples for BBI, and interchromosomal used for chromatin interactions.
-            rval = data_provider.get_genome_data(chroms_info,
-                                                 level=4, detail_cutoff=0, draw_cutoff=0,
-                                                 num_samples=150,
-                                                 interchromosomal=True)
+            rval = data_provider.get_genome_data(
+                chroms_info,
+                level=4,
+                detail_cutoff=0,
+                draw_cutoff=0,
+                num_samples=150,
+                interchromosomal=True,
+            )
 
         return rval
 
@@ -1205,11 +1521,15 @@ class UsesVisualizationMixin(UsesLibraryMixinItems):
 class UsesStoredWorkflowMixin(SharableItemSecurityMixin, UsesAnnotations):
     """ Mixin for controllers that use StoredWorkflow objects. """
 
-    def get_stored_workflow(self, trans, id, check_ownership=True, check_accessible=False):
+    def get_stored_workflow(
+        self, trans, id, check_ownership=True, check_accessible=False
+    ):
         """ Get a StoredWorkflow from the database by id, verifying ownership. """
         # Load workflow from database
         workflow_contents_manager = workflows.WorkflowsManager(self.app)
-        workflow = workflow_contents_manager.get_stored_workflow(trans=trans, workflow_id=id)
+        workflow = workflow_contents_manager.get_stored_workflow(
+            trans=trans, workflow_id=id
+        )
 
         if not workflow:
             error("Workflow not found")
@@ -1247,20 +1567,38 @@ class UsesStoredWorkflowMixin(SharableItemSecurityMixin, UsesAnnotations):
         session.flush()
 
         # Copy annotations.
-        self.copy_item_annotation(session, stored.user, stored, imported_stored.user, imported_stored)
+        self.copy_item_annotation(
+            session, stored.user, stored, imported_stored.user, imported_stored
+        )
         for order_index, step in enumerate(stored.latest_workflow.steps):
-            self.copy_item_annotation(session, stored.user, step,
-                                      imported_stored.user, imported_stored.latest_workflow.steps[order_index])
+            self.copy_item_annotation(
+                session,
+                stored.user,
+                step,
+                imported_stored.user,
+                imported_stored.latest_workflow.steps[order_index],
+            )
         session.flush()
         return imported_stored
 
-    def _workflow_from_dict(self, trans, data, source=None, add_to_menu=False, publish=False, exact_tools=True, fill_defaults=False):
+    def _workflow_from_dict(
+        self,
+        trans,
+        data,
+        source=None,
+        add_to_menu=False,
+        publish=False,
+        exact_tools=True,
+        fill_defaults=False,
+    ):
         """
         Creates a workflow from a dict. Created workflow is stored in the database and returned.
         """
         # TODO: replace this method with direct access to manager.
         workflow_contents_manager = workflows.WorkflowContentsManager(self.app)
-        raw_workflow_description = workflow_contents_manager.ensure_raw_description(data)
+        raw_workflow_description = workflow_contents_manager.ensure_raw_description(
+            data
+        )
         created_workflow = workflow_contents_manager.build_workflow_from_raw_description(
             trans,
             raw_workflow_description,
@@ -1277,16 +1615,13 @@ class UsesStoredWorkflowMixin(SharableItemSecurityMixin, UsesAnnotations):
         Converts a workflow to a dict of attributes suitable for exporting.
         """
         workflow_contents_manager = workflows.WorkflowContentsManager(self.app)
-        return workflow_contents_manager.workflow_to_dict(
-            trans,
-            stored,
-        )
+        return workflow_contents_manager.workflow_to_dict(trans, stored)
 
 
 class UsesFormDefinitionsMixin(object):
     """Mixin for controllers that use Galaxy form objects."""
 
-    def get_all_forms(self, trans, all_versions=False, filter=None, form_type='All'):
+    def get_all_forms(self, trans, all_versions=False, filter=None, form_type="All"):
         """
         Return all the latest forms from the form_definition_current table
         if all_versions is set to True. Otherwise return all the versions
@@ -1295,56 +1630,74 @@ class UsesFormDefinitionsMixin(object):
         if all_versions:
             return trans.sa_session.query(trans.app.model.FormDefinition)
         if filter:
-            fdc_list = trans.sa_session.query(trans.app.model.FormDefinitionCurrent).filter_by(**filter)
+            fdc_list = trans.sa_session.query(
+                trans.app.model.FormDefinitionCurrent
+            ).filter_by(**filter)
         else:
             fdc_list = trans.sa_session.query(trans.app.model.FormDefinitionCurrent)
-        if form_type == 'All':
+        if form_type == "All":
             return [fdc.latest_form for fdc in fdc_list]
         else:
-            return [fdc.latest_form for fdc in fdc_list if fdc.latest_form.type == form_type]
+            return [
+                fdc.latest_form for fdc in fdc_list if fdc.latest_form.type == form_type
+            ]
 
     def save_widget_field(self, trans, field_obj, widget_name, **kwd):
         # Save a form_builder field object
         params = util.Params(kwd)
         if isinstance(field_obj, trans.model.UserAddress):
-            field_obj.desc = util.restore_text(params.get('%s_short_desc' % widget_name, ''))
-            field_obj.name = util.restore_text(params.get('%s_name' % widget_name, ''))
-            field_obj.institution = util.restore_text(params.get('%s_institution' % widget_name, ''))
-            field_obj.address = util.restore_text(params.get('%s_address' % widget_name, ''))
-            field_obj.city = util.restore_text(params.get('%s_city' % widget_name, ''))
-            field_obj.state = util.restore_text(params.get('%s_state' % widget_name, ''))
-            field_obj.postal_code = util.restore_text(params.get('%s_postal_code' % widget_name, ''))
-            field_obj.country = util.restore_text(params.get('%s_country' % widget_name, ''))
-            field_obj.phone = util.restore_text(params.get('%s_phone' % widget_name, ''))
+            field_obj.desc = util.restore_text(
+                params.get("%s_short_desc" % widget_name, "")
+            )
+            field_obj.name = util.restore_text(params.get("%s_name" % widget_name, ""))
+            field_obj.institution = util.restore_text(
+                params.get("%s_institution" % widget_name, "")
+            )
+            field_obj.address = util.restore_text(
+                params.get("%s_address" % widget_name, "")
+            )
+            field_obj.city = util.restore_text(params.get("%s_city" % widget_name, ""))
+            field_obj.state = util.restore_text(
+                params.get("%s_state" % widget_name, "")
+            )
+            field_obj.postal_code = util.restore_text(
+                params.get("%s_postal_code" % widget_name, "")
+            )
+            field_obj.country = util.restore_text(
+                params.get("%s_country" % widget_name, "")
+            )
+            field_obj.phone = util.restore_text(
+                params.get("%s_phone" % widget_name, "")
+            )
             trans.sa_session.add(field_obj)
             trans.sa_session.flush()
 
     def get_form_values(self, trans, user, form_definition, **kwd):
-        '''
+        """
         Returns the name:value dictionary containing all the form values
-        '''
+        """
         params = util.Params(kwd)
         values = {}
         for field in form_definition.fields:
-            field_type = field['type']
-            field_name = field['name']
-            input_value = params.get(field_name, '')
+            field_type = field["type"]
+            field_name = field["name"]
+            input_value = params.get(field_name, "")
             if field_type == AddressField.__name__:
                 input_text_value = util.restore_text(input_value)
-                if input_text_value == 'new':
+                if input_text_value == "new":
                     # Save this new address in the list of this user's addresses
                     user_address = trans.model.UserAddress(user=user)
                     self.save_widget_field(trans, user_address, field_name, **kwd)
                     trans.sa_session.refresh(user)
                     field_value = int(user_address.id)
-                elif input_text_value in ['', 'none', 'None', None]:
-                    field_value = ''
+                elif input_text_value in ["", "none", "None", None]:
+                    field_value = ""
                 else:
                     field_value = int(input_text_value)
             elif field_type == CheckboxField.__name__:
                 field_value = CheckboxField.is_checked(input_value)
             elif field_type == PasswordField.__name__:
-                field_value = kwd.get(field_name, '')
+                field_value = kwd.get(field_name, "")
             else:
                 field_value = util.restore_text(input_value)
             values[field_name] = field_value
@@ -1369,7 +1722,12 @@ class SharableMixin(object):
         item = self.get_item(trans, id)
         if item:
             # Only update slug if slug is not already in use.
-            if trans.sa_session.query(item.__class__).filter_by(user=item.user, slug=new_slug).count() == 0:
+            if (
+                trans.sa_session.query(item.__class__)
+                .filter_by(user=item.user, slug=new_slug)
+                .count()
+                == 0
+            ):
                 item.slug = new_slug
                 trans.sa_session.flush()
 
@@ -1392,9 +1750,9 @@ class SharableMixin(object):
         # Setup slug base.
         if cur_slug is None or cur_slug == "":
             # Item can have either a name or a title.
-            if hasattr(item, 'name'):
+            if hasattr(item, "name"):
                 item_name = item.name
-            elif hasattr(item, 'title'):
+            elif hasattr(item, "title"):
                 item_name = item.title
             slug_base = util.ready_name_for_url(item_name.lower())
         else:
@@ -1406,10 +1764,19 @@ class SharableMixin(object):
         count = 1
         # Ensure unique across model class and user and don't include this item
         # in the check in case it has previously been assigned a valid slug.
-        while sa_session.query(item.__class__).filter(item.__class__.user == item.user, item.__class__.slug == new_slug, item.__class__.id != item.id).count() != 0:
+        while (
+            sa_session.query(item.__class__)
+            .filter(
+                item.__class__.user == item.user,
+                item.__class__.slug == new_slug,
+                item.__class__.id != item.id,
+            )
+            .count()
+            != 0
+        ):
             # Slug taken; choose a new slug based on count. This approach can
             # handle numerous items with the same name gracefully.
-            new_slug = '%s-%i' % (slug_base, count)
+            new_slug = "%s-%i" % (slug_base, count)
             count += 1
 
         # Set slug and return.
@@ -1420,22 +1787,41 @@ class SharableMixin(object):
     def sharing(self, trans, id, payload=None, **kwd):
         skipped = False
         class_name = self.manager.model_class.__name__
-        item = self.get_object(trans, id, class_name, check_ownership=True, check_accessible=True, deleted=False)
+        item = self.get_object(
+            trans,
+            id,
+            class_name,
+            check_ownership=True,
+            check_accessible=True,
+            deleted=False,
+        )
         if payload and payload.get("action"):
             action = payload.get("action")
             if action == "make_accessible_via_link":
                 self._make_item_accessible(trans.sa_session, item)
-                if hasattr(item, "has_possible_members") and item.has_possible_members and payload.get("make_members_public", False):
+                if (
+                    hasattr(item, "has_possible_members")
+                    and item.has_possible_members
+                    and payload.get("make_members_public", False)
+                ):
                     shared, skipped = self._make_members_public(trans, item)
             elif action == "make_accessible_and_publish":
                 self._make_item_accessible(trans.sa_session, item)
-                if hasattr(item, "has_possible_members") and item.has_possible_members and payload.get("make_members_public", False):
+                if (
+                    hasattr(item, "has_possible_members")
+                    and item.has_possible_members
+                    and payload.get("make_members_public", False)
+                ):
                     shared, skipped = self._make_members_public(trans, item)
                 item.published = True
             elif action == "publish":
                 if item.importable:
                     item.published = True
-                    if hasattr(item, "has_possible_members") and item.has_possible_members and payload.get("make_members_public", False):
+                    if (
+                        hasattr(item, "has_possible_members")
+                        and item.has_possible_members
+                        and payload.get("make_members_public", False)
+                    ):
                         shared, skipped = self._make_members_public(trans, item)
                 else:
                     raise exceptions.MessageException("%s not importable." % class_name)
@@ -1446,21 +1832,35 @@ class SharableMixin(object):
             elif action == "disable_link_access_and_unpublish":
                 item.importable = item.published = False
             elif action == "unshare_user":
-                user = trans.sa_session.query(trans.app.model.User).get(self.decode_id(payload.get("user_id")))
+                user = trans.sa_session.query(trans.app.model.User).get(
+                    self.decode_id(payload.get("user_id"))
+                )
                 class_name_lc = class_name.lower()
-                ShareAssociation = getattr(trans.app.model, "%sUserShareAssociation" % class_name)
-                usas = trans.sa_session.query(ShareAssociation).filter_by(**{"user": user, class_name_lc: item}).all()
+                ShareAssociation = getattr(
+                    trans.app.model, "%sUserShareAssociation" % class_name
+                )
+                usas = (
+                    trans.sa_session.query(ShareAssociation)
+                    .filter_by(**{"user": user, class_name_lc: item})
+                    .all()
+                )
                 if not usas:
-                    raise exceptions.MessageException("%s was not shared with user." % class_name)
+                    raise exceptions.MessageException(
+                        "%s was not shared with user." % class_name
+                    )
                 for usa in usas:
                     trans.sa_session.delete(usa)
             trans.sa_session.add(item)
             trans.sa_session.flush()
         if item.importable and not item.slug:
             self._make_item_accessible(trans.sa_session, item)
-        item_dict = self.serializer.serialize_to_view(item,
-            user=trans.user, trans=trans, default_view="sharing")
-        item_dict["users_shared_with"] = [{"id": self.app.security.encode_id(a.user.id), "email": a.user.email} for a in item.users_shared_with]
+        item_dict = self.serializer.serialize_to_view(
+            item, user=trans.user, trans=trans, default_view="sharing"
+        )
+        item_dict["users_shared_with"] = [
+            {"id": self.app.security.encode_id(a.user.id), "email": a.user.email}
+            for a in item.users_shared_with
+        ]
         if skipped:
             item_dict["skipped"] = True
         return item_dict
@@ -1474,14 +1874,21 @@ class SharableMixin(object):
         for hda in item.activatable_datasets:
             dataset = hda.dataset
             if not trans.app.security_agent.dataset_is_public(dataset):
-                if trans.app.security_agent.can_manage_dataset(trans.user.all_roles(), dataset):
+                if trans.app.security_agent.can_manage_dataset(
+                    trans.user.all_roles(), dataset
+                ):
                     try:
                         trans.app.security_agent.make_dataset_public(hda.dataset)
                     except Exception:
-                        log.warning("Unable to make dataset with id: %s public", dataset.id)
+                        log.warning(
+                            "Unable to make dataset with id: %s public", dataset.id
+                        )
                         skipped = True
                 else:
-                    log.warning("User without permissions tried to make dataset with id: %s public", dataset.id)
+                    log.warning(
+                        "User without permissions tried to make dataset with id: %s public",
+                        dataset.id,
+                    )
                     skipped = True
         return item, skipped
 
@@ -1516,13 +1923,20 @@ class SharableMixin(object):
 
 
 class UsesQuotaMixin(object):
-
-    def get_quota(self, trans, id, check_ownership=False, check_accessible=False, deleted=None):
-        return self.get_object(trans, id, 'Quota', check_ownership=False, check_accessible=False, deleted=deleted)
+    def get_quota(
+        self, trans, id, check_ownership=False, check_accessible=False, deleted=None
+    ):
+        return self.get_object(
+            trans,
+            id,
+            "Quota",
+            check_ownership=False,
+            check_accessible=False,
+            deleted=deleted,
+        )
 
 
 class UsesTagsMixin(SharableItemSecurityMixin):
-
     def get_tag_handler(self, trans):
         return trans.app.tag_handler
 
@@ -1532,21 +1946,31 @@ class UsesTagsMixin(SharableItemSecurityMixin):
         return [tag for tag in tagged_item.tags if tag.user == user]
 
     def _get_tagged_item(self, trans, item_class_name, id, check_ownership=True):
-        tagged_item = self.get_object(trans, id, item_class_name, check_ownership=check_ownership, check_accessible=True)
+        tagged_item = self.get_object(
+            trans,
+            id,
+            item_class_name,
+            check_ownership=check_ownership,
+            check_accessible=True,
+        )
         return tagged_item
 
     def _remove_items_tag(self, trans, item_class_name, id, tag_name):
         """Remove a tag from an item."""
         user = trans.user
         tagged_item = self._get_tagged_item(trans, item_class_name, id)
-        deleted = tagged_item and self.get_tag_handler(trans).remove_item_tag(trans, user, tagged_item, tag_name)
+        deleted = tagged_item and self.get_tag_handler(trans).remove_item_tag(
+            trans, user, tagged_item, tag_name
+        )
         trans.sa_session.flush()
         return deleted
 
     def _apply_item_tag(self, trans, item_class_name, id, tag_name, tag_value=None):
         user = trans.user
         tagged_item = self._get_tagged_item(trans, item_class_name, id)
-        tag_assoc = self.get_tag_handler(trans).apply_item_tag(user, tagged_item, tag_name, tag_value)
+        tag_assoc = self.get_tag_handler(trans).apply_item_tag(
+            user, tagged_item, tag_name, tag_value
+        )
         trans.sa_session.flush()
         return tag_assoc
 
@@ -1554,7 +1978,9 @@ class UsesTagsMixin(SharableItemSecurityMixin):
         user = trans.user
         tagged_item = self._get_tagged_item(trans, item_class_name, id)
         log.debug("In get_item_tag_assoc with tagged_item %s" % tagged_item)
-        return self.get_tag_handler(trans)._get_item_tag_assoc(user, tagged_item, tag_name)
+        return self.get_tag_handler(trans)._get_item_tag_assoc(
+            user, tagged_item, tag_name
+        )
 
     def set_tags_from_list(self, trans, item, new_tags_list, user=None):
         tag_handler = tags.GalaxyTagHandler(trans.app.model.context)
@@ -1574,13 +2000,19 @@ class UsesTagsMixin(SharableItemSecurityMixin):
             return []
 
         # get all the taggable model TagAssociations
-        tag_models = [v.tag_assoc_class for v in trans.app.tag_handler.item_tag_assoc_info.values()]
+        tag_models = [
+            v.tag_assoc_class
+            for v in trans.app.tag_handler.item_tag_assoc_info.values()
+        ]
         # create a union of subqueries for each for this user - getting only the tname and user_value
         all_tags_query = None
         for tag_model in tag_models:
-            subq = (trans.sa_session.query(tag_model.user_tname, tag_model.user_value)
-                    .filter(tag_model.user == trans.user))
-            all_tags_query = subq if all_tags_query is None else all_tags_query.union(subq)
+            subq = trans.sa_session.query(
+                tag_model.user_tname, tag_model.user_value
+            ).filter(tag_model.user == trans.user)
+            all_tags_query = (
+                subq if all_tags_query is None else all_tags_query.union(subq)
+            )
 
         # if nothing init'd the query, bail
         if all_tags_query is None:
@@ -1588,7 +2020,7 @@ class UsesTagsMixin(SharableItemSecurityMixin):
 
         # boil the tag tuples down into a sorted list of DISTINCT name:val strings
         tags = all_tags_query.distinct().all()
-        tags = [((name + ':' + val) if val else name) for name, val in tags]
+        tags = [((name + ":" + val) if val else name) for name, val in tags]
         return sorted(tags)
 
 
@@ -1604,32 +2036,46 @@ class UsesExtendedMetadataMixin(SharableItemSecurityMixin):
             return item.extended_metadata
         return None
 
-    def set_item_extended_metadata_obj(self, trans, item, extmeta_obj, check_writable=False):
+    def set_item_extended_metadata_obj(
+        self, trans, item, extmeta_obj, check_writable=False
+    ):
         if item.__class__ == LibraryDatasetDatasetAssociation:
-            if not check_writable or trans.app.security_agent.can_modify_library_item(trans.get_current_user_roles(), item, trans.user):
+            if not check_writable or trans.app.security_agent.can_modify_library_item(
+                trans.get_current_user_roles(), item, trans.user
+            ):
                 item.extended_metadata = extmeta_obj
                 trans.sa_session.flush()
         if item.__class__ == HistoryDatasetAssociation:
             history = None
             if check_writable:
-                history = self.security_check(trans, item, check_ownership=True, check_accessible=True)
+                history = self.security_check(
+                    trans, item, check_ownership=True, check_accessible=True
+                )
             else:
-                history = self.security_check(trans, item, check_ownership=False, check_accessible=True)
+                history = self.security_check(
+                    trans, item, check_ownership=False, check_accessible=True
+                )
             if history:
                 item.extended_metadata = extmeta_obj
                 trans.sa_session.flush()
 
     def unset_item_extended_metadata_obj(self, trans, item, check_writable=False):
         if item.__class__ == LibraryDatasetDatasetAssociation:
-            if not check_writable or trans.app.security_agent.can_modify_library_item(trans.get_current_user_roles(), item, trans.user):
+            if not check_writable or trans.app.security_agent.can_modify_library_item(
+                trans.get_current_user_roles(), item, trans.user
+            ):
                 item.extended_metadata = None
                 trans.sa_session.flush()
         if item.__class__ == HistoryDatasetAssociation:
             history = None
             if check_writable:
-                history = self.security_check(trans, item, check_ownership=True, check_accessible=True)
+                history = self.security_check(
+                    trans, item, check_ownership=True, check_accessible=True
+                )
             else:
-                history = self.security_check(trans, item, check_ownership=False, check_accessible=True)
+                history = self.security_check(
+                    trans, item, check_ownership=False, check_accessible=True
+                )
             if history:
                 item.extended_metadata = None
                 trans.sa_session.flush()
@@ -1678,14 +2124,16 @@ class UsesExtendedMetadataMixin(SharableItemSecurityMixin):
         else:
             # BUG: Everything is cast to string, which can lead to false positives
             # for cross type comparisions, ie "True" == True
-            yield prefix, ("%s" % (meta)).encode("utf8", errors='replace')
+            yield prefix, ("%s" % (meta)).encode("utf8", errors="replace")
 
 
 class ControllerUnavailable(Exception):
     """
     Deprecated: `BaseController` used to be available under the name `Root`
     """
+
     pass
+
 
 # ---- Utility methods -------------------------------------------------------
 

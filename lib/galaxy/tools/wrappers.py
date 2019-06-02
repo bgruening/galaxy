@@ -32,6 +32,7 @@ class ToolParameterValueWrapper(object):
 
     def __bool__(self):
         return bool(self.value)
+
     __nonzero__ = __bool__
 
     def get_display_text(self, quote=True):
@@ -39,7 +40,7 @@ class ToolParameterValueWrapper(object):
         Returns a string containing the value that would be displayed to the user in the tool interface.
         When quote is True (default), the string is escaped for e.g. command-line usage.
         """
-        rval = self.input.value_to_display_text(self.value) or ''
+        rval = self.input.value_to_display_text(self.value) or ""
         if quote:
             return shlex_quote(rval)
         return rval
@@ -54,7 +55,10 @@ class RawObjectWrapper(ToolParameterValueWrapper):
         self.obj = obj
 
     def __bool__(self):
-        return bool(self.obj)  # FIXME: would it be safe/backwards compatible to rename .obj to .value, so that we can just inherit this method?
+        return bool(
+            self.obj
+        )  # FIXME: would it be safe/backwards compatible to rename .obj to .value, so that we can just inherit this method?
+
     __nonzero__ = __bool__
 
     def __str__(self):
@@ -93,14 +97,18 @@ class InputValueWrapper(ToolParameterValueWrapper):
         return not self == other
 
     def __str__(self):
-        to_param_dict_string = self.input.to_param_dict_string(self.value, self._other_values)
+        to_param_dict_string = self.input.to_param_dict_string(
+            self.value, self._other_values
+        )
         if isinstance(to_param_dict_string, list):
-            return ','.join(to_param_dict_string)
+            return ",".join(to_param_dict_string)
         else:
             return to_param_dict_string
 
     def __iter__(self):
-        to_param_dict_string = self.input.to_param_dict_string(self.value, self._other_values)
+        to_param_dict_string = self.input.to_param_dict_string(
+            self.value, self._other_values
+        )
         if not isinstance(to_param_dict_string, list):
             return iter([to_param_dict_string])
         else:
@@ -147,7 +155,9 @@ class SelectToolParameterWrapper(ToolParameterValueWrapper):
 
         def __getattr__(self, name):
             if name not in self._fields:
-                self._fields[name] = self._input.options.get_field_by_name_for_value(name, self._value, None, self._other_values)
+                self._fields[name] = self._input.options.get_field_by_name_for_value(
+                    name, self._value, None, self._other_values
+                )
             values = map(str, self._fields[name])
             if name in PATH_ATTRIBUTES:
                 # If we infer this is a path, rewrite it if needed.
@@ -160,7 +170,9 @@ class SelectToolParameterWrapper(ToolParameterValueWrapper):
         self.input.value_label = input.value_to_display_text(value)
         self._other_values = other_values
         self._path_rewriter = path_rewriter or DEFAULT_PATH_REWRITER
-        self.fields = self.SelectToolParameterFieldWrapper(input, value, other_values, self._path_rewriter)
+        self.fields = self.SelectToolParameterFieldWrapper(
+            input, value, other_values, self._path_rewriter
+        )
 
     def __eq__(self, other):
         if isinstance(other, string_types):
@@ -174,10 +186,12 @@ class SelectToolParameterWrapper(ToolParameterValueWrapper):
     def __str__(self):
         # Assuming value is never a path - otherwise would need to pass
         # along following argument value_map=self._path_rewriter.
-        return self.input.to_param_dict_string(self.value, other_values=self._other_values)
+        return self.input.to_param_dict_string(
+            self.value, other_values=self._other_values
+        )
 
     def __add__(self, x):
-        return '%s%s' % (self, x)
+        return "%s%s" % (self, x)
 
     def __getattr__(self, key):
         return getattr(self.input, key)
@@ -220,6 +234,7 @@ class DatasetFilenameWrapper(ToolParameterValueWrapper):
 
         def __bool__(self):
             return self.metadata.__nonzero__()
+
         __nonzero__ = __bool__
 
         def __iter__(self):
@@ -234,29 +249,48 @@ class DatasetFilenameWrapper(ToolParameterValueWrapper):
         def items(self):
             return iter((k, self.get(k)) for k, v in self.metadata.items())
 
-    def __init__(self, dataset, datatypes_registry=None, tool=None, name=None, dataset_path=None, identifier=None):
+    def __init__(
+        self,
+        dataset,
+        datatypes_registry=None,
+        tool=None,
+        name=None,
+        dataset_path=None,
+        identifier=None,
+    ):
         if not dataset:
             try:
                 # TODO: allow this to work when working with grouping
                 ext = tool.inputs[name].extensions[0]
             except Exception:
-                ext = 'data'
-            self.dataset = wrap_with_safe_string(NoneDataset(datatypes_registry=datatypes_registry, ext=ext), no_wrap_classes=ToolParameterValueWrapper)
+                ext = "data"
+            self.dataset = wrap_with_safe_string(
+                NoneDataset(datatypes_registry=datatypes_registry, ext=ext),
+                no_wrap_classes=ToolParameterValueWrapper,
+            )
         else:
             # Tool wrappers should not normally be accessing .dataset directly,
             # so we will wrap it and keep the original around for file paths
             # Should we name this .value to maintain consistency with most other ToolParameterValueWrapper?
             self.unsanitized = dataset
-            self.dataset = wrap_with_safe_string(dataset, no_wrap_classes=ToolParameterValueWrapper)
+            self.dataset = wrap_with_safe_string(
+                dataset, no_wrap_classes=ToolParameterValueWrapper
+            )
             self.metadata = self.MetadataWrapper(dataset.metadata)
-            if hasattr(dataset, 'tags'):
-                self.groups = {tag.user_value.lower() for tag in dataset.tags if tag.user_tname == 'group'}
+            if hasattr(dataset, "tags"):
+                self.groups = {
+                    tag.user_value.lower()
+                    for tag in dataset.tags
+                    if tag.user_tname == "group"
+                }
             else:
                 # May be a 'FakeDatasetAssociation'
                 self.groups = set()
         self.datatypes_registry = datatypes_registry
         self.false_path = getattr(dataset_path, "false_path", None)
-        self.false_extra_files_path = getattr(dataset_path, "false_extra_files_path", None)
+        self.false_extra_files_path = getattr(
+            dataset_path, "false_extra_files_path", None
+        )
         self._element_identifier = identifier
 
     @property
@@ -277,7 +311,10 @@ class DatasetFilenameWrapper(ToolParameterValueWrapper):
             if datatype is not None:
                 datatypes.append(datatype)
             else:
-                log.warning("Datatype class not found for extension '%s', which is used as parameter of 'is_of_type()' method" % (e))
+                log.warning(
+                    "Datatype class not found for extension '%s', which is used as parameter of 'is_of_type()' method"
+                    % (e)
+                )
         return self.dataset.datatype.matches_any(datatypes)
 
     def __str__(self):
@@ -287,13 +324,13 @@ class DatasetFilenameWrapper(ToolParameterValueWrapper):
             return self.unsanitized.file_name
 
     def __getattr__(self, key):
-        if self.false_path is not None and key == 'file_name':
+        if self.false_path is not None and key == "file_name":
             # Path to dataset was rewritten for this job.
             return self.false_path
-        elif self.false_extra_files_path is not None and key == 'extra_files_path':
+        elif self.false_extra_files_path is not None and key == "extra_files_path":
             # Path to extra files was rewritten for this job.
             return self.false_extra_files_path
-        elif key == 'extra_files_path':
+        elif key == "extra_files_path":
             try:
                 # Assume it is an output and that this wrapper
                 # will be set with correct "files_path" for this
@@ -315,11 +352,11 @@ class DatasetFilenameWrapper(ToolParameterValueWrapper):
 
     def __bool__(self):
         return bool(self.dataset)
+
     __nonzero__ = __bool__
 
 
 class HasDatasets(object):
-
     def _dataset_wrapper(self, dataset, dataset_paths, **kwargs):
         wrapper_kwds = kwargs.copy()
         if dataset and dataset_paths:
@@ -330,7 +367,12 @@ class HasDatasets(object):
 
     def paths_as_file(self, sep="\n"):
         contents = sep.join(map(str, self))
-        with tempfile.NamedTemporaryFile(mode='w+', prefix="gx_file_list", dir=self.job_working_directory, delete=False) as fh:
+        with tempfile.NamedTemporaryFile(
+            mode="w+",
+            prefix="gx_file_list",
+            dir=self.job_working_directory,
+            delete=False,
+        ) as fh:
             fh.write(contents)
             filepath = fh.name
         return filepath
@@ -363,12 +405,19 @@ class DatasetListWrapper(list, ToolParameterValueWrapper, HasDatasets):
         for dataset_instance_source in dataset_instance_sources:
             if dataset_instance_source is None:
                 dataset_instances.append(dataset_instance_source)
-            elif getattr(dataset_instance_source, "history_content_type", None) == "dataset":
+            elif (
+                getattr(dataset_instance_source, "history_content_type", None)
+                == "dataset"
+            ):
                 dataset_instances.append(dataset_instance_source)
             elif hasattr(dataset_instance_source, "child_collection"):
-                dataset_instances.extend(dataset_instance_source.child_collection.dataset_elements)
+                dataset_instances.extend(
+                    dataset_instance_source.child_collection.dataset_elements
+                )
             else:
-                dataset_instances.extend(dataset_instance_source.collection.dataset_elements)
+                dataset_instances.extend(
+                    dataset_instance_source.collection.dataset_elements
+                )
         return dataset_instances
 
     def get_datasets_for_group(self, group):
@@ -376,23 +425,31 @@ class DatasetListWrapper(list, ToolParameterValueWrapper, HasDatasets):
         if not self._dataset_elements_cache.get(group):
             wrappers = []
             for element in self:
-                if any([t for t in element.tags if t.user_tname.lower() == 'group' and t.value.lower() == group]):
+                if any(
+                    [
+                        t
+                        for t in element.tags
+                        if t.user_tname.lower() == "group" and t.value.lower() == group
+                    ]
+                ):
                     wrappers.append(element)
             self._dataset_elements_cache[group] = wrappers
         return self._dataset_elements_cache[group]
 
     def __str__(self):
-        return ','.join(map(str, self))
+        return ",".join(map(str, self))
 
     def __bool__(self):
         # Fail `#if $param` checks in cheetah if optional input is not provided
         return any(self)
+
     __nonzero__ = __bool__
 
 
 class DatasetCollectionWrapper(ToolParameterValueWrapper, HasDatasets):
-
-    def __init__(self, job_working_directory, has_collection, dataset_paths=[], **kwargs):
+    def __init__(
+        self, job_working_directory, has_collection, dataset_paths=[], **kwargs
+    ):
         super(DatasetCollectionWrapper, self).__init__()
         self.job_working_directory = job_working_directory
         self._dataset_elements_cache = {}
@@ -427,9 +484,19 @@ class DatasetCollectionWrapper(ToolParameterValueWrapper, HasDatasets):
             element_identifier = dataset_collection_element.element_identifier
 
             if dataset_collection_element.is_collection:
-                element_wrapper = DatasetCollectionWrapper(job_working_directory, dataset_collection_element, dataset_paths, **kwargs)
+                element_wrapper = DatasetCollectionWrapper(
+                    job_working_directory,
+                    dataset_collection_element,
+                    dataset_paths,
+                    **kwargs
+                )
             else:
-                element_wrapper = self._dataset_wrapper(element_object, dataset_paths, identifier=element_identifier, **kwargs)
+                element_wrapper = self._dataset_wrapper(
+                    element_object,
+                    dataset_paths,
+                    identifier=element_identifier,
+                    **kwargs
+                )
 
             element_instances[element_identifier] = element_wrapper
             element_instance_list.append(element_wrapper)
@@ -442,8 +509,21 @@ class DatasetCollectionWrapper(ToolParameterValueWrapper, HasDatasets):
         if not self._dataset_elements_cache.get(group):
             wrappers = []
             for element in self.collection.dataset_elements:
-                if any([t for t in element.dataset_instance.tags if t.user_tname.lower() == 'group' and t.value.lower() == group]):
-                    wrappers.append(self._dataset_wrapper(element.element_object, self.dataset_paths, identifier=element.element_identifier, **self.kwargs))
+                if any(
+                    [
+                        t
+                        for t in element.dataset_instance.tags
+                        if t.user_tname.lower() == "group" and t.value.lower() == group
+                    ]
+                ):
+                    wrappers.append(
+                        self._dataset_wrapper(
+                            element.element_object,
+                            self.dataset_paths,
+                            identifier=element.element_identifier,
+                            **self.kwargs
+                        )
+                    )
             self._dataset_elements_cache[group] = wrappers
         return self._dataset_elements_cache[group]
 
@@ -489,6 +569,7 @@ class DatasetCollectionWrapper(ToolParameterValueWrapper, HasDatasets):
         # Fail `#if $param` checks in cheetah is optional input
         # not specified or if resulting collection is empty.
         return self.__input_supplied and bool(self.__element_instance_list)
+
     __nonzero__ = __bool__
 
 
@@ -497,7 +578,9 @@ class ElementIdentifierMapper(object):
 
     def __init__(self, input_datasets=None):
         if input_datasets is not None:
-            self.identifier_key_dict = dict((v, "%s|__identifier__" % k) for k, v in input_datasets.items())
+            self.identifier_key_dict = dict(
+                (v, "%s|__identifier__" % k) for k, v in input_datasets.items()
+            )
         else:
             self.identifier_key_dict = {}
 

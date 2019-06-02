@@ -1,11 +1,13 @@
 from galaxy.managers.context import (
     ProvidesAppContext,
     ProvidesHistoryContext,
-    ProvidesUserContext
+    ProvidesUserContext,
 )
 
 
-class WorkRequestContext(ProvidesAppContext, ProvidesUserContext, ProvidesHistoryContext):
+class WorkRequestContext(
+    ProvidesAppContext, ProvidesUserContext, ProvidesHistoryContext
+):
     """ Stripped down implementation of Galaxy web transaction god object for
     work request handling outside of web threads - uses mix-ins shared with
     GalaxyWebTransaction to provide app, user, and history context convience
@@ -31,7 +33,9 @@ class WorkRequestContext(ProvidesAppContext, ProvidesUserContext, ProvidesHistor
         return self.__history
 
     def set_history(self):
-        raise NotImplementedError("Cannot change histories from a work request context.")
+        raise NotImplementedError(
+            "Cannot change histories from a work request context."
+        )
 
     history = property(get_history, set_history)
 
@@ -41,7 +45,9 @@ class WorkRequestContext(ProvidesAppContext, ProvidesUserContext, ProvidesHistor
 
     def get_current_user_roles(self):
         if self.__user_current_roles is None:
-            self.__user_current_roles = super(WorkRequestContext, self).get_current_user_roles()
+            self.__user_current_roles = super(
+                WorkRequestContext, self
+            ).get_current_user_roles()
         return self.__user_current_roles
 
     def set_user(self, user):

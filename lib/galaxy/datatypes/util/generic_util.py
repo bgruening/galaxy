@@ -10,7 +10,7 @@ def count_special_lines(word, filename, invert=False):
     try:
         cmd = ["grep", "-c", "-E"]
         if invert:
-            cmd.append('-v')
+            cmd.append("-v")
         cmd.extend([word, filename])
         out = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         return int(out.communicate()[0].split()[0])

@@ -19,20 +19,20 @@ class Webhook(object):
         self.activate = activate
         self.weight = weight
         self.path = path
-        self.styles = ''
-        self.script = ''
-        self.helper = ''
+        self.styles = ""
+        self.script = ""
+        self.helper = ""
         self.config = {}
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'type': self.type,
-            'activate': self.activate,
-            'weight': self.weight,
-            'styles': self.styles,
-            'script': self.script,
-            'config': self.config,
+            "id": self.id,
+            "type": self.type,
+            "activate": self.activate,
+            "weight": self.weight,
+            "styles": self.styles,
+            "script": self.script,
+            "config": self.config,
         }
 
 
@@ -52,7 +52,7 @@ class WebhooksRegistry(object):
     def load_webhooks(self):
         for directory in self.webhooks_directories:
             config_file_path = None
-            for config_file in ['config.yml', 'config.yaml']:
+            for config_file in ["config.yml", "config.yaml"]:
                 path = os.path.join(directory, config_file)
                 if os.path.isfile(path):
                     config_file_path = path
@@ -68,14 +68,14 @@ class WebhooksRegistry(object):
         with open(config_file_path) as fh:
             config = yaml.safe_load(fh)
 
-        weight = config.get('weight', 1)
+        weight = config.get("weight", 1)
         if weight < 1:
-            raise ValueError('Webhook weight must be greater or equal 1.')
+            raise ValueError("Webhook weight must be greater or equal 1.")
 
         webhook = Webhook(
-            config.get('id'),
-            config.get('type'),
-            config.get('activate', False),
+            config.get("id"),
+            config.get("type"),
+            config.get("activate", False),
             weight,
             webhook_dir,
         )
@@ -83,23 +83,23 @@ class WebhooksRegistry(object):
         # Read styles into a string, assuming all styles are in a
         # single file
         try:
-            styles_file = os.path.join(webhook_dir, 'styles.css')
-            with open(styles_file, 'r') as fh:
-                webhook.styles = fh.read().replace('\n', '')
+            styles_file = os.path.join(webhook_dir, "styles.css")
+            with open(styles_file, "r") as fh:
+                webhook.styles = fh.read().replace("\n", "")
         except IOError:
             pass
 
         # Read script into a string, assuming everything is in a
         # single file
         try:
-            script_file = os.path.join(webhook_dir, 'script.js')
-            with io.open(script_file, 'r', encoding='utf-8') as fh:
+            script_file = os.path.join(webhook_dir, "script.js")
+            with io.open(script_file, "r", encoding="utf-8") as fh:
                 webhook.script = fh.read()
         except IOError:
             pass
 
         # Save helper function path if it exists
-        helper_path = os.path.join(webhook_dir, '__init__.py')
+        helper_path = os.path.join(webhook_dir, "__init__.py")
         if os.path.isfile(helper_path):
             webhook.helper = helper_path
 

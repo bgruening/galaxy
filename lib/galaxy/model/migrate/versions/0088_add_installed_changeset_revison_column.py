@@ -32,25 +32,35 @@ def upgrade(migrate_engine):
         col.create(ToolShedRepository_table)
         assert col is ToolShedRepository_table.c.installed_changeset_revision
     except Exception:
-        log.exception("Adding installed_changeset_revision column to the tool_shed_repository table failed.")
+        log.exception(
+            "Adding installed_changeset_revision column to the tool_shed_repository table failed."
+        )
     # Update each row by setting the value of installed_changeset_revison to be the value of changeset_revision.
     # This will be problematic if the value of changeset_revision was updated to something other than the value
     # that it was when the repository was installed (because the install path determined in real time will attempt to
     # find the repository using the updated changeset_revison instead of the required installed_changeset_revision),
     # but at the time this script was written, this scenario is extremely unlikely.
-    cmd = "SELECT id AS id, " \
-        + "installed_changeset_revision AS installed_changeset_revision, " \
-        + "changeset_revision AS changeset_revision " \
+    cmd = (
+        "SELECT id AS id, "
+        + "installed_changeset_revision AS installed_changeset_revision, "
+        + "changeset_revision AS changeset_revision "
         + "FROM tool_shed_repository;"
+    )
     tool_shed_repositories = migrate_engine.execute(cmd).fetchall()
     update_count = 0
     for row in tool_shed_repositories:
-        cmd = "UPDATE tool_shed_repository " \
-            + "SET installed_changeset_revision = '%s' " % row.changeset_revision \
+        cmd = (
+            "UPDATE tool_shed_repository "
+            + "SET installed_changeset_revision = '%s' " % row.changeset_revision
             + "WHERE changeset_revision = '%s';" % row.changeset_revision
+        )
         migrate_engine.execute(cmd)
         update_count += 1
-    print("Updated the installed_changeset_revision column for ", update_count, " rows in the tool_shed_repository table.  ")
+    print(
+        "Updated the installed_changeset_revision column for ",
+        update_count,
+        " rows in the tool_shed_repository table.  ",
+    )
 
 
 def downgrade(migrate_engine):
@@ -60,4 +70,6 @@ def downgrade(migrate_engine):
     try:
         ToolShedRepository_table.c.installed_changeset_revision.drop()
     except Exception:
-        log.exception("Dropping column installed_changeset_revision from the tool_shed_repository table failed.")
+        log.exception(
+            "Dropping column installed_changeset_revision from the tool_shed_repository table failed."
+        )

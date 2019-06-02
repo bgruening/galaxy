@@ -21,12 +21,7 @@ sha512 = hashlib.sha512
 sha = sha1
 md5 = hashlib.md5
 
-HASH_NAME_MAP = {
-    "MD5": md5,
-    "SHA-1": sha1,
-    "SHA-256": sha256,
-    "SHA-512": sha512,
-}
+HASH_NAME_MAP = {"MD5": md5, "SHA-1": sha1, "SHA-256": sha256, "SHA-512": sha512}
 HASH_NAMES = list(HASH_NAME_MAP.keys())
 
 
@@ -43,7 +38,7 @@ def memory_bound_hexdigest(hash_func=None, hash_func_name=None, path=None, file=
         assert path is None, "Cannot specify path and path keyword arguments."
 
     try:
-        for block in iter(lambda: file.read(BLOCK_SIZE), b''):
+        for block in iter(lambda: file.read(BLOCK_SIZE), b""):
             hasher.update(block)
         return hasher.hexdigest()
     finally:
@@ -56,7 +51,7 @@ def md5_hash_file(path):
     """
     hasher = hashlib.md5()
     try:
-        with open(path, 'rb') as afile:
+        with open(path, "rb") as afile:
             buf = afile.read()
             hasher.update(buf)
             return hasher.hexdigest()
@@ -88,4 +83,12 @@ def is_hashable(value):
     return True
 
 
-__all__ = ('md5', 'hashlib', 'sha1', 'sha', 'new_secure_hash', 'hmac_new', 'is_hashable')
+__all__ = (
+    "md5",
+    "hashlib",
+    "sha1",
+    "sha",
+    "new_secure_hash",
+    "hmac_new",
+    "is_hashable",
+)

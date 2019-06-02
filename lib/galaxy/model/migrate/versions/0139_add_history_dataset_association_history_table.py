@@ -16,15 +16,23 @@ log.setLevel(logging.DEBUG)
 metadata = MetaData()
 
 HistoryDatasetAssociationHistory_table = Table(
-    "history_dataset_association_history", metadata,
+    "history_dataset_association_history",
+    metadata,
     Column("id", Integer, primary_key=True),
-    Column("history_dataset_association_id", Integer, ForeignKey("history_dataset_association.id"), index=True),
+    Column(
+        "history_dataset_association_id",
+        Integer,
+        ForeignKey("history_dataset_association.id"),
+        index=True,
+    ),
     Column("update_time", DateTime, default=now),
     Column("version", Integer, index=True),
     Column("name", TrimmedString(255)),
     Column("extension", TrimmedString(64)),
-    Column("metadata", MetadataType(), key='_metadata'),
-    Column("extended_metadata_id", Integer, ForeignKey("extended_metadata.id"), index=True),
+    Column("metadata", MetadataType(), key="_metadata"),
+    Column(
+        "extended_metadata_id", Integer, ForeignKey("extended_metadata.id"), index=True
+    ),
 )
 
 

@@ -51,8 +51,8 @@ def find_config_file(names, exts=None, dirs=None, include_samples=False):
     """
     found = __find_config_files(
         names,
-        exts=exts or extensions['yaml'] + extensions['ini'],
-        dirs=dirs or [os.getcwd(), os.path.join(os.getcwd(), 'config')],
+        exts=exts or extensions["yaml"] + extensions["ini"],
+        dirs=dirs or [os.getcwd(), os.path.join(os.getcwd(), "config")],
         include_samples=include_samples,
     )
     if not found:
@@ -68,7 +68,7 @@ def load_app_properties(
     ini_section=None,
     config_file=None,
     config_section=None,
-    config_prefix="GALAXY_CONFIG_"
+    config_prefix="GALAXY_CONFIG_",
 ):
     properties = kwds.copy() if kwds else {}
     if config_file is None:
@@ -76,7 +76,7 @@ def load_app_properties(
         config_section = ini_section
 
     if config_file:
-        if not has_ext(config_file, 'yaml', aliases=True, ignore='sample'):
+        if not has_ext(config_file, "yaml", aliases=True, ignore="sample"):
             if config_section is None:
                 config_section = "app:main"
             parser = nice_config_parser(config_file)
@@ -96,10 +96,10 @@ def load_app_properties(
     override_prefix = "%sOVERRIDE_" % config_prefix
     for key in os.environ:
         if key.startswith(override_prefix):
-            config_key = key[len(override_prefix):].lower()
+            config_key = key[len(override_prefix) :].lower()
             properties[config_key] = os.environ[key]
         elif key.startswith(config_prefix):
-            config_key = key[len(config_prefix):].lower()
+            config_key = key[len(config_prefix) :].lower()
             if config_key not in properties:
                 properties[config_key] = os.environ[key]
 
@@ -115,14 +115,13 @@ def nice_config_parser(path):
 
 
 class NicerConfigParser(ConfigParser):
-
     def __init__(self, filename, *args, **kw):
         ConfigParser.__init__(self, *args, **kw)
         self.filename = filename
-        if hasattr(self, '_interpolation'):
+        if hasattr(self, "_interpolation"):
             self._interpolation = self.InterpolateWrapper(self._interpolation)
 
-    read_file = getattr(ConfigParser, 'read_file', ConfigParser.readfp)
+    read_file = getattr(ConfigParser, "read_file", ConfigParser.readfp)
 
     def defaults(self):
         """Return the defaults, with their values interpolated (with the
@@ -132,18 +131,17 @@ class NicerConfigParser(ConfigParser):
         """
         defaults = ConfigParser.defaults(self).copy()
         for key, val in iteritems(defaults):
-            defaults[key] = self.get('DEFAULT', key) or val
+            defaults[key] = self.get("DEFAULT", key) or val
         return defaults
 
     def _interpolate(self, section, option, rawval, vars):
         # Python < 3.2
         try:
-            return ConfigParser._interpolate(
-                self, section, option, rawval, vars)
+            return ConfigParser._interpolate(self, section, option, rawval, vars)
         except Exception:
             e = sys.exc_info()[1]
             args = list(e.args)
-            args[0] = 'Error in file %s: %s' % (self.filename, e)
+            args[0] = "Error in file %s: %s" % (self.filename, e)
             e.args = tuple(args)
             e.message = args[0]
             raise
@@ -158,12 +156,13 @@ class NicerConfigParser(ConfigParser):
 
         def before_get(self, parser, section, option, value, defaults):
             try:
-                return self._original.before_get(parser, section, option,
-                                                 value, defaults)
+                return self._original.before_get(
+                    parser, section, option, value, defaults
+                )
             except Exception:
                 e = sys.exc_info()[1]
                 args = list(e.args)
-                args[0] = 'Error in file %s: %s' % (parser.filename, e)
+                args[0] = "Error in file %s: %s" % (parser.filename, e)
                 e.args = tuple(args)
                 e.message = args[0]
                 raise
@@ -183,7 +182,7 @@ def __find_config_files(names, exts=None, dirs=None, include_samples=False):
         # add exts to names, converts back into a list because it's going to be small and we might consume names twice
         names = list(starmap(joinext, product(names, exts)))
     if include_samples:
-        sample_names = map(partial(joinext, ext='sample'), names)
+        sample_names = map(partial(joinext, ext="sample"), names)
     # check for all names in each dir before moving to the next dir. could do it the other way around but that makes
     # less sense to me.
     return __get_all_configs(dirs, names) or __get_all_configs(dirs, sample_names)
@@ -191,9 +190,9 @@ def __find_config_files(names, exts=None, dirs=None, include_samples=False):
 
 def __default_properties(path):
     return {
-        'here': os.path.dirname(os.path.abspath(path)),
-        '__file__': os.path.abspath(path)
+        "here": os.path.dirname(os.path.abspath(path)),
+        "__file__": os.path.abspath(path),
     }
 
 
-__all__ = ('find_config_file', 'load_app_properties', 'NicerConfigParser')
+__all__ = ("find_config_file", "load_app_properties", "NicerConfigParser")

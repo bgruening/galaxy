@@ -81,8 +81,12 @@ class CollectlCli(object):
             destination_arg = ""
         command_args["destination_arg"] = destination_arg
         procfilt = kwargs.get("procfilt", None)
-        command_args["procfilt_arg"] = "" if not procfilt else "--procfilt %s" % procfilt
-        command_args["subsystems_arg"] = self.__subsystems_arg(kwargs.get("subsystems", []))
+        command_args["procfilt_arg"] = (
+            "" if not procfilt else "--procfilt %s" % procfilt
+        )
+        command_args["subsystems_arg"] = self.__subsystems_arg(
+            kwargs.get("subsystems", [])
+        )
         flush = kwargs.get("flush", None)
         command_args["flush_arg"] = "--flush %s" % flush if flush else ""
         sep = kwargs.get("sep", None)
@@ -121,10 +125,15 @@ class CollectlCli(object):
 
     def __validate_interval_arg(self, value, multiple_of=None):
         if value and not str(value).isdigit():
-            raise Exception("Invalid interval argument supplied, must be integer %s" % value)
+            raise Exception(
+                "Invalid interval argument supplied, must be integer %s" % value
+            )
         if multiple_of:
             if int(value) % multiple_of != 0:
-                raise Exception("Invalid interval argument supplied, must multiple of %s" % multiple_of)
+                raise Exception(
+                    "Invalid interval argument supplied, must multiple of %s"
+                    % multiple_of
+                )
 
     def build_command_line(self):
         return COMMAND_LINE_TEMPLATE.substitute(**self.command_args)
@@ -138,4 +147,4 @@ class CollectlCli(object):
             raise Exception("Problem running collectl command.")
 
 
-__all__ = ('CollectlCli', )
+__all__ = ("CollectlCli",)

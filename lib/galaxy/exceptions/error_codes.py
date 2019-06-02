@@ -29,7 +29,10 @@ class ErrorCode(object):
 
     def __repr__(self):
         """Return object representation of this error code."""
-        return "ErrorCode[code=%d,message=%s]" % (self.code, str(self.default_error_message))
+        return "ErrorCode[code=%d,message=%s]" % (
+            self.code,
+            str(self.default_error_message),
+        )
 
     def __int__(self):
         """Return the error code integer."""
@@ -44,7 +47,7 @@ def _from_dict(entry):
     return (name, ErrorCode(code, message))
 
 
-error_codes_json = unicodify(resource_string(__name__, 'error_codes.json'))
+error_codes_json = unicodify(resource_string(__name__, "error_codes.json"))
 for entry in loads(error_codes_json):
     name, error_code_obj = _from_dict(entry)
     globals()[name] = error_code_obj

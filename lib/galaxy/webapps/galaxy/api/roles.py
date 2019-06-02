@@ -12,7 +12,6 @@ log = logging.getLogger(__name__)
 
 
 class RoleAPIController(BaseAPIController):
-
     @web.legacy_expose_api
     def index(self, trans, **kwd):
         """
@@ -20,11 +19,15 @@ class RoleAPIController(BaseAPIController):
         Displays a collection (list) of roles.
         """
         rval = []
-        for role in trans.sa_session.query(trans.app.model.Role).filter(trans.app.model.Role.table.c.deleted == false()):
-            if trans.user_is_admin or trans.app.security_agent.ok_to_display(trans.user, role):
-                item = role.to_dict(value_mapper={'id': trans.security.encode_id})
+        for role in trans.sa_session.query(trans.app.model.Role).filter(
+            trans.app.model.Role.table.c.deleted == false()
+        ):
+            if trans.user_is_admin or trans.app.security_agent.ok_to_display(
+                trans.user, role
+            ):
+                item = role.to_dict(value_mapper={"id": trans.security.encode_id})
                 encoded_id = trans.security.encode_id(role.id)
-                item['url'] = url_for('role', id=encoded_id)
+                item["url"] = url_for("role", id=encoded_id)
                 rval.append(item)
         return rval
 
@@ -39,16 +42,23 @@ class RoleAPIController(BaseAPIController):
             decoded_role_id = trans.security.decode_id(role_id)
         except Exception:
             trans.response.status = 400
-            return "Malformed role id ( %s ) specified, unable to decode." % str(role_id)
+            return "Malformed role id ( %s ) specified, unable to decode." % str(
+                role_id
+            )
         try:
             role = trans.sa_session.query(trans.app.model.Role).get(decoded_role_id)
         except Exception:
             role = None
-        if not role or not (trans.user_is_admin or trans.app.security_agent.ok_to_display(trans.user, role)):
+        if not role or not (
+            trans.user_is_admin
+            or trans.app.security_agent.ok_to_display(trans.user, role)
+        ):
             trans.response.status = 400
             return "Invalid role id ( %s ) specified." % str(role_id)
-        item = role.to_dict(view='element', value_mapper={'id': trans.security.encode_id})
-        item['url'] = url_for('role', id=role_id)
+        item = role.to_dict(
+            view="element", value_mapper={"id": trans.security.encode_id}
+        )
+        item["url"] = url_for("role", id=role_id)
         return item
 
     @web.legacy_expose_api
@@ -60,23 +70,35 @@ class RoleAPIController(BaseAPIController):
         if not trans.user_is_admin:
             trans.response.status = 403
             return "You are not authorized to create a new role."
-        name = payload.get('name', None)
-        description = payload.get('description', None)
+        name = payload.get("name", None)
+        description = payload.get("description", None)
         if not name or not description:
             trans.response.status = 400
             return "Enter a valid name and a description"
-        if trans.sa_session.query(trans.app.model.Role).filter(trans.app.model.Role.table.c.name == name).first():
+        if (
+            trans.sa_session.query(trans.app.model.Role)
+            .filter(trans.app.model.Role.table.c.name == name)
+            .first()
+        ):
             trans.response.status = 400
             return "A role with that name already exists"
 
-        role_type = trans.app.model.Role.types.ADMIN  # TODO: allow non-admins to create roles
+        role_type = (
+            trans.app.model.Role.types.ADMIN
+        )  # TODO: allow non-admins to create roles
 
         role = trans.app.model.Role(name=name, description=description, type=role_type)
         trans.sa_session.add(role)
-        user_ids = payload.get('user_ids', [])
-        users = [trans.sa_session.query(trans.model.User).get(trans.security.decode_id(i)) for i in user_ids]
-        group_ids = payload.get('group_ids', [])
-        groups = [trans.sa_session.query(trans.model.Group).get(trans.security.decode_id(i)) for i in group_ids]
+        user_ids = payload.get("user_ids", [])
+        users = [
+            trans.sa_session.query(trans.model.User).get(trans.security.decode_id(i))
+            for i in user_ids
+        ]
+        group_ids = payload.get("group_ids", [])
+        groups = [
+            trans.sa_session.query(trans.model.Group).get(trans.security.decode_id(i))
+            for i in group_ids
+        ]
 
         # Create the UserRoleAssociations
         for user in users:
@@ -88,6 +110,8 @@ class RoleAPIController(BaseAPIController):
 
         trans.sa_session.flush()
         encoded_id = trans.security.encode_id(role.id)
-        item = role.to_dict(view='element', value_mapper={'id': trans.security.encode_id})
-        item['url'] = url_for('role', id=encoded_id)
+        item = role.to_dict(
+            view="element", value_mapper={"id": trans.security.encode_id}
+        )
+        item["url"] = url_for("role", id=encoded_id)
         return [item]

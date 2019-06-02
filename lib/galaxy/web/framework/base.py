@@ -15,6 +15,7 @@ import six
 import webob.compat
 import webob.exc
 import webob.exc as httpexceptions  # noqa: F401
+
 # We will use some very basic HTTP/wsgi utilities from the paste library
 from paste.request import get_cookies
 from paste.response import HeaderDict
@@ -25,7 +26,7 @@ from galaxy.util import smart_str
 try:
     file_types = (file, io.IOBase)
 except NameError:
-    file_types = (io.IOBase, )
+    file_types = (io.IOBase,)
 
 log = logging.getLogger(__name__)
 
@@ -39,12 +40,31 @@ def __resource_with_deleted(self, member_name, collection_name, **kwargs):
     as resource() with the addition of standardized routes for handling
     elements in Galaxy's "deleted but not really deleted" fashion.
     """
-    collection_path = kwargs.get('path_prefix', '') + '/' + collection_name + '/deleted'
-    member_path = collection_path + '/{id}'
-    self.connect('deleted_' + collection_name, collection_path, controller=collection_name, action='index', deleted=True, conditions=dict(method=['GET']))
-    self.connect('deleted_' + member_name, member_path, controller=collection_name, action='show', deleted=True, conditions=dict(method=['GET']))
-    self.connect('undelete_deleted_' + member_name, member_path + '/undelete', controller=collection_name, action='undelete',
-                 conditions=dict(method=['POST']))
+    collection_path = kwargs.get("path_prefix", "") + "/" + collection_name + "/deleted"
+    member_path = collection_path + "/{id}"
+    self.connect(
+        "deleted_" + collection_name,
+        collection_path,
+        controller=collection_name,
+        action="index",
+        deleted=True,
+        conditions=dict(method=["GET"]),
+    )
+    self.connect(
+        "deleted_" + member_name,
+        member_path,
+        controller=collection_name,
+        action="show",
+        deleted=True,
+        conditions=dict(method=["GET"]),
+    )
+    self.connect(
+        "undelete_deleted_" + member_name,
+        member_path + "/undelete",
+        controller=collection_name,
+        action="undelete",
+        conditions=dict(method=["POST"]),
+    )
     self.resource(member_name, collection_name, **kwargs)
 
 
@@ -84,13 +104,19 @@ class WebApplication(object):
         methods which handle web requests. To connect a URL to a controller's
         method use `add_route`.
         """
-        log.debug("Enabling '%s' controller, class: %s",
-                  controller_name, controller.__class__.__name__)
+        log.debug(
+            "Enabling '%s' controller, class: %s",
+            controller_name,
+            controller.__class__.__name__,
+        )
         self.controllers[controller_name] = controller
 
     def add_api_controller(self, controller_name, controller):
-        log.debug("Enabling '%s' API controller, class: %s",
-                  controller_name, controller.__class__.__name__)
+        log.debug(
+            "Enabling '%s' API controller, class: %s",
+            controller_name,
+            controller.__class__.__name__,
+        )
         self.api_controllers[controller_name] = controller
 
     def add_route(self, route, **kwargs):
@@ -105,8 +131,8 @@ class WebApplication(object):
         """
         self.mapper.connect(route, **kwargs)
 
-    def add_client_route(self, route, controller='root'):
-        self.clientside_routes.connect(route, controller=controller, action='client')
+    def add_client_route(self, route, controller="root"):
+        self.clientside_routes.connect(route, controller=controller, action="client")
 
     def set_transaction_factory(self, transaction_factory):
         """
@@ -135,7 +161,7 @@ class WebApplication(object):
         and calls it.
         """
         # Immediately create request_id which we will use for logging
-        request_id = environ.get('request_id', 'unknown')
+        request_id = environ.get("request_id", "unknown")
         if self.trace_logger:
             self.trace_logger.context_set("request_id", request_id)
         self.trace(message="Starting request")
@@ -148,14 +174,14 @@ class WebApplication(object):
 
     def _resolve_map_match(self, map_match, path_info, controllers, use_default=True):
         # Get the controller class
-        controller_name = map_match.pop('controller', None)
+        controller_name = map_match.pop("controller", None)
         controller = controllers.get(controller_name, None)
         if controller is None:
             raise webob.exc.HTTPNotFound("No controller for " + path_info)
         # Resolve action method on controller
         # This is the easiest way to make the controller/action accessible for
         # url_for invocations.  Specifically, grids.
-        action = map_match.pop('action', 'index')
+        action = map_match.pop("action", "index")
         method = getattr(controller, action, None)
         if method is None and not use_default:
             # Skip default, we do this, for example, when we want to fail
@@ -163,11 +189,11 @@ class WebApplication(object):
             raise webob.exc.HTTPNotFound("No action for " + path_info)
         if method is None:
             # no matching method, we try for a default
-            method = getattr(controller, 'default', None)
+            method = getattr(controller, "default", None)
         if method is None:
             raise webob.exc.HTTPNotFound("No action for " + path_info)
         # Is the method exposed
-        if not getattr(method, 'exposed', False):
+        if not getattr(method, "exposed", False):
             raise webob.exc.HTTPNotFound("Action not exposed for " + path_info)
         # Is the method callable
         if not callable(method):
@@ -176,16 +202,16 @@ class WebApplication(object):
 
     def handle_request(self, environ, start_response, body_renderer=None):
         # Grab the request_id (should have been set by middleware)
-        request_id = environ.get('request_id', 'unknown')
+        request_id = environ.get("request_id", "unknown")
         # Map url using routes
-        path_info = environ.get('PATH_INFO', '')
+        path_info = environ.get("PATH_INFO", "")
         client_match = self.clientside_routes.match(path_info, environ)
         map_match = self.mapper.match(path_info, environ) or client_match
-        if path_info.startswith('/api'):
-            environ['is_api_request'] = True
+        if path_info.startswith("/api"):
+            environ["is_api_request"] = True
             controllers = self.api_controllers
         else:
-            environ['is_api_request'] = False
+            environ["is_api_request"] = False
             controllers = self.controllers
         if map_match is None:
             raise webob.exc.HTTPNotFound("No route for " + path_info)
@@ -203,21 +229,29 @@ class WebApplication(object):
         try:
             # We don't use default methods if there's a clientside match for this route.
             use_default = client_match is None
-            controller_name, controller, action, method = self._resolve_map_match(map_match, path_info, controllers, use_default=use_default)
+            controller_name, controller, action, method = self._resolve_map_match(
+                map_match, path_info, controllers, use_default=use_default
+            )
         except webob.exc.HTTPNotFound:
             # Failed, let's check client routes
-            if not environ['is_api_request'] and client_match is not None:
-                controller_name, controller, action, method = self._resolve_map_match(client_match, path_info, controllers)
+            if not environ["is_api_request"] and client_match is not None:
+                controller_name, controller, action, method = self._resolve_map_match(
+                    client_match, path_info, controllers
+                )
             else:
                 raise
         trans.controller = controller_name
         trans.action = action
-        environ['controller_action_key'] = "%s.%s.%s" % ('api' if environ['is_api_request'] else 'web', controller_name, action or 'default')
+        environ["controller_action_key"] = "%s.%s.%s" % (
+            "api" if environ["is_api_request"] else "web",
+            controller_name,
+            action or "default",
+        )
         # Combine mapper args and query string / form args and call
         kwargs = trans.request.params.mixed()
         kwargs.update(map_match)
         # Special key for AJAX debugging, remove to avoid confusing methods
-        kwargs.pop('_', None)
+        kwargs.pop("_", None)
         try:
             body = method(trans, **kwargs)
         except Exception as e:
@@ -236,15 +270,17 @@ class WebApplication(object):
         elif isinstance(body, tarfile.ExFileObject):
             # Stream the tarfile member back to the browser
             body = iterate_file(body)
-            start_response(trans.response.wsgi_status(),
-                           trans.response.wsgi_headeritems())
+            start_response(
+                trans.response.wsgi_status(), trans.response.wsgi_headeritems()
+            )
             return body
         elif isinstance(body, file_types):
             # Stream the file back to the browser
             return send_file(start_response, trans, body)
         else:
-            start_response(trans.response.wsgi_status(),
-                           trans.response.wsgi_headeritems())
+            start_response(
+                trans.response.wsgi_status(), trans.response.wsgi_headeritems()
+            )
             return self.make_body_iterable(trans, body)
 
     def make_body_iterable(self, trans, body):
@@ -272,7 +308,7 @@ class WSGIEnvironmentProperty(object):
     environment)
     """
 
-    def __init__(self, key, default=''):
+    def __init__(self, key, default=""):
         self.key = key
         self.default = default
 
@@ -321,10 +357,10 @@ class DefaultWebTransaction(object):
         Get the user's session state. This is laze since we rarely use it
         and the creation/serialization cost is high.
         """
-        if 'com.saddi.service.session' in self.environ:
-            return self.environ['com.saddi.service.session'].session
-        elif 'beaker.session' in self.environ:
-            return self.environ['beaker.session']
+        if "com.saddi.service.session" in self.environ:
+            return self.environ["com.saddi.service.session"].session
+        elif "beaker.session" in self.environ:
+            return self.environ["beaker.session"]
         else:
             return None
 
@@ -339,7 +375,7 @@ def _make_file(self, binary=None):
     if self._binary_file or self.length >= 0:
         return tempfile.NamedTemporaryFile("wb+")
     else:
-        return tempfile.NamedTemporaryFile("w+", encoding=self.encoding, newline='\n')
+        return tempfile.NamedTemporaryFile("w+", encoding=self.encoding, newline="\n")
 
 
 def _read_lines(self):
@@ -348,7 +384,7 @@ def _read_lines(self):
     # Adapt `self.__file = None` to Python name mangling of class-private attributes.
     # We need to patch the original FieldStorage class attribute, not the cgi_FieldStorage
     # class.
-    setattr(self, '_FieldStorage__file', None)
+    setattr(self, "_FieldStorage__file", None)
     if self.outerboundary:
         self.read_lines_to_outerboundary()
     else:
@@ -369,7 +405,8 @@ class Request(webob.Request):
         Create a new request wrapping the WSGI environment `environ`
         """
         #  self.environ = environ
-        webob.Request.__init__(self, environ, charset='utf-8')
+        webob.Request.__init__(self, environ, charset="utf-8")
+
     # Properties that are computed and cached on first use
 
     @lazy_property
@@ -392,7 +429,7 @@ class Request(webob.Request):
 
     @lazy_property
     def base(self):
-        return (self.scheme + "://" + self.host)
+        return self.scheme + "://" + self.host
 
     # @lazy_property
     # def params( self ):
@@ -400,7 +437,7 @@ class Request(webob.Request):
 
     @lazy_property
     def path(self):
-        return self.environ.get('SCRIPT_NAME', '') + self.environ['PATH_INFO']
+        return self.environ.get("SCRIPT_NAME", "") + self.environ["PATH_INFO"]
 
     @lazy_property
     def browser_url(self):
@@ -411,12 +448,12 @@ class Request(webob.Request):
     # scheme = WSGIEnvironmentProperty( 'wsgi.url_scheme' )
     # remote_addr = WSGIEnvironmentProperty( 'REMOTE_ADDR' )
 
-    remote_port = WSGIEnvironmentProperty('REMOTE_PORT')
+    remote_port = WSGIEnvironmentProperty("REMOTE_PORT")
 
     # method = WSGIEnvironmentProperty( 'REQUEST_METHOD' )
     # script_name = WSGIEnvironmentProperty( 'SCRIPT_NAME' )
 
-    protocol = WSGIEnvironmentProperty('SERVER_PROTOCOL')
+    protocol = WSGIEnvironmentProperty("SERVER_PROTOCOL")
 
     # query_string = WSGIEnvironmentProperty( 'QUERY_STRING' )
     # path_info = WSGIEnvironmentProperty( 'PATH_INFO' )
@@ -460,7 +497,7 @@ class Response(object):
         result = self.headers.headeritems()
         # Add cookie to header
         for name, crumb in self.cookies.items():
-            header, value = str(crumb).split(': ', 1)
+            header, value = str(crumb).split(": ", 1)
             result.append((header, value))
         return result
 
@@ -485,17 +522,15 @@ def send_file(start_response, trans, body):
     base = trans.app.config.nginx_x_accel_redirect_base
     apache_xsendfile = trans.app.config.apache_xsendfile
     if base:
-        trans.response.headers['X-Accel-Redirect'] = \
-            base + os.path.abspath(body.name)
+        trans.response.headers["X-Accel-Redirect"] = base + os.path.abspath(body.name)
         body = [""]
     elif apache_xsendfile:
-        trans.response.headers['X-Sendfile'] = os.path.abspath(body.name)
+        trans.response.headers["X-Sendfile"] = os.path.abspath(body.name)
         body = [""]
     # Fall back on sending the file in chunks
     else:
         body = iterate_file(body)
-    start_response(trans.response.wsgi_status(),
-                   trans.response.wsgi_headeritems())
+    start_response(trans.response.wsgi_status(), trans.response.wsgi_headeritems())
     return body
 
 

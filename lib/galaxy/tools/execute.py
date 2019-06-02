@@ -10,7 +10,10 @@ import six
 import six.moves
 
 from galaxy import model
-from galaxy.model.dataset_collections.structure import get_structure, tool_output_to_structure
+from galaxy.model.dataset_collections.structure import (
+    get_structure,
+    tool_output_to_structure,
+)
 from galaxy.tool_util.parser import ToolOutputCollectionPart
 from galaxy.tools.actions import filter_output, on_text_for_names, ToolExecutionCache
 from galaxy.util import ExecutionTimer
@@ -21,15 +24,29 @@ EXECUTION_SUCCESS_MESSAGE = "Tool [%s] created job [%s] %s"
 
 
 class PartialJobExecution(Exception):
-
     def __init__(self, execution_tracker):
         self.execution_tracker = execution_tracker
 
 
-MappingParameters = collections.namedtuple("MappingParameters", ["param_template", "param_combinations"])
+MappingParameters = collections.namedtuple(
+    "MappingParameters", ["param_template", "param_combinations"]
+)
 
 
-def execute(trans, tool, mapping_params, history, rerun_remap_job_id=None, collection_info=None, workflow_invocation_uuid=None, invocation_step=None, max_num_jobs=None, job_callback=None, completed_jobs=None, workflow_resource_parameters=None):
+def execute(
+    trans,
+    tool,
+    mapping_params,
+    history,
+    rerun_remap_job_id=None,
+    collection_info=None,
+    workflow_invocation_uuid=None,
+    invocation_step=None,
+    max_num_jobs=None,
+    job_callback=None,
+    completed_jobs=None,
+    workflow_resource_parameters=None,
+):
     """
     Execute a tool and return object containing summary (output data, number of
     failures, etc...).
@@ -41,27 +58,44 @@ def execute(trans, tool, mapping_params, history, rerun_remap_job_id=None, colle
 
     all_jobs_timer = ExecutionTimer()
     if invocation_step is None:
-        execution_tracker = ToolExecutionTracker(trans, tool, mapping_params, collection_info)
+        execution_tracker = ToolExecutionTracker(
+            trans, tool, mapping_params, collection_info
+        )
     else:
-        execution_tracker = WorkflowStepExecutionTracker(trans, tool, mapping_params, collection_info, invocation_step, job_callback=job_callback)
+        execution_tracker = WorkflowStepExecutionTracker(
+            trans,
+            tool,
+            mapping_params,
+            collection_info,
+            invocation_step,
+            job_callback=job_callback,
+        )
     execution_cache = ToolExecutionCache(trans)
 
     def execute_single_job(execution_slice, completed_job):
         job_timer = ExecutionTimer()
         params = execution_slice.param_combination
         if workflow_invocation_uuid:
-            params['__workflow_invocation_uuid__'] = workflow_invocation_uuid
-        elif '__workflow_invocation_uuid__' in params:
+            params["__workflow_invocation_uuid__"] = workflow_invocation_uuid
+        elif "__workflow_invocation_uuid__" in params:
             # Only workflow invocation code gets to set this, ignore user supplied
             # values or rerun parameters.
-            del params['__workflow_invocation_uuid__']
+            del params["__workflow_invocation_uuid__"]
         if workflow_resource_parameters:
-            params['__workflow_resource_params__'] = workflow_resource_parameters
-        elif '__workflow_resource_params__' in params:
+            params["__workflow_resource_params__"] = workflow_resource_parameters
+        elif "__workflow_resource_params__" in params:
             # Only workflow invocation code gets to set this, ignore user supplied
             # values or rerun parameters.
-            del params['__workflow_resource_params__']
-        job, result = tool.handle_single_execution(trans, rerun_remap_job_id, execution_slice, history, execution_cache, completed_job, collection_info)
+            del params["__workflow_resource_params__"]
+        job, result = tool.handle_single_execution(
+            trans,
+            rerun_remap_job_id,
+            execution_slice,
+            history,
+            execution_cache,
+            completed_job,
+            collection_info,
+        )
         if job:
             message = EXECUTION_SUCCESS_MESSAGE % (tool.id, job.id, job_timer)
             log.debug(message)
@@ -82,7 +116,9 @@ def execute(trans, tool, mapping_params, history, rerun_remap_job_id=None, colle
                 collection_info=collection_info,
             )
 
-    execution_tracker.ensure_implicit_collections_populated(history, mapping_params.param_template)
+    execution_tracker.ensure_implicit_collections_populated(
+        history, mapping_params.param_template
+    )
     job_count = len(execution_tracker.param_combinations)
 
     jobs_executed = 0
@@ -100,12 +136,14 @@ def execute(trans, tool, mapping_params, history, rerun_remap_job_id=None, colle
     else:
         execution_tracker.finalize_dataset_collections(trans)
 
-    log.debug("Executed %d job(s) for tool %s request: %s" % (job_count, tool.id, all_jobs_timer))
+    log.debug(
+        "Executed %d job(s) for tool %s request: %s"
+        % (job_count, tool.id, all_jobs_timer)
+    )
     return execution_tracker
 
 
 class ExecutionSlice(object):
-
     def __init__(self, job_index, param_combination, dataset_collection_elements=None):
         self.job_index = job_index
         self.param_combination = param_combination
@@ -113,7 +151,6 @@ class ExecutionSlice(object):
 
 
 class ExecutionTracker(object):
-
     def __init__(self, trans, tool, mapping_params, collection_info):
         # Known ahead of time...
         self.trans = trans
@@ -160,7 +197,10 @@ class ExecutionTracker(object):
     @property
     def on_text(self):
         if self._on_text is None:
-            collection_names = ["collection %d" % c.hid for c in self.collection_info.collections.values()]
+            collection_names = [
+                "collection %d" % c.hid
+                for c in self.collection_info.collections.values()
+            ]
             self._on_text = on_text_for_names(collection_names)
 
         return self._on_text
@@ -211,23 +251,40 @@ class ExecutionTracker(object):
         if not hasattr(input_collection, "collection"):
             raise Exception("Referenced input parameter is not a collection.")
 
-        collection_type_description = self.trans.app.dataset_collections_service.collection_type_descriptions.for_collection_type(input_collection.collection.collection_type)
+        collection_type_description = self.trans.app.dataset_collections_service.collection_type_descriptions.for_collection_type(
+            input_collection.collection.collection_type
+        )
         subcollection_mapping_type = None
         if self.is_implicit_input(input_name):
-            subcollection_mapping_type = self.collection_info.subcollection_mapping_type(input_name)
+            subcollection_mapping_type = self.collection_info.subcollection_mapping_type(
+                input_name
+            )
 
-        return get_structure(input_collection, collection_type_description, leaf_subcollection_type=subcollection_mapping_type)
+        return get_structure(
+            input_collection,
+            collection_type_description,
+            leaf_subcollection_type=subcollection_mapping_type,
+        )
 
     def _structure_for_output(self, trans, tool_output):
         structure = self.collection_info.structure
         if hasattr(tool_output, "default_identifier_source"):
             # Switch the structure for outputs if the output specified a default_identifier_source
-            collection_type_descriptions = trans.app.dataset_collections_service.collection_type_descriptions
+            collection_type_descriptions = (
+                trans.app.dataset_collections_service.collection_type_descriptions
+            )
 
-            source_collection = self.collection_info.collections.get(tool_output.default_identifier_source)
+            source_collection = self.collection_info.collections.get(
+                tool_output.default_identifier_source
+            )
             if source_collection:
-                collection_type_description = collection_type_descriptions.for_collection_type(source_collection.collection.collection_type)
-                _structure = structure.for_dataset_collection(source_collection.collection, collection_type_description=collection_type_description)
+                collection_type_description = collection_type_descriptions.for_collection_type(
+                    source_collection.collection.collection_type
+                )
+                _structure = structure.for_dataset_collection(
+                    source_collection.collection,
+                    collection_type_description=collection_type_description,
+                )
                 if structure.can_match(_structure):
                     structure = _structure
 
@@ -235,7 +292,9 @@ class ExecutionTracker(object):
 
     def _mapped_output_structure(self, trans, tool_output):
         collections_manager = trans.app.dataset_collections_service
-        output_structure = tool_output_to_structure(self.sliced_input_collection_structure, tool_output, collections_manager)
+        output_structure = tool_output_to_structure(
+            self.sliced_input_collection_structure, tool_output, collections_manager
+        )
         # self.collection_info.structure - the mapping structure with default_identifier_source
         # used to determine the identifiers to use.
         mapping_structure = self._structure_for_output(trans, tool_output)
@@ -259,7 +318,9 @@ class ExecutionTracker(object):
         # with the collection and wrap everything up so can evaluate output
         # label.
         trans = self.trans
-        params.update(self.collection_info.collections)  # Replace datasets with source collections for labelling outputs.
+        params.update(
+            self.collection_info.collections
+        )  # Replace datasets with source collections for labelling outputs.
 
         collection_instances = {}
         implicit_inputs = self.implicit_inputs
@@ -290,7 +351,9 @@ class ExecutionTracker(object):
     def implicit_collection_jobs(self):
         # TODO: refactor to track this properly maybe?
         if self.implicit_collections:
-            return six.next(six.itervalues(self.implicit_collections)).implicit_collection_jobs
+            return six.next(
+                six.itervalues(self.implicit_collections)
+            ).implicit_collection_jobs
         else:
             return None
 
@@ -303,15 +366,21 @@ class ExecutionTracker(object):
         if self.failed_jobs > 0:
             for i, implicit_collection in enumerate(self.implicit_collections.values()):
                 if i == 0:
-                    implicit_collection_jobs = implicit_collection.implicit_collection_jobs
+                    implicit_collection_jobs = (
+                        implicit_collection.implicit_collection_jobs
+                    )
                     implicit_collection_jobs.populated_state = "failed"
                     trans.sa_session.add(implicit_collection_jobs)
-                implicit_collection.collection.handle_population_failed("One or more jobs failed during dataset initialization.")
+                implicit_collection.collection.handle_population_failed(
+                    "One or more jobs failed during dataset initialization."
+                )
                 trans.sa_session.add(implicit_collection.collection)
         else:
             for i, implicit_collection in enumerate(self.implicit_collections.values()):
                 if i == 0:
-                    implicit_collection_jobs = implicit_collection.implicit_collection_jobs
+                    implicit_collection_jobs = (
+                        implicit_collection.implicit_collection_jobs
+                    )
                     implicit_collection_jobs.populated_state = "ok"
                     trans.sa_session.add(implicit_collection_jobs)
                 implicit_collection.collection.finalize(
@@ -329,7 +398,9 @@ class ExecutionTracker(object):
         return input_name in self.collection_info.collections
 
     def walk_implicit_collections(self):
-        return self.collection_info.structure.walk_collections(self.implicit_collections)
+        return self.collection_info.structure.walk_collections(
+            self.implicit_collections
+        )
 
     def new_execution_slices(self):
         if self.collection_info is None:
@@ -344,13 +415,17 @@ class ExecutionTracker(object):
         self.successful_jobs.append(job)
         self.output_datasets.extend(outputs)
         for job_output in job.output_dataset_collection_instances:
-            self.output_collections.append((job_output.name, job_output.dataset_collection_instance))
+            self.output_collections.append(
+                (job_output.name, job_output.dataset_collection_instance)
+            )
         if self.implicit_collections:
             implicit_collection_jobs = None
             for output_name, collection_instance in self.implicit_collections.items():
                 job.add_output_dataset_collection(output_name, collection_instance)
                 if implicit_collection_jobs is None:
-                    implicit_collection_jobs = collection_instance.implicit_collection_jobs
+                    implicit_collection_jobs = (
+                        collection_instance.implicit_collection_jobs
+                    )
 
             job_assoc = model.ImplicitCollectionJobsJobAssociation()
             job_assoc.order_index = execution_slice.job_index
@@ -362,9 +437,10 @@ class ExecutionTracker(object):
 # Seperate these because workflows need to track their jobs belong to the invocation
 # in the database immediately and they can be recovered.
 class ToolExecutionTracker(ExecutionTracker):
-
     def __init__(self, trans, tool, mapping_params, collection_info):
-        super(ToolExecutionTracker, self).__init__(trans, tool, mapping_params, collection_info)
+        super(ToolExecutionTracker, self).__init__(
+            trans, tool, mapping_params, collection_info
+        )
 
         # New to track these things for tool output API response in the tool case,
         # in the workflow case we just write stuff to the database and forget about
@@ -380,33 +456,54 @@ class ToolExecutionTracker(ExecutionTracker):
                 continue
             self.outputs_by_output_name[output_name].append(output_dataset)
         for job_output in job.output_dataset_collections:
-            self.outputs_by_output_name[job_output.name].append(job_output.dataset_collection)
+            self.outputs_by_output_name[job_output.name].append(
+                job_output.dataset_collection
+            )
 
     def new_collection_execution_slices(self):
-        for job_index, (param_combination, dataset_collection_elements) in enumerate(six.moves.zip(self.param_combinations, self.walk_implicit_collections())):
+        for job_index, (param_combination, dataset_collection_elements) in enumerate(
+            six.moves.zip(self.param_combinations, self.walk_implicit_collections())
+        ):
             for dataset_collection_element in dataset_collection_elements.values():
                 assert dataset_collection_element.element_object is None
 
-            yield ExecutionSlice(job_index, param_combination, dataset_collection_elements)
+            yield ExecutionSlice(
+                job_index, param_combination, dataset_collection_elements
+            )
 
 
 class WorkflowStepExecutionTracker(ExecutionTracker):
-
-    def __init__(self, trans, tool, mapping_params, collection_info, invocation_step, job_callback):
-        super(WorkflowStepExecutionTracker, self).__init__(trans, tool, mapping_params, collection_info)
+    def __init__(
+        self,
+        trans,
+        tool,
+        mapping_params,
+        collection_info,
+        invocation_step,
+        job_callback,
+    ):
+        super(WorkflowStepExecutionTracker, self).__init__(
+            trans, tool, mapping_params, collection_info
+        )
         self.invocation_step = invocation_step
         self.job_callback = job_callback
 
     def record_success(self, execution_slice, job, outputs):
-        super(WorkflowStepExecutionTracker, self).record_success(execution_slice, job, outputs)
+        super(WorkflowStepExecutionTracker, self).record_success(
+            execution_slice, job, outputs
+        )
         if self.collection_info:
-            self.invocation_step.implicit_collection_jobs = self.implicit_collection_jobs
+            self.invocation_step.implicit_collection_jobs = (
+                self.implicit_collection_jobs
+            )
         else:
             self.invocation_step.job = job
         self.job_callback(job)
 
     def new_collection_execution_slices(self):
-        for job_index, (param_combination, dataset_collection_elements) in enumerate(six.moves.zip(self.param_combinations, self.walk_implicit_collections())):
+        for job_index, (param_combination, dataset_collection_elements) in enumerate(
+            six.moves.zip(self.param_combinations, self.walk_implicit_collections())
+        ):
             found_result = False
             for dataset_collection_element in dataset_collection_elements.values():
                 if dataset_collection_element.element_object is not None:
@@ -414,7 +511,9 @@ class WorkflowStepExecutionTracker(ExecutionTracker):
                     break
             if found_result:
                 continue
-            yield ExecutionSlice(job_index, param_combination, dataset_collection_elements)
+            yield ExecutionSlice(
+                job_index, param_combination, dataset_collection_elements
+            )
 
     def ensure_implicit_collections_populated(self, history, params):
         if not self.collection_info:
@@ -427,9 +526,11 @@ class WorkflowStepExecutionTracker(ExecutionTracker):
             collections = {}
             for output_assoc in self.invocation_step.output_dataset_collections:
                 implicit_collection = output_assoc.dataset_collection
-                assert hasattr(implicit_collection, "history_content_type")  # make sure it is an HDCA and not a DC
+                assert hasattr(
+                    implicit_collection, "history_content_type"
+                )  # make sure it is an HDCA and not a DC
                 collections[output_assoc.output_name] = output_assoc.dataset_collection
             self.implicit_collections = collections
 
 
-__all__ = ('execute', )
+__all__ = ("execute",)

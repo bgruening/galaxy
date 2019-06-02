@@ -4,17 +4,13 @@ API operations allowing clients to manage tool dependencies.
 import logging
 
 from galaxy.tool_util.deps import views
-from galaxy.web import (
-    expose_api,
-    require_admin
-)
+from galaxy.web import expose_api, require_admin
 from galaxy.web.base.controller import BaseAPIController
 
 log = logging.getLogger(__name__)
 
 
 class ToolDependenciesAPIController(BaseAPIController):
-
     def __init__(self, app):
         super(ToolDependenciesAPIController, self).__init__(app)
         self._view = views.DependencyResolversView(app)

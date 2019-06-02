@@ -30,7 +30,7 @@ def url_to_file(url, dest_file):
         url_reader = requests.get(url, stream=True)
         CHUNK = 10 * 1024  # 10k
         total = 0
-        fp = open(dest_file, 'wb')
+        fp = open(dest_file, "wb")
         for chunk in url_reader.iter_content(chunk_size=CHUNK):
             if chunk:
                 fp.write(chunk)
@@ -49,14 +49,11 @@ def check_archive(archive_file, dest_dir):
     Ensure that a tar archive has no absolute paths or relative paths outside
     the archive.
     """
-    with tarfile.open(archive_file, mode='r') as archive_fp:
+    with tarfile.open(archive_file, mode="r") as archive_fp:
         for arc_path in archive_fp.getnames():
-            assert os.path.normpath(
-                os.path.join(
-                    dest_dir,
-                    arc_path
-                )).startswith(dest_dir.rstrip(os.sep) + os.sep), \
-                "Archive member would extract outside target directory: %s" % arc_path
+            assert os.path.normpath(os.path.join(dest_dir, arc_path)).startswith(
+                dest_dir.rstrip(os.sep) + os.sep
+            ), ("Archive member would extract outside target directory: %s" % arc_path)
     return True
 
 
@@ -64,7 +61,7 @@ def unpack_archive(archive_file, dest_dir):
     """
     Unpack a tar and/or gzipped archive into a destination directory.
     """
-    archive_fp = tarfile.open(archive_file, mode='r')
+    archive_fp = tarfile.open(archive_file, mode="r")
     archive_fp.extractall(path=dest_dir)
     archive_fp.close()
 
@@ -75,12 +72,14 @@ def main(options, args):
     archive_source, dest_dir = args
 
     if options.is_b64encoded:
-        archive_source = b64decode(archive_source).decode('utf-8')
-        dest_dir = b64decode(dest_dir).decode('utf-8')
+        archive_source = b64decode(archive_source).decode("utf-8")
+        dest_dir = b64decode(dest_dir).decode("utf-8")
 
     # Get archive from URL.
     if is_url:
-        archive_file = url_to_file(archive_source, tempfile.NamedTemporaryFile(dir=dest_dir).name)
+        archive_file = url_to_file(
+            archive_source, tempfile.NamedTemporaryFile(dir=dest_dir).name
+        )
     elif is_file:
         archive_file = archive_source
 
@@ -92,9 +91,20 @@ def main(options, args):
 if __name__ == "__main__":
     # Parse command line.
     parser = optparse.OptionParser()
-    parser.add_option('-U', '--url', dest='is_url', action="store_true", help='Source is a URL.')
-    parser.add_option('-F', '--file', dest='is_file', action="store_true", help='Source is a file.')
-    parser.add_option('-e', '--encoded', dest='is_b64encoded', action="store_true", default=False, help='Source and destination dir values are base64 encoded.')
+    parser.add_option(
+        "-U", "--url", dest="is_url", action="store_true", help="Source is a URL."
+    )
+    parser.add_option(
+        "-F", "--file", dest="is_file", action="store_true", help="Source is a file."
+    )
+    parser.add_option(
+        "-e",
+        "--encoded",
+        dest="is_b64encoded",
+        action="store_true",
+        default=False,
+        help="Source and destination dir values are base64 encoded.",
+    )
     (options, args) = parser.parse_args()
     try:
         main(options, args)

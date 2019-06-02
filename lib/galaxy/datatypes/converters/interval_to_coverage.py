@@ -14,15 +14,9 @@ from os import environ
 from bx.cookbook import doc_optparse
 from bx.intervals import io
 
-INTERVAL_METADATA = ('chromCol',
-                     'startCol',
-                     'endCol',
-                     'strandCol',)
+INTERVAL_METADATA = ("chromCol", "startCol", "endCol", "strandCol")
 
-COVERAGE_METADATA = ('chromCol',
-                     'positionCol',
-                     'forwardCol',
-                     'reverseCol',)
+COVERAGE_METADATA = ("chromCol", "positionCol", "forwardCol", "reverseCol")
 
 
 def main(interval, coverage):
@@ -46,8 +40,14 @@ def main(interval, coverage):
                 forward = forward_covs[partition]
                 reverse = reverse_covs[partition]
                 if forward + reverse > 0:
-                    coverage.write(chrom=chrom, position=range(partitions[partition], partitions[partition + 1]),
-                                   forward=forward, reverse=reverse)
+                    coverage.write(
+                        chrom=chrom,
+                        position=range(
+                            partitions[partition], partitions[partition + 1]
+                        ),
+                        forward=forward,
+                        reverse=reverse,
+                    )
             partitions = []
             forward_covs = []
             reverse_covs = []
@@ -76,8 +76,14 @@ def main(interval, coverage):
                 forward = forward_covs[partition]
                 reverse = reverse_covs[partition]
                 if forward + reverse > 0:
-                    coverage.write(chrom=chrom, position=range(partitions[partition], partitions[partition + 1]),
-                                   forward=forward, reverse=reverse)
+                    coverage.write(
+                        chrom=chrom,
+                        position=range(
+                            partitions[partition], partitions[partition + 1]
+                        ),
+                        forward=forward,
+                        reverse=reverse,
+                    )
             partitions = partitions[start_index:]
             forward_covs = forward_covs[start_index:]
             reverse_covs = reverse_covs[start_index:]
@@ -90,19 +96,27 @@ def main(interval, coverage):
             forward = forward_covs[partition]
             reverse = reverse_covs[partition]
             if forward + reverse > 0:
-                coverage.write(chrom=chrom, position=range(partitions[partition], partitions[partition + 1]),
-                               forward=forward, reverse=reverse)
+                coverage.write(
+                    chrom=chrom,
+                    position=range(partitions[partition], partitions[partition + 1]),
+                    forward=forward,
+                    reverse=reverse,
+                )
 
 
 class CoverageWriter(object):
-    def __init__(self, out_stream=None, chromCol=0, positionCol=1, forwardCol=2, reverseCol=3):
+    def __init__(
+        self, out_stream=None, chromCol=0, positionCol=1, forwardCol=2, reverseCol=3
+    ):
         self.out_stream = out_stream
         self.reverseCol = reverseCol
         self.nlines = 0
-        positions = {str(chromCol): '%(chrom)s',
-                     str(positionCol): '%(position)d',
-                     str(forwardCol): '%(forward)d',
-                     str(reverseCol): '%(reverse)d'}
+        positions = {
+            str(chromCol): "%(chrom)s",
+            str(positionCol): "%(position)d",
+            str(forwardCol): "%(forward)d",
+            str(reverseCol): "%(reverse)d",
+        }
         if reverseCol < 0:
             self.template = "%(0)s\t%(1)s\t%(2)s\n" % positions
         else:
@@ -110,10 +124,10 @@ class CoverageWriter(object):
 
     def write(self, **kwargs):
         if self.reverseCol < 0:
-            kwargs['forward'] += kwargs['reverse']
-        posgen = kwargs['position']
+            kwargs["forward"] += kwargs["reverse"]
+        posgen = kwargs["position"]
         for position in posgen:
-            kwargs['position'] = position
+            kwargs["position"] = position
             self.out_stream.write(self.template % kwargs)
 
     def close(self):
@@ -124,28 +138,51 @@ class CoverageWriter(object):
 if __name__ == "__main__":
     options, args = doc_optparse.parse(__doc__)
     try:
-        chr_col_1, start_col_1, end_col_1, strand_col_1 = [int(x) - 1 for x in options.cols1.split(',')]
-        chr_col_2, position_col_2, forward_col_2, reverse_col_2 = [int(x) - 1 for x in options.cols2.split(',')]
+        chr_col_1, start_col_1, end_col_1, strand_col_1 = [
+            int(x) - 1 for x in options.cols1.split(",")
+        ]
+        chr_col_2, position_col_2, forward_col_2, reverse_col_2 = [
+            int(x) - 1 for x in options.cols2.split(",")
+        ]
         in_fname, out_fname = args
     except Exception:
         doc_optparse.exception()
 
     # Sort through a tempfile first
     with tempfile.NamedTemporaryFile(mode="r") as temp_file:
-        environ['LC_ALL'] = 'POSIX'
-        subprocess.check_call([
-            'sort', '-f', '-n', '-k', chr_col_1 + 1, '-k', start_col_1 + 1, '-k', end_col_1 + 1, '-o', temp_file.name, in_fname
-        ])
+        environ["LC_ALL"] = "POSIX"
+        subprocess.check_call(
+            [
+                "sort",
+                "-f",
+                "-n",
+                "-k",
+                chr_col_1 + 1,
+                "-k",
+                start_col_1 + 1,
+                "-k",
+                end_col_1 + 1,
+                "-o",
+                temp_file.name,
+                in_fname,
+            ]
+        )
 
-        coverage = CoverageWriter(out_stream=open(out_fname, "a"),
-                                  chromCol=chr_col_2, positionCol=position_col_2,
-                                  forwardCol=forward_col_2, reverseCol=reverse_col_2, )
+        coverage = CoverageWriter(
+            out_stream=open(out_fname, "a"),
+            chromCol=chr_col_2,
+            positionCol=position_col_2,
+            forwardCol=forward_col_2,
+            reverseCol=reverse_col_2,
+        )
         temp_file.seek(0)
-        interval = io.NiceReaderWrapper(temp_file,
-                                        chrom_col=chr_col_1,
-                                        start_col=start_col_1,
-                                        end_col=end_col_1,
-                                        strand_col=strand_col_1,
-                                        fix_strand=True)
+        interval = io.NiceReaderWrapper(
+            temp_file,
+            chrom_col=chr_col_1,
+            start_col=start_col_1,
+            end_col=end_col_1,
+            strand_col=strand_col_1,
+            fix_strand=True,
+        )
         main(interval, coverage)
     coverage.close()

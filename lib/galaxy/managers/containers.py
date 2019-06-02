@@ -27,6 +27,7 @@ class ContainerManagerMixin(object):
     each of the methods below only work on the first level of
     nesting.
     """
+
     # TODO: terminology is getting a bit convoluted and silly at this point: rename three public below?
     # TODO: this should be an open mapping (not just 2)
     #: the classes that can be contained
@@ -65,10 +66,10 @@ class ContainerManagerMixin(object):
         return query
 
     def _get_filter_for_contained(self, container, content_class):
-        raise galaxy.exceptions.NotImplemented('Abstract class')
+        raise galaxy.exceptions.NotImplemented("Abstract class")
 
     def _content_manager(self, content):
-        raise galaxy.exceptions.NotImplemented('Abstract class')
+        raise galaxy.exceptions.NotImplemented("Abstract class")
 
 
 class LibraryFolderAsContainerManagerMixin(ContainerManagerMixin):
@@ -78,7 +79,7 @@ class LibraryFolderAsContainerManagerMixin(ContainerManagerMixin):
     contained_class = model.LibraryDataset
     subcontainer_class = model.LibraryFolder
     # subcontainer_class = model.LibraryDatasetCollectionAssociation
-    order_contents_on = operator.attrgetter('create_time')
+    order_contents_on = operator.attrgetter("create_time")
 
     def _get_filter_for_contained(self, container, content_class):
         if content_class == self.subcontainer_class:
@@ -91,7 +92,7 @@ class LibraryFolderAsContainerManagerMixin(ContainerManagerMixin):
             return self.lda_manager
         elif isinstance(content, model.LibraryFolder):
             return self.folder_manager
-        raise TypeError('Unknown contents class: ' + str(content))
+        raise TypeError("Unknown contents class: " + str(content))
 
 
 class DatasetCollectionAsContainerManagerMixin(ContainerManagerMixin):
@@ -99,7 +100,7 @@ class DatasetCollectionAsContainerManagerMixin(ContainerManagerMixin):
     # (note: unlike the other collections, dc's wrap both contained and subcontainers in this class)
     contained_class = model.DatasetCollectionElement
     subcontainer_class = model.DatasetCollection
-    order_contents_on = operator.attrgetter('element_index')
+    order_contents_on = operator.attrgetter("element_index")
 
     def _get_filter_for_contained(self, container, content_class):
         return content_class.collection == container
@@ -110,4 +111,4 @@ class DatasetCollectionAsContainerManagerMixin(ContainerManagerMixin):
             return self.collection_manager
         elif isinstance(content, model.DatasetCollection):
             return self.collection_manager
-        raise TypeError('Unknown contents class: ' + str(content))
+        raise TypeError("Unknown contents class: " + str(content))

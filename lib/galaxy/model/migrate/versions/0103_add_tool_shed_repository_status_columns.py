@@ -30,7 +30,9 @@ def upgrade(migrate_engine):
         col.create(ToolShedRepository_table)
         assert col is ToolShedRepository_table.c.error_message
     except Exception:
-        log.exception("Adding error_message column to the tool_shed_repository table failed.")
+        log.exception(
+            "Adding error_message column to the tool_shed_repository table failed."
+        )
     # Update the status column value for tool_shed_repositories to the default value 'Installed'.
     cmd = "UPDATE tool_shed_repository SET status = 'Installed';"
     try:
@@ -58,8 +60,12 @@ def downgrade(migrate_engine):
     try:
         ToolShedRepository_table.c.status.drop()
     except Exception:
-        log.exception("Dropping column status from the tool_shed_repository table failed.")
+        log.exception(
+            "Dropping column status from the tool_shed_repository table failed."
+        )
     try:
         ToolShedRepository_table.c.error_message.drop()
     except Exception:
-        log.exception("Dropping column error_message from the tool_shed_repository table failed.")
+        log.exception(
+            "Dropping column error_message from the tool_shed_repository table failed."
+        )

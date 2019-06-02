@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 class ApplicationStackTransport(object):
-    SHUTDOWN_MSG = '__SHUTDOWN__'
+    SHUTDOWN_MSG = "__SHUTDOWN__"
 
     def __init__(self, app, stack, dispatcher=None):
         """ Pre-fork initialization.
@@ -37,18 +37,33 @@ class ApplicationStackTransport(object):
 
     def start_if_needed(self):
         # Don't unnecessarily start a thread that we don't need.
-        if self.can_run and not self.running and not self.dispatcher_thread and self.dispatcher and self.dispatcher.handler_count:
+        if (
+            self.can_run
+            and not self.running
+            and not self.dispatcher_thread
+            and self.dispatcher
+            and self.dispatcher.handler_count
+        ):
             self.running = True
-            self.dispatcher_thread = threading.Thread(name=self.__class__.__name__ + ".dispatcher_thread", target=self._dispatch_messages)
+            self.dispatcher_thread = threading.Thread(
+                name=self.__class__.__name__ + ".dispatcher_thread",
+                target=self._dispatch_messages,
+            )
             self.dispatcher_thread.start()
-            log.info('%s dispatcher started', self.__class__.__name__)
+            log.info("%s dispatcher started", self.__class__.__name__)
 
     def stop_if_unneeded(self):
-        if self.can_run and self.running and self.dispatcher_thread and self.dispatcher and not self.dispatcher.handler_count:
+        if (
+            self.can_run
+            and self.running
+            and self.dispatcher_thread
+            and self.dispatcher
+            and not self.dispatcher.handler_count
+        ):
             self.running = False
             self.dispatcher_thread.join()
             self.dispatcher_thread = None
-            log.info('%s dispatcher stopped', self.__class__.__name__)
+            log.info("%s dispatcher stopped", self.__class__.__name__)
 
     def start(self):
         """ Post-fork initialization.
@@ -62,7 +77,7 @@ class ApplicationStackTransport(object):
     def shutdown(self):
         self.running = False
         if self.dispatcher_thread:
-            log.info('Joining application stack transport dispatcher thread')
+            log.info("Joining application stack transport dispatcher thread")
             self.dispatcher_thread.join()
             self.dispatcher_thread = None
 
@@ -70,22 +85,30 @@ class ApplicationStackTransport(object):
 class UWSGIFarmMessageTransport(ApplicationStackTransport):
     """ Communication via uWSGI Mule Farm messages. Communication is unidirectional (workers -> mules).
     """
+
     # Define any static lock names here, additional locks will be appended for each configured farm's message handler
     _locks = []
 
     def init_late_prefork(self):
-        num = int(uwsgi.opt.get('locks', 0)) + 1
+        num = int(uwsgi.opt.get("locks", 0)) + 1
         need = len(self.stack._lock_farms)
         if num < need:
-            raise RuntimeError('Need %i uWSGI locks but only %i exist(s): Set `locks = %i` in uWSGI configuration' % (need, num, need - 1))
-        self._locks.extend(['RECV_MSG_FARM_' + x for x in sorted(self.stack._lock_farms)])
+            raise RuntimeError(
+                "Need %i uWSGI locks but only %i exist(s): Set `locks = %i` in uWSGI configuration"
+                % (need, num, need - 1)
+            )
+        self._locks.extend(
+            ["RECV_MSG_FARM_" + x for x in sorted(self.stack._lock_farms)]
+        )
         # this would be nice, but in my 2.0.15 uWSGI, the uwsgi module has no set_option function, and I don't know if it'd work even if the function existed as documented
         # if len(self.lock_map) > 1:
         #     uwsgi.set_option('locks', len(self.lock_map))
         #     log.debug('Created %s uWSGI locks' % len(self.lock_map))
 
     def __init__(self, app, stack, dispatcher=None):
-        super(UWSGIFarmMessageTransport, self).__init__(app, stack, dispatcher=dispatcher)
+        super(UWSGIFarmMessageTransport, self).__init__(
+            app, stack, dispatcher=dispatcher
+        )
 
     def __lock(self, name_or_id):
         try:
@@ -100,30 +123,30 @@ class UWSGIFarmMessageTransport(ApplicationStackTransport):
             uwsgi.unlock(self._locks.index(name_or_id))
 
     def _farm_recv_msg_lock_num(self):
-        return self._locks.index('RECV_MSG_FARM_' + self.stack._farm_name)
+        return self._locks.index("RECV_MSG_FARM_" + self.stack._farm_name)
 
     def _dispatch_messages(self):
         # this could be moved to the base class if locking was abstracted and a get_message method was added
-        log.info('Application stack message dispatcher thread starting up')
+        log.info("Application stack message dispatcher thread starting up")
         # we are going to do this a lot, so cache the lock number
         lock = self._farm_recv_msg_lock_num()
         while self.running:
             msg = None
             self.__lock(lock)
             try:
-                log.debug('Acquired message lock, waiting for new message')
+                log.debug("Acquired message lock, waiting for new message")
                 msg = unicodify(uwsgi.farm_get_msg())
-                log.debug('Received message: %s', msg)
+                log.debug("Received message: %s", msg)
                 if msg == self.SHUTDOWN_MSG:
                     self.running = False
                 else:
                     self.dispatcher.dispatch(msg)
             except Exception:
-                log.exception('Exception in mule message handling')
+                log.exception("Exception in mule message handling")
             finally:
                 self.__unlock(lock)
-                log.debug('Released lock')
-        log.info('Application stack message dispatcher thread exiting')
+                log.debug("Released lock")
+        log.info("Application stack message dispatcher thread exiting")
 
     # TODO: start_if_needed would be called on a web worker by the stack's register_message_handler function if a
     # function were registered in a web handler, that should probably be prevented.
@@ -135,11 +158,33 @@ class UWSGIFarmMessageTransport(ApplicationStackTransport):
         """
         if self.stack._is_mule:
             if not uwsgi.in_farm():
-                raise RuntimeError('Mule %s is not in a farm! Set `farm = <pool_name>:%s` in uWSGI configuration'
-                                   % (uwsgi.mule_id(),
-                                      ','.join(map(str, range(1, len([x for x in self.stack._configured_mules if x.endswith('galaxy/main.py')]) + 1)))))
+                raise RuntimeError(
+                    "Mule %s is not in a farm! Set `farm = <pool_name>:%s` in uWSGI configuration"
+                    % (
+                        uwsgi.mule_id(),
+                        ",".join(
+                            map(
+                                str,
+                                range(
+                                    1,
+                                    len(
+                                        [
+                                            x
+                                            for x in self.stack._configured_mules
+                                            if x.endswith("galaxy/main.py")
+                                        ]
+                                    )
+                                    + 1,
+                                ),
+                            )
+                        ),
+                    )
+                )
             elif len(self.stack._farms) > 1:
-                raise RuntimeError('Mule %s is in multiple farms! This configuration is not supported due to locking issues' % uwsgi.mule_id())
+                raise RuntimeError(
+                    "Mule %s is in multiple farms! This configuration is not supported due to locking issues"
+                    % uwsgi.mule_id()
+                )
             # only mules receive messages so don't bother starting the dispatcher if we're not a mule (although
             # currently it doesn't have any registered handlers and so wouldn't start anyway)
             super(UWSGIFarmMessageTransport, self).start()
@@ -149,5 +194,5 @@ class UWSGIFarmMessageTransport(ApplicationStackTransport):
             super(UWSGIFarmMessageTransport, self).shutdown()
 
     def send_message(self, msg, dest):
-        log.debug('Sending message to farm %s: %s', dest, msg)
+        log.debug("Sending message to farm %s: %s", dest, msg)
         uwsgi.farm_msg(dest, msg)

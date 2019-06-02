@@ -42,4 +42,6 @@ def downgrade(migrate_engine):
     try:
         ToolShedRepository_table.c.ctx_rev.drop()
     except Exception:
-        log.exception("Dropping column ctx_rev from the tool_shed_repository table failed.")
+        log.exception(
+            "Dropping column ctx_rev from the tool_shed_repository table failed."
+        )

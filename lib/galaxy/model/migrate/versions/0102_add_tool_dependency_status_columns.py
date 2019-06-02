@@ -28,7 +28,7 @@ def upgrade(migrate_engine):
     metadata.reflect()
 
     ToolDependency_table = Table("tool_dependency", metadata, autoload=True)
-    if migrate_engine.name == 'sqlite':
+    if migrate_engine.name == "sqlite":
         col = Column("status", TrimmedString(255))
     else:
         col = Column("status", TrimmedString(255), nullable=False)
@@ -39,8 +39,8 @@ def upgrade(migrate_engine):
 
     # SQLAlchemy Migrate has a bug when dropping a boolean column in SQLite
     # TODO move to alembic.
-    if migrate_engine.name != 'sqlite':
-        drop_column('uninstalled', ToolDependency_table)
+    if migrate_engine.name != "sqlite":
+        drop_column("uninstalled", ToolDependency_table)
 
 
 def downgrade(migrate_engine):
@@ -48,9 +48,9 @@ def downgrade(migrate_engine):
     metadata.reflect()
 
     ToolDependency_table = Table("tool_dependency", metadata, autoload=True)
-    if migrate_engine.name != 'sqlite':
+    if migrate_engine.name != "sqlite":
         col = Column("uninstalled", Boolean, default=False)
         add_column(col, ToolDependency_table)
 
-    drop_column('error_message', ToolDependency_table)
-    drop_column('status', ToolDependency_table)
+    drop_column("error_message", ToolDependency_table)
+    drop_column("status", ToolDependency_table)

@@ -15,7 +15,6 @@ log = logging.getLogger(__name__)
 
 
 class OIDC(JSAppLauncher):
-
     @web.json
     @web.expose
     @web.require_login("list third-party identities")
@@ -34,7 +33,12 @@ class OIDC(JSAppLauncher):
         """
         rtv = []
         for authnz in trans.user.social_auth:
-            rtv.append({'id': trans.app.security.encode_id(authnz.id), 'provider': authnz.provider})
+            rtv.append(
+                {
+                    "id": trans.app.security.encode_id(authnz.id),
+                    "provider": authnz.provider,
+                }
+            )
         return rtv
 
     @web.json
@@ -44,7 +48,9 @@ class OIDC(JSAppLauncher):
             msg = "Login to Galaxy using third-party identities is not enabled on this Galaxy instance."
             log.debug(msg)
             return trans.show_error_message(msg)
-        success, message, redirect_uri = trans.app.authnz_manager.authenticate(provider, trans)
+        success, message, redirect_uri = trans.app.authnz_manager.authenticate(
+            provider, trans
+        )
         if success:
             return {"redirect_uri": redirect_uri}
         else:
@@ -52,32 +58,45 @@ class OIDC(JSAppLauncher):
 
     @web.expose
     def callback(self, trans, provider, **kwargs):
-        user = trans.user.username if trans.user is not None else 'anonymous'
+        user = trans.user.username if trans.user is not None else "anonymous"
         if not bool(kwargs):
-            log.error("OIDC callback received no data for provider `{}` and user `{}`".format(provider, user))
+            log.error(
+                "OIDC callback received no data for provider `{}` and user `{}`".format(
+                    provider, user
+                )
+            )
             return trans.show_error_message(
-                'Did not receive any information from the `{}` identity provider to complete user `{}` authentication '
-                'flow. Please try again, and if the problem persists, contact the Galaxy instance admin. Also note '
-                'that this endpoint is to receive authentication callbacks only, and should not be called/reached by '
-                'a user.'.format(provider, user))
-        if 'error' in kwargs:
-            log.error("Error handling authentication callback from `{}` identity provider for user `{}` login request."
-                      " Error message: {}".format(provider, user, kwargs.get('error', 'None')))
-            return trans.show_error_message('Failed to handle authentication callback from {}. '
-                                            'Please try again, and if the problem persists, contact '
-                                            'the Galaxy instance admin'.format(provider))
-        success, message, (redirect_url, user) = trans.app.authnz_manager.callback(provider,
-                                                                                   kwargs['state'],
-                                                                                   kwargs['code'],
-                                                                                   trans,
-                                                                                   login_redirect_url=url_for('/'))
+                "Did not receive any information from the `{}` identity provider to complete user `{}` authentication "
+                "flow. Please try again, and if the problem persists, contact the Galaxy instance admin. Also note "
+                "that this endpoint is to receive authentication callbacks only, and should not be called/reached by "
+                "a user.".format(provider, user)
+            )
+        if "error" in kwargs:
+            log.error(
+                "Error handling authentication callback from `{}` identity provider for user `{}` login request."
+                " Error message: {}".format(provider, user, kwargs.get("error", "None"))
+            )
+            return trans.show_error_message(
+                "Failed to handle authentication callback from {}. "
+                "Please try again, and if the problem persists, contact "
+                "the Galaxy instance admin".format(provider)
+            )
+        success, message, (redirect_url, user) = trans.app.authnz_manager.callback(
+            provider,
+            kwargs["state"],
+            kwargs["code"],
+            trans,
+            login_redirect_url=url_for("/"),
+        )
         if success is False:
             return trans.show_error_message(message)
         user = user if user is not None else trans.user
         if user is None:
-            return trans.show_error_message("An unknown error occurred when handling the callback from `{}` "
-                                            "identity provider. Please try again, and if the problem persists, "
-                                            "contact the Galaxy instance admin.".format(provider))
+            return trans.show_error_message(
+                "An unknown error occurred when handling the callback from `{}` "
+                "identity provider. Please try again, and if the problem persists, "
+                "contact the Galaxy instance admin.".format(provider)
+            )
         trans.handle_user_login(user)
         return self.client(trans)
 
@@ -87,11 +106,11 @@ class OIDC(JSAppLauncher):
         if trans.user is None:
             # Only logged in users are allowed here.
             return
-        success, message, redirect_url = trans.app.authnz_manager.disconnect(provider,
-                                                                             trans,
-                                                                             disconnect_redirect_url=url_for('/'))
+        success, message, redirect_url = trans.app.authnz_manager.disconnect(
+            provider, trans, disconnect_redirect_url=url_for("/")
+        )
         if success is False:
             return trans.show_error_message(message)
         if redirect_url is None:
-            redirect_url = url_for('/')
+            redirect_url = url_for("/")
         return trans.response.send_redirect(redirect_url)

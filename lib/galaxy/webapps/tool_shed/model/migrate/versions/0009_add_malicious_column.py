@@ -28,16 +28,22 @@ def upgrade(migrate_engine):
     c = Column("malicious", Boolean, default=False, index=True)
     try:
         # Create
-        c.create(Repository_metadata_table, index_name="ix_repository_metadata_malicious")
+        c.create(
+            Repository_metadata_table, index_name="ix_repository_metadata_malicious"
+        )
         assert c is Repository_metadata_table.c.malicious
         # Initialize.
-        if migrate_engine.name == 'mysql' or migrate_engine.name == 'sqlite':
+        if migrate_engine.name == "mysql" or migrate_engine.name == "sqlite":
             default_false = "0"
-        elif migrate_engine.name in ['postgresql', 'postgres']:
+        elif migrate_engine.name in ["postgresql", "postgres"]:
             default_false = "false"
-        migrate_engine.execute("UPDATE repository_metadata SET malicious=%s" % default_false)
+        migrate_engine.execute(
+            "UPDATE repository_metadata SET malicious=%s" % default_false
+        )
     except Exception:
-        log.exception("Adding malicious column to the repository_metadata table failed.")
+        log.exception(
+            "Adding malicious column to the repository_metadata table failed."
+        )
 
 
 def downgrade(migrate_engine):
@@ -48,4 +54,6 @@ def downgrade(migrate_engine):
     try:
         Repository_metadata_table.c.malicious.drop()
     except Exception:
-        log.exception("Dropping column malicious from the repository_metadata table failed.")
+        log.exception(
+            "Dropping column malicious from the repository_metadata table failed."
+        )

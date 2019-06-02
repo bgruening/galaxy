@@ -12,10 +12,7 @@ import yaml
 
 from galaxy.containers import parse_containers_config
 from galaxy.util import asbool
-from galaxy.util.properties import (
-    find_config_file,
-    load_app_properties
-)
+from galaxy.util.properties import find_config_file, load_app_properties
 
 
 class ConditionalDependencies(object):
@@ -50,18 +47,24 @@ class ConditionalDependencies(object):
             load_job_config_dict(self.config.get("job_config"))
         else:
             job_conf_path = self.config.get(
-                "job_config_file",
-                join(dirname(self.config_file), 'job_conf.xml'))
-            if '.xml' in job_conf_path:
+                "job_config_file", join(dirname(self.config_file), "job_conf.xml")
+            )
+            if ".xml" in job_conf_path:
                 try:
                     try:
-                        for plugin in ElementTree.parse(job_conf_path).find('plugins').findall('plugin'):
-                            if 'load' in plugin.attrib:
-                                self.job_runners.append(plugin.attrib['load'])
+                        for plugin in (
+                            ElementTree.parse(job_conf_path)
+                            .find("plugins")
+                            .findall("plugin")
+                        ):
+                            if "load" in plugin.attrib:
+                                self.job_runners.append(plugin.attrib["load"])
                     except (OSError, IOError):
                         pass
                     try:
-                        for plugin in ElementTree.parse(job_conf_path).findall('.//destination/param[@id="rules_module"]'):
+                        for plugin in ElementTree.parse(job_conf_path).findall(
+                            './/destination/param[@id="rules_module"]'
+                        ):
                             self.job_rule_modules.append(plugin.text)
                     except (OSError, IOError):
                         pass
@@ -76,21 +79,22 @@ class ConditionalDependencies(object):
 
         object_store_conf_xml = self.config.get(
             "object_store_config_file",
-            join(dirname(self.config_file), 'object_store_conf.xml'))
+            join(dirname(self.config_file), "object_store_conf.xml"),
+        )
         try:
-            for store in ElementTree.parse(object_store_conf_xml).iter('object_store'):
-                if 'type' in store.attrib:
-                    self.object_stores.append(store.attrib['type'])
+            for store in ElementTree.parse(object_store_conf_xml).iter("object_store"):
+                if "type" in store.attrib:
+                    self.object_stores.append(store.attrib["type"])
         except (OSError, IOError):
             pass
 
         # Parse auth conf
         auth_conf_xml = self.config.get(
-            "auth_config_file",
-            join(dirname(self.config_file), 'auth_conf.xml'))
+            "auth_config_file", join(dirname(self.config_file), "auth_conf.xml")
+        )
         try:
-            for auth in ElementTree.parse(auth_conf_xml).findall('authenticator'):
-                auth_type = auth.find('type')
+            for auth in ElementTree.parse(auth_conf_xml).findall("authenticator"):
+                auth_type = auth.find("type")
                 if auth_type is not None:
                     self.authenticators.append(auth_type.text)
         except (OSError, IOError):
@@ -99,30 +103,35 @@ class ConditionalDependencies(object):
         # Parse containers config
         containers_conf_yml = self.config.get(
             "containers_config_file",
-            join(dirname(self.config_file), 'containers_conf.yml'))
+            join(dirname(self.config_file), "containers_conf.yml"),
+        )
         containers_conf = parse_containers_config(containers_conf_yml)
-        self.container_interface_types = [c.get('type', None) for c in containers_conf.values()]
+        self.container_interface_types = [
+            c.get("type", None) for c in containers_conf.values()
+        ]
 
         # Parse error report config
         error_report_yml = self.config.get(
-            "error_report_file",
-            join(dirname(self.config_file), 'error_report.yml'))
+            "error_report_file", join(dirname(self.config_file), "error_report.yml")
+        )
         try:
             with open(error_report_yml, "r") as f:
                 error_reporters = yaml.safe_load(f)
-                self.error_report_modules = [er.get('type', None) for er in error_reporters]
+                self.error_report_modules = [
+                    er.get("type", None) for er in error_reporters
+                ]
         except (OSError, IOError):
             pass
 
     def get_conditional_requirements(self):
-        crfile = join(dirname(__file__), 'conditional-requirements.txt')
+        crfile = join(dirname(__file__), "conditional-requirements.txt")
         for req in pkg_resources.parse_requirements(open(crfile).readlines()):
             self.conditional_reqs.append(req)
 
     def check(self, name):
         try:
-            name = name.replace('-', '_').replace('.', '_')
-            return getattr(self, 'check_' + name)()
+            name = name.replace("-", "_").replace(".", "_")
+            return getattr(self, "check_" + name)()
         except Exception:
             return False
 
@@ -133,12 +142,14 @@ class ConditionalDependencies(object):
         return self.config["database_connection"].startswith("mysql")
 
     def check_drmaa(self):
-        return ("galaxy.jobs.runners.drmaa:DRMAAJobRunner" in self.job_runners or
-                "galaxy.jobs.runners.slurm:SlurmJobRunner" in self.job_runners or
-                "galaxy.jobs.runners.drmaauniva:DRMAAUnivaJobRunner" in self.job_runners)
+        return (
+            "galaxy.jobs.runners.drmaa:DRMAAJobRunner" in self.job_runners
+            or "galaxy.jobs.runners.slurm:SlurmJobRunner" in self.job_runners
+            or "galaxy.jobs.runners.drmaauniva:DRMAAUnivaJobRunner" in self.job_runners
+        )
 
     def check_galaxycloudrunner(self):
-        return ("galaxycloudrunner.rules" in self.job_rule_modules)
+        return "galaxycloudrunner.rules" in self.job_rule_modules
 
     def check_pbs_python(self):
         return "galaxy.jobs.runners.pbs:PBSJobRunner" in self.job_runners
@@ -159,45 +170,46 @@ class ConditionalDependencies(object):
         return self.config.get("statsd_host", None) is not None
 
     def check_weberror(self):
-        return (asbool(self.config["debug"]) and
-                asbool(self.config["use_interactive"]))
+        return asbool(self.config["debug"]) and asbool(self.config["use_interactive"])
 
     def check_python_ldap(self):
-        return ('ldap' in self.authenticators or
-                'activedirectory' in self.authenticators)
+        return "ldap" in self.authenticators or "activedirectory" in self.authenticators
 
     def check_python_pam(self):
-        return 'PAM' in self.authenticators
+        return "PAM" in self.authenticators
 
     def check_azure_storage(self):
-        return 'azure_blob' in self.object_stores
+        return "azure_blob" in self.object_stores
 
     def check_kamaki(self):
-        return 'pithos' in self.object_stores
+        return "pithos" in self.object_stores
 
     def check_watchdog(self):
-        install_set = {'auto', 'True', 'true', 'polling'}
-        return (self.config['watch_tools'] in install_set or
-                self.config['watch_tool_data_dir'] in install_set)
+        install_set = {"auto", "True", "true", "polling"}
+        return (
+            self.config["watch_tools"] in install_set
+            or self.config["watch_tool_data_dir"] in install_set
+        )
 
     def check_docker(self):
-        return (self.config.get("enable_beta_containers_interface", False) and
-                ('docker' in self.container_interface_types or
-                 'docker_swarm' in self.container_interface_types))
+        return self.config.get("enable_beta_containers_interface", False) and (
+            "docker" in self.container_interface_types
+            or "docker_swarm" in self.container_interface_types
+        )
 
     def check_python_gitlab(self):
-        return 'gitlab' in self.error_report_modules
+        return "gitlab" in self.error_report_modules
 
     def check_pygithub(self):
-        return 'github' in self.error_report_modules
+        return "github" in self.error_report_modules
 
     def check_influxdb(self):
-        return 'influxdb' in self.error_report_modules
+        return "influxdb" in self.error_report_modules
 
 
 def optional(config_file=None):
     if not config_file:
-        config_file = find_config_file(['galaxy', 'universe_wsgi'])
+        config_file = find_config_file(["galaxy", "universe_wsgi"])
     if not config_file:
         print("galaxy.dependencies.optional: no config file found", file=sys.stderr)
         return []

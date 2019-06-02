@@ -1,9 +1,6 @@
 import logging
 import os
-from threading import (
-    local,
-    Lock,
-)
+from threading import local, Lock
 
 from sqlalchemy import inspect
 from sqlalchemy.orm.exc import DetachedInstanceError
@@ -39,13 +36,19 @@ class ToolCache(object):
         removed_tool_ids = []
         try:
             with self._lock:
-                paths_to_cleanup = {path: tool.all_ids for path, tool in self._tools_by_path.items() if self._should_cleanup(path)}
+                paths_to_cleanup = {
+                    path: tool.all_ids
+                    for path, tool in self._tools_by_path.items()
+                    if self._should_cleanup(path)
+                }
                 for config_filename, tool_ids in paths_to_cleanup.items():
                     del self._hash_by_tool_paths[config_filename]
                     if os.path.exists(config_filename):
                         # This tool has probably been broken while editing on disk
                         # We record it here, so that we can recover it
-                        self._removed_tools_by_path[config_filename] = self._tools_by_path[config_filename]
+                        self._removed_tools_by_path[
+                            config_filename
+                        ] = self._tools_by_path[config_filename]
                     del self._tools_by_path[config_filename]
                     for tool_id in tool_ids:
                         if tool_id in self._tool_paths_by_id:
@@ -70,7 +73,9 @@ class ToolCache(object):
             return True
         new_mtime = os.path.getmtime(config_filename)
         if self._mod_time_by_path.get(config_filename) < new_mtime:
-            if md5_hash_file(config_filename) != self._hash_by_tool_paths.get(config_filename):
+            if md5_hash_file(config_filename) != self._hash_by_tool_paths.get(
+                config_filename
+            ):
                 return True
         tool = self._tools_by_path[config_filename]
         for macro_path in tool._macro_paths:
@@ -148,44 +153,82 @@ class ToolShedRepositoryCache(object):
         except AttributeError:
             self.rebuild()
             repositories = self.cache.repositories
-        tool_shed_repositories = [repo for repo in repositories if isinstance(repo, self.app.install_model.ToolShedRepository)]
+        tool_shed_repositories = [
+            repo
+            for repo in repositories
+            if isinstance(repo, self.app.install_model.ToolShedRepository)
+        ]
         if tool_shed_repositories and inspect(tool_shed_repositories[0]).detached:
             self.rebuild()
             repositories = self.cache.repositories
         return repositories
 
     def rebuild(self):
-        self.cache.repositories = self.app.install_model.context.current.query(self.app.install_model.ToolShedRepository).all()
+        self.cache.repositories = self.app.install_model.context.current.query(
+            self.app.install_model.ToolShedRepository
+        ).all()
 
-    def get_installed_repository(self, tool_shed=None, name=None, owner=None, installed_changeset_revision=None, changeset_revision=None, repository_id=None):
+    def get_installed_repository(
+        self,
+        tool_shed=None,
+        name=None,
+        owner=None,
+        installed_changeset_revision=None,
+        changeset_revision=None,
+        repository_id=None,
+    ):
         try:
-            return self._get_installed_repository(tool_shed=tool_shed,
-                                                  name=name,
-                                                  owner=owner,
-                                                  installed_changeset_revision=installed_changeset_revision,
-                                                  changeset_revision=changeset_revision,
-                                                  repository_id=repository_id)
+            return self._get_installed_repository(
+                tool_shed=tool_shed,
+                name=name,
+                owner=owner,
+                installed_changeset_revision=installed_changeset_revision,
+                changeset_revision=changeset_revision,
+                repository_id=repository_id,
+            )
         except DetachedInstanceError:
             self.rebuild()
-            return self._get_installed_repository(tool_shed=tool_shed,
-                                                  name=name,
-                                                  owner=owner,
-                                                  installed_changeset_revision=installed_changeset_revision,
-                                                  changeset_revision=changeset_revision,
-                                                  repository_id=repository_id)
+            return self._get_installed_repository(
+                tool_shed=tool_shed,
+                name=name,
+                owner=owner,
+                installed_changeset_revision=installed_changeset_revision,
+                changeset_revision=changeset_revision,
+                repository_id=repository_id,
+            )
 
-    def _get_installed_repository(self, tool_shed=None, name=None, owner=None, installed_changeset_revision=None, changeset_revision=None, repository_id=None):
+    def _get_installed_repository(
+        self,
+        tool_shed=None,
+        name=None,
+        owner=None,
+        installed_changeset_revision=None,
+        changeset_revision=None,
+        repository_id=None,
+    ):
         if repository_id:
-            repos = [repo for repo in self.tool_shed_repositories if repo.id == repository_id]
+            repos = [
+                repo for repo in self.tool_shed_repositories if repo.id == repository_id
+            ]
             if repos:
                 return repos[0]
             else:
                 return None
-        repos = [repo for repo in self.tool_shed_repositories if repo.tool_shed == tool_shed and repo.owner == owner and repo.name == name]
+        repos = [
+            repo
+            for repo in self.tool_shed_repositories
+            if repo.tool_shed == tool_shed and repo.owner == owner and repo.name == name
+        ]
         if installed_changeset_revision:
-            repos = [repo for repo in repos if repo.installed_changeset_revision == installed_changeset_revision]
+            repos = [
+                repo
+                for repo in repos
+                if repo.installed_changeset_revision == installed_changeset_revision
+            ]
         if changeset_revision:
-            repos = [repo for repo in repos if repo.changeset_revision == changeset_revision]
+            repos = [
+                repo for repo in repos if repo.changeset_revision == changeset_revision
+            ]
         if repos:
             return repos[0]
         else:

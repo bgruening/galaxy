@@ -21,7 +21,10 @@ log.addHandler(handler)
 
 metadata = MetaData()
 
-DATASET_INSTANCE_TABLE_NAMES = ['history_dataset_association', 'library_dataset_dataset_association']
+DATASET_INSTANCE_TABLE_NAMES = [
+    "history_dataset_association",
+    "library_dataset_dataset_association",
+]
 
 
 def upgrade(migrate_engine):
@@ -32,7 +35,9 @@ def upgrade(migrate_engine):
     dataset_instance_tables = []
     for table_name in DATASET_INSTANCE_TABLE_NAMES:
         try:
-            dataset_instance_tables.append((table_name, Table(table_name, metadata, autoload=True)))
+            dataset_instance_tables.append(
+                (table_name, Table(table_name, metadata, autoload=True))
+            )
         except NoSuchTableError:
             log.debug("Failed loading table %s" % table_name)
     if dataset_instance_tables:
@@ -52,7 +57,9 @@ def downgrade(migrate_engine):
     dataset_instance_tables = []
     for table_name in DATASET_INSTANCE_TABLE_NAMES:
         try:
-            dataset_instance_tables.append((table_name, Table(table_name, metadata, autoload=True)))
+            dataset_instance_tables.append(
+                (table_name, Table(table_name, metadata, autoload=True))
+            )
         except NoSuchTableError:
             log.debug("Failed loading table %s" % table_name)
     if dataset_instance_tables:
@@ -61,4 +68,6 @@ def downgrade(migrate_engine):
                 col = dataset_instance_table.c.state
                 col.drop()
             except Exception:
-                log.exception("Dropping column 'state' from %s table failed.", table_name)
+                log.exception(
+                    "Dropping column 'state' from %s table failed.", table_name
+                )

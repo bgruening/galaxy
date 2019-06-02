@@ -20,18 +20,29 @@ def create_archive(export_directory, out_file, gzip=False):
     try:
         tar_export_directory(export_directory, out_file, gzip)
         # Status.
-        print('Created history archive.')
+        print("Created history archive.")
         return 0
     except Exception as e:
-        print('Error creating history archive: %s' % str(e), file=sys.stderr)
+        print("Error creating history archive: %s" % str(e), file=sys.stderr)
         return 1
 
 
 def main(argv=None):
     # Parse command line.
     parser = optparse.OptionParser()
-    parser.add_option('-G', '--gzip', dest='gzip', action="store_true", help='Compress archive using gzip.')
-    parser.add_option('--galaxy-version', dest='galaxy_version', help='Galaxy version that initiated the command.', default=None)
+    parser.add_option(
+        "-G",
+        "--gzip",
+        dest="gzip",
+        action="store_true",
+        help="Compress archive using gzip.",
+    )
+    parser.add_option(
+        "--galaxy-version",
+        dest="galaxy_version",
+        help="Galaxy version that initiated the command.",
+        default=None,
+    )
     (options, args) = parser.parse_args(argv)
     galaxy_version = options.galaxy_version
     if galaxy_version is None:
@@ -49,9 +60,9 @@ def main(argv=None):
         out_file = args[1]
 
     if galaxy_version == "19.01":
-        history_attrs = os.path.join(temp_directory, 'history_attrs.txt')
-        dataset_attrs = os.path.join(temp_directory, 'datasets_attrs.txt')
-        job_attrs = os.path.join(temp_directory, 'jobs_attrs.txt')
+        history_attrs = os.path.join(temp_directory, "history_attrs.txt")
+        dataset_attrs = os.path.join(temp_directory, "datasets_attrs.txt")
+        job_attrs = os.path.join(temp_directory, "jobs_attrs.txt")
 
         shutil.move(args[0], history_attrs)
         shutil.move(args[1], dataset_attrs)

@@ -5,6 +5,7 @@ from ..types import BaseDatasetCollectionType
 class ListDatasetCollectionType(BaseDatasetCollectionType):
     """ A flat list of named elements.
     """
+
     collection_type = "list"
 
     def __init__(self):
@@ -13,7 +14,6 @@ class ListDatasetCollectionType(BaseDatasetCollectionType):
     def generate_elements(self, elements):
         for identifier, element in elements.items():
             association = DatasetCollectionElement(
-                element=element,
-                element_identifier=identifier,
+                element=element, element_identifier=identifier
             )
             yield association

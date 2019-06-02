@@ -8,22 +8,12 @@ import os.path
 import shutil
 from collections import OrderedDict
 
-from galaxy.util import (
-    hash_util,
-    plugin_config
-)
+from galaxy.util import hash_util, plugin_config
 from galaxy.util.oset import OrderedSet
 from .container_resolvers import ContainerResolver
 from .dependencies import ToolInfo
-from .requirements import (
-    ContainerDescription,
-    ToolRequirement,
-    ToolRequirements
-)
-from .resolvers import (
-    ContainerDependency,
-    NullDependency,
-)
+from .requirements import ContainerDescription, ToolRequirement, ToolRequirements
+from .resolvers import ContainerDependency, NullDependency
 from .resolvers.conda import CondaDependencyResolver
 from .resolvers.galaxy_packages import GalaxyPackageDependencyResolver
 from .resolvers.tool_shed_packages import ToolShedPackageDependencyResolver
@@ -36,9 +26,9 @@ CONFIG_VAL_NOT_FOUND = object()
 def build_dependency_manager(config):
     if getattr(config, "use_tool_dependencies", False):
         dependency_manager_kwds = {
-            'default_base_path': config.tool_dependency_dir,
-            'conf_file': config.dependency_resolvers_config_file,
-            'app_config': config,
+            "default_base_path": config.tool_dependency_dir,
+            "conf_file": config.dependency_resolvers_config_file,
+            "app_config": config,
         }
         if getattr(config, "use_cached_dependency_manager", False):
             dependency_manager = CachedDependencyManager(**dependency_manager_kwds)
@@ -80,13 +70,19 @@ class DependencyManager(object):
 
     def set_enabled_container_types(self, container_types_to_destinations):
         """Set the union of all enabled container types."""
-        self._enabled_container_types = [container_type for container_type in container_types_to_destinations.keys()]
+        self._enabled_container_types = [
+            container_type for container_type in container_types_to_destinations.keys()
+        ]
         # Just pick first enabled destination for a container type, probably covers the most common deployment scenarios
         self._destination_for_container_type = container_types_to_destinations
 
-    def get_destination_info_for_container_type(self, container_type, destination_id=None):
+    def get_destination_info_for_container_type(
+        self, container_type, destination_id=None
+    ):
         if destination_id is None:
-            return next(iter(self._destination_for_container_type[container_type])).params
+            return next(
+                iter(self._destination_for_container_type[container_type])
+            ).params
         else:
             for destination in self._destination_for_container_type[container_type]:
                 if destination.id == destination_id:
@@ -122,9 +118,15 @@ class DependencyManager(object):
         return value
 
     def dependency_shell_commands(self, requirements, **kwds):
-        requirements_to_dependencies = self.requirements_to_dependencies(requirements, **kwds)
+        requirements_to_dependencies = self.requirements_to_dependencies(
+            requirements, **kwds
+        )
         ordered_dependencies = OrderedSet(requirements_to_dependencies.values())
-        return [dependency.shell_commands() for dependency in ordered_dependencies if not isinstance(dependency, ContainerDependency)]
+        return [
+            dependency.shell_commands()
+            for dependency in ordered_dependencies
+            if not isinstance(dependency, ContainerDependency)
+        ]
 
     def requirements_to_dependencies(self, requirements, **kwds):
         """
@@ -132,21 +134,25 @@ class DependencyManager(object):
         with requirements as key and dependencies as value caching
         these on the tool instance if supplied.
         """
-        requirement_to_dependency = self._requirements_to_dependencies_dict(requirements, **kwds)
+        requirement_to_dependency = self._requirements_to_dependencies_dict(
+            requirements, **kwds
+        )
 
-        if 'tool_instance' in kwds:
-            kwds['tool_instance'].dependencies = [dep.to_dict() for dep in requirement_to_dependency.values()]
+        if "tool_instance" in kwds:
+            kwds["tool_instance"].dependencies = [
+                dep.to_dict() for dep in requirement_to_dependency.values()
+            ]
 
         return requirement_to_dependency
 
     def _requirements_to_dependencies_dict(self, requirements, search=False, **kwds):
         """Build simple requirements to dependencies dict for resolution."""
         requirement_to_dependency = OrderedDict()
-        index = kwds.get('index')
-        install = kwds.get('install', False)
-        resolver_type = kwds.get('resolver_type')
-        require_exact = kwds.get('exact', False)
-        return_null_dependencies = kwds.get('return_null', False)
+        index = kwds.get("index")
+        install = kwds.get("install", False)
+        resolver_type = kwds.get("resolver_type")
+        require_exact = kwds.get("exact", False)
+        return_null_dependencies = kwds.get("return_null", False)
 
         resolvable_requirements = requirements.resolvable
         tool_info = ToolInfo(requirements=resolvable_requirements)
@@ -159,13 +165,19 @@ class DependencyManager(object):
             if resolver_type is not None and resolver.resolver_type != resolver_type:
                 continue
 
-            _requirement_to_dependency = OrderedDict([(k, v) for k, v in requirement_to_dependency.items() if not isinstance(v, NullDependency)])
+            _requirement_to_dependency = OrderedDict(
+                [
+                    (k, v)
+                    for k, v in requirement_to_dependency.items()
+                    if not isinstance(v, NullDependency)
+                ]
+            )
 
             if len(_requirement_to_dependency) == len(resolvable_requirements):
                 # Shortcut - resolution complete.
                 break
 
-            if resolver.resolver_type.startswith('build_mulled') and not install:
+            if resolver.resolver_type.startswith("build_mulled") and not install:
                 # don't want to build images here
                 continue
 
@@ -174,7 +186,9 @@ class DependencyManager(object):
             if hasattr(resolver, "resolve_all"):
                 resolve = resolver.resolve_all
             elif isinstance(resolver, ContainerResolver):
-                if not resolver.resolver_type.startswith(('cached', 'explicit')) and not (search or install):
+                if not resolver.resolver_type.startswith(
+                    ("cached", "explicit")
+                ) and not (search or install):
                     # These would look up available containers using the quay API,
                     # we only want to do this if we search for containers
                     continue
@@ -183,16 +197,25 @@ class DependencyManager(object):
                 resolve = None
             if all_unmet and resolve is not None:
                 # TODO: Handle specs.
-                dependencies = resolve(requirements=resolvable_requirements,
-                                       enabled_container_types=self.enabled_container_types,
-                                       destination_for_container_type=self.get_destination_info_for_container_type,
-                                       tool_info=tool_info,
-                                       **kwds)
+                dependencies = resolve(
+                    requirements=resolvable_requirements,
+                    enabled_container_types=self.enabled_container_types,
+                    destination_for_container_type=self.get_destination_info_for_container_type,
+                    tool_info=tool_info,
+                    **kwds
+                )
                 if dependencies:
                     if isinstance(dependencies, ContainerDescription):
-                        dependencies = [ContainerDependency(dependencies, name=r.name, version=r.version) for r in resolvable_requirements]
+                        dependencies = [
+                            ContainerDependency(
+                                dependencies, name=r.name, version=r.version
+                            )
+                            for r in resolvable_requirements
+                        ]
                     assert len(dependencies) == len(resolvable_requirements)
-                    for requirement, dependency in zip(resolvable_requirements, dependencies):
+                    for requirement, dependency in zip(
+                        resolvable_requirements, dependencies
+                    ):
                         log.debug(dependency.resolver_msg)
                         requirement_to_dependency[requirement] = dependency
 
@@ -221,11 +244,18 @@ class DependencyManager(object):
         return requirement_to_dependency
 
     def uses_tool_shed_dependencies(self):
-        return any(map(lambda r: isinstance(r, ToolShedPackageDependencyResolver), self.dependency_resolvers))
+        return any(
+            map(
+                lambda r: isinstance(r, ToolShedPackageDependencyResolver),
+                self.dependency_resolvers,
+            )
+        )
 
-    def find_dep(self, name, version=None, type='package', **kwds):
-        log.debug('Find dependency %s version %s' % (name, version))
-        requirements = ToolRequirements([ToolRequirement(name=name, version=version, type=type)])
+    def find_dep(self, name, version=None, type="package", **kwds):
+        log.debug("Find dependency %s version %s" % (name, version))
+        requirements = ToolRequirements(
+            [ToolRequirement(name=name, version=version, type=type)]
+        )
         dep_dict = self._requirements_to_dependencies_dict(requirements, **kwds)
         if len(dep_dict) > 0:
             return next(iter(dep_dict.values()))  # get first dep
@@ -254,31 +284,58 @@ class DependencyManager(object):
         """
         """
         extra_kwds = dict(dependency_manager=self)
-        return plugin_config.load_plugins(self.resolver_classes, plugin_source, extra_kwds)
+        return plugin_config.load_plugins(
+            self.resolver_classes, plugin_source, extra_kwds
+        )
 
     def __resolvers_dict(self):
         import galaxy.tool_util.deps.resolvers
-        return plugin_config.plugins_dict(galaxy.tool_util.deps.resolvers, 'resolver_type')
+
+        return plugin_config.plugins_dict(
+            galaxy.tool_util.deps.resolvers, "resolver_type"
+        )
 
 
 class CachedDependencyManager(DependencyManager):
-    def __init__(self, default_base_path, conf_file=None, app_config={}, tool_dependency_cache_dir=None):
-        super(CachedDependencyManager, self).__init__(default_base_path=default_base_path, conf_file=conf_file, app_config=app_config)
-        self.tool_dependency_cache_dir = self.get_app_option("tool_dependency_cache_dir")
+    def __init__(
+        self,
+        default_base_path,
+        conf_file=None,
+        app_config={},
+        tool_dependency_cache_dir=None,
+    ):
+        super(CachedDependencyManager, self).__init__(
+            default_base_path=default_base_path,
+            conf_file=conf_file,
+            app_config=app_config,
+        )
+        self.tool_dependency_cache_dir = self.get_app_option(
+            "tool_dependency_cache_dir"
+        )
 
     def build_cache(self, requirements, **kwds):
         resolved_dependencies = self.requirements_to_dependencies(requirements, **kwds)
-        cacheable_dependencies = [dep for dep in resolved_dependencies.values() if dep.cacheable]
-        hashed_dependencies_dir = self.get_hashed_dependencies_path(cacheable_dependencies)
+        cacheable_dependencies = [
+            dep for dep in resolved_dependencies.values() if dep.cacheable
+        ]
+        hashed_dependencies_dir = self.get_hashed_dependencies_path(
+            cacheable_dependencies
+        )
         if os.path.exists(hashed_dependencies_dir):
-            if kwds.get('force_rebuild', False):
+            if kwds.get("force_rebuild", False):
                 try:
                     shutil.rmtree(hashed_dependencies_dir)
                 except Exception:
-                    log.warning("Could not delete cached dependencies directory '%s'" % hashed_dependencies_dir)
+                    log.warning(
+                        "Could not delete cached dependencies directory '%s'"
+                        % hashed_dependencies_dir
+                    )
                     raise
             else:
-                log.debug("Cached dependencies directory '%s' already exists, skipping build", hashed_dependencies_dir)
+                log.debug(
+                    "Cached dependencies directory '%s' already exists, skipping build",
+                    hashed_dependencies_dir,
+                )
                 return
         [dep.build_cache(hashed_dependencies_dir) for dep in cacheable_dependencies]
 
@@ -291,19 +348,31 @@ class CachedDependencyManager(DependencyManager):
         commands to activate it.
         """
         resolved_dependencies = self.requirements_to_dependencies(requirements, **kwds)
-        cacheable_dependencies = [dep for dep in resolved_dependencies.values() if dep.cacheable]
-        hashed_dependencies_dir = self.get_hashed_dependencies_path(cacheable_dependencies)
-        if not os.path.exists(hashed_dependencies_dir) and self.get_app_option("precache_dependencies", False):
+        cacheable_dependencies = [
+            dep for dep in resolved_dependencies.values() if dep.cacheable
+        ]
+        hashed_dependencies_dir = self.get_hashed_dependencies_path(
+            cacheable_dependencies
+        )
+        if not os.path.exists(hashed_dependencies_dir) and self.get_app_option(
+            "precache_dependencies", False
+        ):
             # Cache not present, try to create it
             self.build_cache(requirements, **kwds)
         if os.path.exists(hashed_dependencies_dir):
-            [dep.set_cache_path(hashed_dependencies_dir) for dep in cacheable_dependencies]
+            [
+                dep.set_cache_path(hashed_dependencies_dir)
+                for dep in cacheable_dependencies
+            ]
         commands = [dep.shell_commands() for dep in resolved_dependencies.values()]
         return commands
 
     def hash_dependencies(self, resolved_dependencies):
         """Return hash for dependencies"""
-        resolved_dependencies = [(dep.name, dep.version, dep.exact, dep.dependency_type) for dep in resolved_dependencies]
+        resolved_dependencies = [
+            (dep.name, dep.version, dep.exact, dep.dependency_type)
+            for dep in resolved_dependencies
+        ]
         hash_str = json.dumps(sorted(resolved_dependencies))
         return hash_util.new_secure_hash(hash_str)[:8]  # short hash
 
@@ -322,7 +391,6 @@ class CachedDependencyManager(DependencyManager):
 
 
 class NullDependencyManager(DependencyManager):
-
     def __init__(self, default_base_path=None, conf_file=None, app_config={}):
         self.__app_config = app_config
         self.resolver_classes = set()
@@ -336,5 +404,5 @@ class NullDependencyManager(DependencyManager):
     def dependency_shell_commands(self, requirements, **kwds):
         return []
 
-    def find_dep(self, name, version=None, type='package', **kwds):
+    def find_dep(self, name, version=None, type="package", **kwds):
         return NullDependency(version=version, name=name)

@@ -1,20 +1,12 @@
 import os
 
-from . import (
-    Dependency,
-    NullDependency
-)
-from ..brew_exts import (
-    build_env_statements,
-    DEFAULT_HOMEBREW_ROOT,
-    recipe_cellar_path,
-)
+from . import Dependency, NullDependency
+from ..brew_exts import build_env_statements, DEFAULT_HOMEBREW_ROOT, recipe_cellar_path
 
 
 class UsesHomebrewMixin(object):
-
     def _init_homebrew(self, **kwds):
-        cellar_root = kwds.get('cellar', None)
+        cellar_root = kwds.get("cellar", None)
         if cellar_root is None:
             cellar_root = os.path.join(DEFAULT_HOMEBREW_ROOT, "Cellar")
 
@@ -48,24 +40,26 @@ class UsesHomebrewMixin(object):
 
 
 class UsesToolDependencyDirMixin(object):
-
     def _init_base_path(self, dependency_manager, **kwds):
-        self.base_path = os.path.abspath(kwds.get('base_path', dependency_manager.default_base_path))
+        self.base_path = os.path.abspath(
+            kwds.get("base_path", dependency_manager.default_base_path)
+        )
 
 
 class UsesInstalledRepositoriesMixin(object):
-
     def _get_installed_dependency(self, name, type, version=None, **kwds):
         installed_tool_dependencies = kwds.get("installed_tool_dependencies") or []
         for installed_tool_dependency in installed_tool_dependencies:
-            if installed_tool_dependency.name == name and installed_tool_dependency.type == type:
+            if (
+                installed_tool_dependency.name == name
+                and installed_tool_dependency.type == type
+            ):
                 if not version or installed_tool_dependency.version == version:
                     return installed_tool_dependency
         return None
 
 
 class HomebrewDependency(Dependency):
-
     def __init__(self, commands, exact=True):
         self.commands = commands
         self._exact = exact

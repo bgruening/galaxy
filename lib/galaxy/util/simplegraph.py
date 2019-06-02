@@ -98,7 +98,9 @@ class SimpleGraph(object):
             self.add_node(source_id)
         if target_id not in self.nodes:
             self.add_node(target_id)
-        new_edge = SimpleGraphEdge(self.nodes[source_id].index, self.nodes[target_id].index, **data)
+        new_edge = SimpleGraphEdge(
+            self.nodes[source_id].index, self.nodes[target_id].index, **data
+        )
         self.edges.append(new_edge)
         return new_edge
 
@@ -108,7 +110,7 @@ class SimpleGraph(object):
             { 'id': <the nodes unique id>, 'data': <any additional node data> }
         """
         for node_id, node in self.nodes.items():
-            yield {'id': node_id, 'data': node.data}
+            yield {"id": node_id, "data": node.data}
 
     def gen_edge_dicts(self):
         """
@@ -121,7 +123,11 @@ class SimpleGraph(object):
             }
         """
         for edge in self.edges:
-            yield {'source': edge.source_index, 'target': edge.target_index, 'data': edge.data}
+            yield {
+                "source": edge.source_index,
+                "target": edge.target_index,
+                "data": edge.data,
+            }
 
     def as_dict(self):
         """
@@ -129,4 +135,7 @@ class SimpleGraph(object):
 
             { 'nodes': <a list of node dictionaries>, 'edges': <a list of node dictionaries> }
         """
-        return {'nodes': list(self.gen_node_dicts()), 'edges': list(self.gen_edge_dicts())}
+        return {
+            "nodes": list(self.gen_node_dicts()),
+            "edges": list(self.gen_edge_dicts()),
+        }

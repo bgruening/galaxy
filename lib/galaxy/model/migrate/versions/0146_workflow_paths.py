@@ -5,11 +5,7 @@ from __future__ import print_function
 
 import logging
 
-from sqlalchemy import (
-    Column,
-    MetaData,
-    TEXT,
-)
+from sqlalchemy import Column, MetaData, TEXT
 
 from galaxy.model.migrate.versions.util import add_column, drop_column
 

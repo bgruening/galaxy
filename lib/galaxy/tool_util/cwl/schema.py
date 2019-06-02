@@ -13,11 +13,19 @@ from .cwltool_deps import (
 )
 
 RawProcessReference = namedtuple("RawProcessReference", ["process_object", "uri"])
-ProcessDefinition = namedtuple("ProcessDefinition", ["process_object", "metadata", "document_loader", "avsc_names", "raw_process_reference"])
+ProcessDefinition = namedtuple(
+    "ProcessDefinition",
+    [
+        "process_object",
+        "metadata",
+        "document_loader",
+        "avsc_names",
+        "raw_process_reference",
+    ],
+)
 
 
 class SchemaLoader(object):
-
     def __init__(self, strict=True):
         self._strict = strict
         self._raw_document_loader = None
@@ -26,6 +34,7 @@ class SchemaLoader(object):
     def raw_document_loader(self):
         ensure_cwltool_available()
         from cwltool.load_tool import jobloaderctx
+
         return schema_salad.ref_resolver.Loader(jobloaderctx)
 
     def raw_process_reference(self, path):
@@ -40,16 +49,10 @@ class SchemaLoader(object):
 
     def process_definition(self, raw_reference):
         document_loader, avsc_names, process_object, metadata, uri = load_tool.validate_document(
-            self.raw_document_loader,
-            raw_reference.process_object,
-            raw_reference.uri,
+            self.raw_document_loader, raw_reference.process_object, raw_reference.uri
         )
         process_def = ProcessDefinition(
-            process_object,
-            metadata,
-            document_loader,
-            avsc_names,
-            raw_reference,
+            process_object, metadata, document_loader, avsc_names, raw_reference
         )
         return process_def
 
@@ -86,7 +89,7 @@ class SchemaLoader(object):
                 process_definition.metadata,
                 process_definition.raw_process_reference.uri,
                 make_tool,
-                args
+                args,
             )
         return tool
 

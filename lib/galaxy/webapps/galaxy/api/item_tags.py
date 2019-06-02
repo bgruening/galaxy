@@ -5,10 +5,7 @@ import logging
 
 from galaxy import exceptions
 from galaxy.web import expose_api
-from galaxy.web.base.controller import (
-    BaseAPIController,
-    UsesTagsMixin
-)
+from galaxy.web.base.controller import BaseAPIController, UsesTagsMixin
 
 log = logging.getLogger(__name__)
 
@@ -16,18 +13,23 @@ log = logging.getLogger(__name__)
 class BaseItemTagsController(BaseAPIController, UsesTagsMixin):
     """
     """
+
     @expose_api
     def index(self, trans, **kwd):
         """
         """
-        tags = self._get_user_tags(trans, self.tagged_item_class, kwd[self.tagged_item_id])
-        return [self._api_value(tag, trans, view='collection') for tag in tags]
+        tags = self._get_user_tags(
+            trans, self.tagged_item_class, kwd[self.tagged_item_id]
+        )
+        return [self._api_value(tag, trans, view="collection") for tag in tags]
 
     @expose_api
     def show(self, trans, tag_name, **kwd):
         """
         """
-        tag = self._get_item_tag_assoc(trans, self.tagged_item_class, kwd[self.tagged_item_id], tag_name)
+        tag = self._get_item_tag_assoc(
+            trans, self.tagged_item_class, kwd[self.tagged_item_id], tag_name
+        )
         if not tag:
             raise exceptions.ObjectNotFound("Failed to retrieve specified tag.")
         return self._api_value(tag, trans)
@@ -38,7 +40,9 @@ class BaseItemTagsController(BaseAPIController, UsesTagsMixin):
         """
         payload = payload or {}
         value = payload.get("value", None)
-        tag = self._apply_item_tag(trans, self.tagged_item_class, kwd[self.tagged_item_id], tag_name, value)
+        tag = self._apply_item_tag(
+            trans, self.tagged_item_class, kwd[self.tagged_item_id], tag_name, value
+        )
         return self._api_value(tag, trans)
 
     # Not handling these differently at this time
@@ -48,14 +52,18 @@ class BaseItemTagsController(BaseAPIController, UsesTagsMixin):
     def delete(self, trans, tag_name, **kwd):
         """
         """
-        deleted = self._remove_items_tag(trans, self.tagged_item_class, kwd[self.tagged_item_id], tag_name)
+        deleted = self._remove_items_tag(
+            trans, self.tagged_item_class, kwd[self.tagged_item_id], tag_name
+        )
         if not deleted:
-            raise exceptions.RequestParameterInvalidException("Failed to delete specified tag.")
+            raise exceptions.RequestParameterInvalidException(
+                "Failed to delete specified tag."
+            )
         # TODO: ugh - 204 would be better
-        return 'OK'
+        return "OK"
 
-    def _api_value(self, tag, trans, view='element'):
-        return tag.to_dict(view=view, value_mapper={'id': trans.security.encode_id})
+    def _api_value(self, tag, trans, view="element"):
+        return tag.to_dict(view=view, value_mapper={"id": trans.security.encode_id})
 
 
 class HistoryContentTagsController(BaseItemTagsController):
@@ -74,5 +82,6 @@ class WorkflowTagsController(BaseItemTagsController):
     controller_name = "workflow_tags"
     tagged_item_class = "StoredWorkflow"
     tagged_item_id = "workflow_id"
+
 
 # TODO: Visualization and Pages once APIs for those are available

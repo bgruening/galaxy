@@ -1,5 +1,3 @@
-
-
 # These determine stdio-based error levels from matching on regular expressions
 # and exit codes. They are meant to be used comparatively, such as showing
 # that warning < fatal. This is really meant to just be an enum.
@@ -11,11 +9,11 @@ class StdioErrorLevel(object):
     FATAL_OOM = 4
     MAX = 4
     descs = {
-        NO_ERROR: 'No error',
-        LOG: 'Log',
-        WARNING: 'Warning',
-        FATAL: 'Fatal error',
-        FATAL_OOM: 'Out of memory error',
+        NO_ERROR: "No error",
+        LOG: "Log",
+        WARNING: "Warning",
+        FATAL: "Fatal error",
+        FATAL_OOM: "Out of memory error",
     }
 
     @staticmethod

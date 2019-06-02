@@ -14,7 +14,9 @@ from galaxy.util import checkers
 
 log = logging.getLogger(__name__)
 
-PATH_DOES_NOT_EXIST_ERROR = "Could not load tools from path [%s] - this path does not exist."
+PATH_DOES_NOT_EXIST_ERROR = (
+    "Could not load tools from path [%s] - this path does not exist."
+)
 PATH_AND_RECURSIVE_ERROR = "Cannot specify a single file and recursive."
 LOAD_FAILURE_ERROR = "Failed to load tool with path %s."
 TOOL_LOAD_ERROR = object()
@@ -23,7 +25,7 @@ DATA_MANAGER_REGEX = re.compile(r"\stool_type=\"manage_data\"")
 
 YAML_EXTENSIONS = [".yaml", ".yml", ".json"]
 CWL_EXTENSIONS = YAML_EXTENSIONS + [".cwl"]
-EXCLUDE_WALK_DIRS = ['.hg', '.git', '.venv']
+EXCLUDE_WALK_DIRS = [".hg", ".git", ".venv"]
 
 
 def load_exception_handler(path, exc_info):
@@ -31,21 +33,15 @@ def load_exception_handler(path, exc_info):
     log.warning(LOAD_FAILURE_ERROR % path, exc_info=exc_info)
 
 
-def find_possible_tools_from_path(
-    path,
-    recursive=False,
-    enable_beta_formats=False,
-):
+def find_possible_tools_from_path(path, recursive=False, enable_beta_formats=False):
     """Walk a directory and find potential tool files."""
     possible_tool_files = []
     for possible_tool_file in _find_tool_files(
-        path, recursive=recursive,
-        enable_beta_formats=enable_beta_formats
+        path, recursive=recursive, enable_beta_formats=enable_beta_formats
     ):
         try:
             does_look_like_a_tool = looks_like_a_tool(
-                possible_tool_file,
-                enable_beta_formats=enable_beta_formats
+                possible_tool_file, enable_beta_formats=enable_beta_formats
             )
         except IOError:
             # Some problem reading the tool file, skip.
@@ -101,9 +97,7 @@ def _load_tools_from_path(
 ):
     loaded_objects = []
     for possible_tool_file in find_possible_tools_from_path(
-        path,
-        recursive=recursive,
-        enable_beta_formats=enable_beta_formats,
+        path, recursive=recursive, enable_beta_formats=enable_beta_formats
     ):
         try:
             tool_element = loader_func(possible_tool_file)
@@ -163,11 +157,13 @@ def looks_like_xml(path, regex=TOOL_REGEX):
     if not os.path.getsize(full_path):
         return False
 
-    if(checkers.check_binary(full_path) or
-       checkers.check_image(full_path) or
-       checkers.is_gzip(full_path) or
-       checkers.is_bz2(full_path) or
-       checkers.is_zip(full_path)):
+    if (
+        checkers.check_binary(full_path)
+        or checkers.check_image(full_path)
+        or checkers.is_gzip(full_path)
+        or checkers.is_bz2(full_path)
+        or checkers.is_zip(full_path)
+    ):
         return False
 
     with open(path, "r") as f:
@@ -235,7 +231,9 @@ def looks_like_a_cwl_artifact(path, classes=None):
 
 def looks_like_a_tool_cwl(path):
     """Quick check to see if a file looks like it may be a CWL tool."""
-    return looks_like_a_cwl_artifact(path, classes=["CommandLineTool", "ExpressionTool"])
+    return looks_like_a_cwl_artifact(
+        path, classes=["CommandLineTool", "ExpressionTool"]
+    )
 
 
 def _find_tool_files(path_or_uri_like, recursive, enable_beta_formats):
@@ -269,7 +267,7 @@ def _has_extension(path, extensions):
     return any(path.endswith(e) for e in extensions)
 
 
-def _find_files(directory, pattern='*'):
+def _find_files(directory, pattern="*"):
     if not os.path.exists(directory):
         raise ValueError("Directory not found {}".format(directory))
 
@@ -292,15 +290,12 @@ def resolved_path(path_or_uri_like):
     if "://" not in path_or_uri_like:
         return path_or_uri_like
     elif path_or_uri_like.startswith("file://"):
-        return path_or_uri_like[len("file://"):]
+        return path_or_uri_like[len("file://") :]
     else:
         return UNRESOLVED_URI
 
 
-BETA_TOOL_CHECKERS = {
-    'yaml': looks_like_a_tool_yaml,
-    'cwl': looks_like_a_tool_cwl,
-}
+BETA_TOOL_CHECKERS = {"yaml": looks_like_a_tool_yaml, "cwl": looks_like_a_tool_cwl}
 
 __all__ = (
     "find_possible_tools_from_path",

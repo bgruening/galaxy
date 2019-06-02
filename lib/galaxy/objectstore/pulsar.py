@@ -57,11 +57,13 @@ class PulsarObjectStore(ObjectStore):
     def get_store_usage_percent(self):
         return self.pulsar_client.get_store_usage_percent()
 
-    def get_object_url(self, obj, extra_dir=None, extra_dir_at_root=False, alt_name=None):
+    def get_object_url(
+        self, obj, extra_dir=None, extra_dir_at_root=False, alt_name=None
+    ):
         return None
 
     def __build_kwds(self, obj, **kwds):
-        kwds['object_id'] = obj.id
+        kwds["object_id"] = obj.id
         return kwds
 
     def __build_pulsar_client(self, config_xml):
@@ -72,7 +74,9 @@ class PulsarObjectStore(ObjectStore):
         transport = config_xml.get("transport", None)
         manager_options = dict(transport=transport)
         client_options = dict(url=url, private_token=private_token)
-        pulsar_client = ObjectStoreClientManager(**manager_options).get_client(client_options)
+        pulsar_client = ObjectStoreClientManager(**manager_options).get_client(
+            client_options
+        )
         return pulsar_client
 
     def shutdown(self):

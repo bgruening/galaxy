@@ -46,9 +46,13 @@ def main(argv=None):
 
 
 def app_properties_from_args(args, legacy_config_override=None, app=None):
-    config_file = config_file_from_args(args, legacy_config_override=legacy_config_override, app=app)
+    config_file = config_file_from_args(
+        args, legacy_config_override=legacy_config_override, app=app
+    )
     config_section = getattr(args, "config_section", None)
-    app_properties = load_app_properties(config_file=config_file, config_section=config_section)
+    app_properties = load_app_properties(
+        config_file=config_file, config_section=config_section
+    )
     return app_properties
 
 
@@ -66,24 +70,33 @@ def populate_config_args(parser):
     # set setting GALAXY_CONFIG_OPTION_NAME where OPTION_NAME is option_name converted to upper case.
     # Options specified in that file can be overridden for this program set setting
     # GALAXY_CONFIG_OVERRIDE_OPTION_NAME to a new value.
-    parser.add_argument("-c", "--config-file", "--config",
-                        default=os.environ.get('GALAXY_CONFIG_FILE', None),
-                        help=ARG_HELP_CONFIG_FILE)
-    parser.add_argument("--config-section",
-                        default=os.environ.get('GALAXY_CONFIG_SECTION', None),
-                        help=argparse.SUPPRESS)  # See ARG_HELP_CONFIG_SECTION comment above for unsuppressed details.
+    parser.add_argument(
+        "-c",
+        "--config-file",
+        "--config",
+        default=os.environ.get("GALAXY_CONFIG_FILE", None),
+        help=ARG_HELP_CONFIG_FILE,
+    )
+    parser.add_argument(
+        "--config-section",
+        default=os.environ.get("GALAXY_CONFIG_SECTION", None),
+        help=argparse.SUPPRESS,
+    )  # See ARG_HELP_CONFIG_SECTION comment above for unsuppressed details.
 
 
 def _arg_parser():
     parser = argparse.ArgumentParser(description=DESCRIPTION)
-    parser.add_argument('action', metavar='ACTION', type=str,
-                        choices=list(ACTIONS.keys()),
-                        default=DEFAULT_ACTION,
-                        nargs='?' if DEFAULT_ACTION is not None else None,
-                        help='action to perform')
+    parser.add_argument(
+        "action",
+        metavar="ACTION",
+        type=str,
+        choices=list(ACTIONS.keys()),
+        default=DEFAULT_ACTION,
+        nargs="?" if DEFAULT_ACTION is not None else None,
+        help="action to perform",
+    )
     populate_config_args(parser)
-    parser.add_argument("--app",
-                        default=os.environ.get('GALAXY_APP', 'galaxy'))
+    parser.add_argument("--app", default=os.environ.get("GALAXY_APP", "galaxy"))
     for argument in ARGUMENTS:
         parser.add_argument(*argument[0], **argument[1])
     return parser

@@ -1,9 +1,7 @@
 """This module describes the :class:`ExplicitContainerResolver` ContainerResolver plugin."""
 import logging
 
-from ..container_resolvers import (
-    ContainerResolver,
-)
+from ..container_resolvers import ContainerResolver
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +18,9 @@ class ExplicitContainerResolver(ContainerResolver):
         a correct container.
         """
         for container_description in tool_info.container_descriptions:
-            if self._container_type_enabled(container_description, enabled_container_types):
+            if self._container_type_enabled(
+                container_description, enabled_container_types
+            ):
                 return container_description
 
         return None
@@ -28,8 +28,8 @@ class ExplicitContainerResolver(ContainerResolver):
 
 class ExplicitSingularityContainerResolver(ExplicitContainerResolver):
 
-    resolver_type = 'explicit_singularity'
-    container_type = 'singularity'
+    resolver_type = "explicit_singularity"
+    container_type = "singularity"
 
     def resolve(self, enabled_container_types, tool_info, **kwds):
         """Find a container explicitly mentioned in tool description.
@@ -39,12 +39,16 @@ class ExplicitSingularityContainerResolver(ExplicitContainerResolver):
         hence the container_description hack here.
         """
         for container_description in tool_info.container_descriptions:
-            if container_description.type == 'docker':
+            if container_description.type == "docker":
                 desc_dict = container_description.to_dict()
-                desc_dict['type'] = self.container_type
-                desc_dict['identifier'] = "docker://%s" % container_description.identifier
+                desc_dict["type"] = self.container_type
+                desc_dict["identifier"] = (
+                    "docker://%s" % container_description.identifier
+                )
                 container_description = container_description.from_dict(desc_dict)
-            if self._container_type_enabled(container_description, enabled_container_types):
+            if self._container_type_enabled(
+                container_description, enabled_container_types
+            ):
                 return container_description
 
         return None

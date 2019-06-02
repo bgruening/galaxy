@@ -2,7 +2,7 @@ import re
 
 from .torque import Torque
 
-__all__ = ('SlurmTorque',)
+__all__ = ("SlurmTorque",)
 
 
 class SlurmTorque(Torque):
@@ -12,7 +12,7 @@ class SlurmTorque(Torque):
     """
 
     def get_status(self, job_ids=None):
-        return 'qstat'
+        return "qstat"
 
     def parse_status(self, status, job_ids):
         rval = {}

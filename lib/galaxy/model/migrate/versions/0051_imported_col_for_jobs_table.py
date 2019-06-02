@@ -23,7 +23,9 @@ def upgrade(migrate_engine):
     c = Column("imported", Boolean, default=False, index=True)
     add_column(c, Jobs_table, index_name="ix_job_imported")
     try:
-        migrate_engine.execute("UPDATE job SET imported=%s" % engine_false(migrate_engine))
+        migrate_engine.execute(
+            "UPDATE job SET imported=%s" % engine_false(migrate_engine)
+        )
     except Exception:
         log.exception("Updating column 'imported' of table 'job' failed.")
 
@@ -32,4 +34,4 @@ def downgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
 
-    drop_column('imported', 'job', metadata)
+    drop_column("imported", "job", metadata)

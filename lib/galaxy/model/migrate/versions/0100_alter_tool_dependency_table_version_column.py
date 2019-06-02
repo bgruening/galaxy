@@ -24,9 +24,9 @@ def upgrade(migrate_engine):
     metadata.reflect()
     Table("tool_dependency", metadata, autoload=True)
     # Change the tool_dependency table's version column from TrimmedString to Text.
-    if migrate_engine.name in ['postgres', 'postgresql']:
+    if migrate_engine.name in ["postgres", "postgresql"]:
         cmd = "ALTER TABLE tool_dependency ALTER COLUMN version TYPE Text;"
-    elif migrate_engine.name == 'mysql':
+    elif migrate_engine.name == "mysql":
         cmd = "ALTER TABLE tool_dependency MODIFY COLUMN version Text;"
     else:
         # We don't have to do anything for sqlite tables.  From the sqlite documentation at http://sqlite.org/datatype3.html:
@@ -42,7 +42,9 @@ def upgrade(migrate_engine):
         try:
             migrate_engine.execute(cmd)
         except Exception:
-            log.exception("Altering tool_dependency.version column from TrimmedString(40) to Text failed.")
+            log.exception(
+                "Altering tool_dependency.version column from TrimmedString(40) to Text failed."
+            )
 
 
 def downgrade(migrate_engine):

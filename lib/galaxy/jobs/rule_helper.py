@@ -5,10 +5,7 @@ from datetime import datetime
 
 from sqlalchemy import func
 
-from galaxy import (
-    model,
-    util
-)
+from galaxy import model, util
 from galaxy.tool_util.deps.dependencies import ToolInfo
 
 log = logging.getLogger(__name__)
@@ -35,29 +32,32 @@ class RuleHelper(object):
         # developers from the details and they shouldn't have to know how to
         # interrogate tool or job to figure out if it can be run in a
         # container.
-        if hasattr(job_or_tool, 'containers'):
+        if hasattr(job_or_tool, "containers"):
             tool = job_or_tool
-        elif hasattr(job_or_tool, 'tool'):
+        elif hasattr(job_or_tool, "tool"):
             # Have a JobWrapper-like
             tool = job_or_tool.tool
         else:
             # Have a Job object.
-            tool = self.app.toolbox.get_tool(job_or_tool.tool_id, tool_version=job_or_tool.tool_version)
-        tool_info = ToolInfo(tool.containers, tool.requirements, tool.requires_galaxy_python_environment, tool.docker_env_pass_through)
-        container_description = self.app.container_finder.find_best_container_description(["docker"], tool_info)
+            tool = self.app.toolbox.get_tool(
+                job_or_tool.tool_id, tool_version=job_or_tool.tool_version
+            )
+        tool_info = ToolInfo(
+            tool.containers,
+            tool.requirements,
+            tool.requires_galaxy_python_environment,
+            tool.docker_env_pass_through,
+        )
+        container_description = self.app.container_finder.find_best_container_description(
+            ["docker"], tool_info
+        )
         return container_description is not None
 
-    def job_count(
-        self,
-        **kwds
-    ):
+    def job_count(self, **kwds):
         query = self.query(model.Job)
         return self._filter_job_query(query, **kwds).count()
 
-    def sum_job_runtime(
-        self,
-        **kwds
-    ):
+    def sum_job_runtime(self, **kwds):
         # TODO: Consider sum_core_hours or something that scales runtime by
         # by calculated cores per job.
         query = self.metric_query(
@@ -97,9 +97,13 @@ class RuleHelper(object):
 
         if for_destinations is not None:
             if len(for_destinations) == 1:
-                query = query.filter(model.Job.table.c.destination_id == for_destinations[0])
+                query = query.filter(
+                    model.Job.table.c.destination_id == for_destinations[0]
+                )
             else:
-                query = query.filter(model.Job.table.c.destination_id.in_(for_destinations))
+                query = query.filter(
+                    model.Job.table.c.destination_id.in_(for_destinations)
+                )
 
         if created_in_last is not None:
             end_date = datetime.now()
@@ -135,8 +139,7 @@ class RuleHelper(object):
         if job_states is None:
             job_states = "queued,running"
         from_destination_job_count = self.job_count(
-            for_destinations=destination_ids,
-            for_job_states=util.listify(job_states)
+            for_destinations=destination_ids, for_job_states=util.listify(job_states)
         )
         # Would this job push us over maximum job count before requiring
         # bursting (roughly... very roughly given many handler threads may be
@@ -187,7 +190,10 @@ class RuleHelper(object):
         invocation for jobs outside of workflows.
         """
         if hash_by not in VALID_JOB_HASH_STRATEGIES:
-            message = "Do not know how to hash jobs by %s, must be one of %s" % (hash_by, VALID_JOB_HASH_STRATEGIES)
+            message = "Do not know how to hash jobs by %s, must be one of %s" % (
+                hash_by,
+                VALID_JOB_HASH_STRATEGIES,
+            )
             raise Exception(message)
 
         if hash_by == "workflow_invocation":

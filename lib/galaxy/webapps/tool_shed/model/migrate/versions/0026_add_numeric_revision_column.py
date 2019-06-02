@@ -42,4 +42,6 @@ def downgrade(migrate_engine):
     try:
         RepositoryMetadata_table.c.numeric_revision.drop()
     except Exception:
-        log.exception("Dropping column numeric_revision from the repository table failed.")
+        log.exception(
+            "Dropping column numeric_revision from the repository table failed."
+        )

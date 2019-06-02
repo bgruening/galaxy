@@ -8,21 +8,11 @@ import os
 
 import requests
 from webob.compat import cgi_FieldStorage
-from webob.exc import (
-    HTTPBadGateway,
-    HTTPNotFound
-)
+from webob.exc import HTTPBadGateway, HTTPNotFound
 
-from galaxy import (
-    managers,
-    web
-)
+from galaxy import managers, web
 from galaxy.model.item_attrs import UsesAnnotations
-from galaxy.util import (
-    FILENAME_VALID_CHARS,
-    listify,
-    string_as_bool
-)
+from galaxy.util import FILENAME_VALID_CHARS, listify, string_as_bool
 from galaxy.web.base import controller
 
 log = logging.getLogger(__name__)
@@ -44,10 +34,19 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
         """
         Called on any url that does not match a controller method.
         """
-        raise HTTPNotFound('This link may not be followed from within Galaxy.')
+        raise HTTPNotFound("This link may not be followed from within Galaxy.")
 
     @web.expose
-    def index(self, trans, tool_id=None, workflow_id=None, history_id=None, m_c=None, m_a=None, **kwd):
+    def index(
+        self,
+        trans,
+        tool_id=None,
+        workflow_id=None,
+        history_id=None,
+        m_c=None,
+        m_a=None,
+        **kwd
+    ):
         """
         Root and entry point for client-side web app.
 
@@ -82,11 +81,14 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
         """
         User login path for client-side.
         """
-        return self.template(trans, 'login',
-                             redirect=redirect,
-                             # an installation may have it's own welcome_url - show it here if they've set that
-                             welcome_url=web.url_for(controller='root', action='welcome'),
-                             show_welcome_with_login=trans.app.config.show_welcome_with_login)
+        return self.template(
+            trans,
+            "login",
+            redirect=redirect,
+            # an installation may have it's own welcome_url - show it here if they've set that
+            welcome_url=web.url_for(controller="root", action="welcome"),
+            show_welcome_with_login=trans.app.config.show_welcome_with_login,
+        )
 
     # ---- Tool related -----------------------------------------------------
 
@@ -97,25 +99,33 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
 
         Data are returned in JSON format.
         """
-        query = kwd.get('query', '')
-        tags = listify(kwd.get('tags[]', []))
-        trans.log_action(trans.get_user(), "tool_search.search", "", {"query": query, "tags": tags})
+        query = kwd.get("query", "")
+        tags = listify(kwd.get("tags[]", []))
+        trans.log_action(
+            trans.get_user(), "tool_search.search", "", {"query": query, "tags": tags}
+        )
         results = []
         if tags:
-            tags = trans.sa_session.query(trans.app.model.Tag).filter(trans.app.model.Tag.name.in_(tags)).all()
+            tags = (
+                trans.sa_session.query(trans.app.model.Tag)
+                .filter(trans.app.model.Tag.name.in_(tags))
+                .all()
+            )
             for tagged_tool_il in [tag.tagged_tools for tag in tags]:
                 for tagged_tool in tagged_tool_il:
                     if tagged_tool.tool_id not in results:
                         results.append(tagged_tool.tool_id)
             if trans.user:
-                trans.user.preferences['selected_tool_tags'] = ','.join([tag.name for tag in tags])
+                trans.user.preferences["selected_tool_tags"] = ",".join(
+                    [tag.name for tag in tags]
+                )
                 trans.sa_session.flush()
         elif trans.user:
-            trans.user.preferences['selected_tool_tags'] = ''
+            trans.user.preferences["selected_tool_tags"] = ""
             trans.sa_session.flush()
         if len(query) > 2:
             search_results = trans.app.toolbox_search.search(query)
-            if 'tags[]' in kwd:
+            if "tags[]" in kwd:
                 results = [x for x in search_results if x in results]
             else:
                 results = search_results
@@ -139,7 +149,16 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
 
     # ---- Dataset display / editing ----------------------------------------
     @web.expose
-    def display(self, trans, id=None, hid=None, tofile=None, toext=".txt", encoded_id=None, **kwd):
+    def display(
+        self,
+        trans,
+        id=None,
+        hid=None,
+        tofile=None,
+        toext=".txt",
+        encoded_id=None,
+        **kwd
+    ):
         """Returns data directly into the browser.
 
         Sets the mime-type according to the extension.
@@ -166,24 +185,33 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
             if encoded_id and not id:
                 id = self.decode_id(encoded_id)
             try:
-                data = trans.sa_session.query(self.app.model.HistoryDatasetAssociation).get(id)
+                data = trans.sa_session.query(
+                    self.app.model.HistoryDatasetAssociation
+                ).get(id)
             except Exception:
                 return "Dataset id '%s' is invalid" % str(id)
         if data:
             current_user_roles = trans.get_current_user_roles()
-            if trans.app.security_agent.can_access_dataset(current_user_roles, data.dataset):
+            if trans.app.security_agent.can_access_dataset(
+                current_user_roles, data.dataset
+            ):
                 trans.response.set_content_type(data.get_mime())
                 if tofile:
                     fStat = os.stat(data.file_name)
-                    trans.response.headers['Content-Length'] = int(fStat.st_size)
+                    trans.response.headers["Content-Length"] = int(fStat.st_size)
                     if toext[0:1] != ".":
                         toext = "." + toext
                     fname = data.name
-                    fname = ''.join(c in FILENAME_VALID_CHARS and c or '_' for c in fname)[0:150]
-                    trans.response.headers["Content-Disposition"] = 'attachment; filename="GalaxyHistoryItem-%s-[%s]%s"' % (data.hid, fname, toext)
+                    fname = "".join(
+                        c in FILENAME_VALID_CHARS and c or "_" for c in fname
+                    )[0:150]
+                    trans.response.headers["Content-Disposition"] = (
+                        'attachment; filename="GalaxyHistoryItem-%s-[%s]%s"'
+                        % (data.hid, fname, toext)
+                    )
                 trans.log_event("Display dataset id: %s" % str(id))
                 try:
-                    return open(data.file_name, 'rb')
+                    return open(data.file_name, "rb")
                 except Exception:
                     return "This dataset contains no content"
             else:
@@ -197,18 +225,27 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
         """
         # TODO: unencoded id
         data = trans.sa_session.query(self.app.model.HistoryDatasetAssociation).get(id)
-        authz_method = 'rbac'
-        if 'authz_method' in kwd:
-            authz_method = kwd['authz_method']
+        authz_method = "rbac"
+        if "authz_method" in kwd:
+            authz_method = kwd["authz_method"]
         if data:
             current_user_roles = trans.get_current_user_roles()
-            if authz_method == 'rbac' and trans.app.security_agent.can_access_dataset(current_user_roles, data):
+            if authz_method == "rbac" and trans.app.security_agent.can_access_dataset(
+                current_user_roles, data
+            ):
                 trans.response.set_content_type(data.get_mime())
-                trans.log_event("Formatted dataset id %s for display at %s" % (str(id), display_app))
+                trans.log_event(
+                    "Formatted dataset id %s for display at %s" % (str(id), display_app)
+                )
                 return data.as_display_type(display_app, **kwd)
-            elif authz_method == 'display_at' and trans.app.host_security_agent.allow_action(trans.request.remote_addr,
-                                                                                             data.permitted_actions.DATASET_ACCESS,
-                                                                                             dataset=data):
+            elif (
+                authz_method == "display_at"
+                and trans.app.host_security_agent.allow_action(
+                    trans.request.remote_addr,
+                    data.permitted_actions.DATASET_ACCESS,
+                    dataset=data,
+                )
+            ):
                 trans.response.set_content_type(data.get_mime())
                 return data.as_display_type(display_app, **kwd)
             else:
@@ -222,7 +259,7 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
         """Backward compatibility with check_galaxy script.
         """
         # TODO: unused?
-        return trans.webapp.controllers['history'].list(trans, id, operation='delete')
+        return trans.webapp.controllers["history"].list(trans, id, operation="delete")
 
     @web.expose
     def clear_history(self, trans):
@@ -244,7 +281,9 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
         user = trans.get_user()
         user_history = trans.get_history()
         if not id:
-            return trans.show_error_message("You must specify a history you want to import.")
+            return trans.show_error_message(
+                "You must specify a history you want to import."
+            )
         import_history = trans.sa_session.query(trans.app.model.History).get(id)
         if not import_history:
             return trans.show_error_message("The specified history does not exist.")
@@ -256,9 +295,13 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
             new_history.user_id = user.id
             galaxy_session = trans.get_galaxy_session()
             try:
-                association = trans.sa_session.query(trans.app.model.GalaxySessionToHistoryAssociation) \
-                                              .filter_by(session_id=galaxy_session.id, history_id=new_history.id) \
-                                              .first()
+                association = (
+                    trans.sa_session.query(
+                        trans.app.model.GalaxySessionToHistoryAssociation
+                    )
+                    .filter_by(session_id=galaxy_session.id, history_id=new_history.id)
+                    .first()
+                )
             except Exception:
                 association = None
             new_history.add_galaxy_session(galaxy_session, association=association)
@@ -266,33 +309,54 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
             trans.sa_session.flush()
             if not user_history.datasets:
                 trans.set_history(new_history)
-            trans.log_event("History imported, id: %s, name: '%s': " % (str(new_history.id), new_history.name))
-            return trans.show_ok_message("""
+            trans.log_event(
+                "History imported, id: %s, name: '%s': "
+                % (str(new_history.id), new_history.name)
+            )
+            return trans.show_ok_message(
+                """
                 History "%s" has been imported. Click <a href="%s">here</a>
-                to begin.""" % (new_history.name, web.url_for('/')))
+                to begin."""
+                % (new_history.name, web.url_for("/"))
+            )
         elif not user_history.datasets or confirm:
             new_history = import_history.copy()
             new_history.name = "imported: " + new_history.name
             new_history.user_id = None
             galaxy_session = trans.get_galaxy_session()
             try:
-                association = trans.sa_session.query(trans.app.model.GalaxySessionToHistoryAssociation) \
-                                              .filter_by(session_id=galaxy_session.id, history_id=new_history.id) \
-                                              .first()
+                association = (
+                    trans.sa_session.query(
+                        trans.app.model.GalaxySessionToHistoryAssociation
+                    )
+                    .filter_by(session_id=galaxy_session.id, history_id=new_history.id)
+                    .first()
+                )
             except Exception:
                 association = None
             new_history.add_galaxy_session(galaxy_session, association=association)
             trans.sa_session.add(new_history)
             trans.sa_session.flush()
             trans.set_history(new_history)
-            trans.log_event("History imported, id: %s, name: '%s': " % (str(new_history.id), new_history.name))
-            return trans.show_ok_message("""
+            trans.log_event(
+                "History imported, id: %s, name: '%s': "
+                % (str(new_history.id), new_history.name)
+            )
+            return trans.show_ok_message(
+                """
                 History "%s" has been imported. Click <a href="%s">here</a>
-                to begin.""" % (new_history.name, web.url_for('/')))
-        return trans.show_warn_message("""
+                to begin."""
+                % (new_history.name, web.url_for("/"))
+            )
+        return trans.show_warn_message(
+            """
             Warning! If you import this history, you will lose your current
             history. Click <a href="%s">here</a> to confirm.
-            """ % web.url_for(controller='root', action='history_import', id=id, confirm=True))
+            """
+            % web.url_for(
+                controller="root", action="history_import", id=id, confirm=True
+            )
+        )
 
     @web.expose
     def history_new(self, trans, name=None):
@@ -301,28 +365,48 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
         """
         trans.new_history(name=name)
         trans.log_event("Created new History, id: %s." % str(trans.history.id))
-        return trans.show_message("New history created", refresh_frames=['history'])
+        return trans.show_message("New history created", refresh_frames=["history"])
 
     @web.expose
-    def history_add_to(self, trans, history_id=None, file_data=None,
-                       name="Data Added to History", info=None, ext="txt", dbkey="?", copy_access_from=None, **kwd):
+    def history_add_to(
+        self,
+        trans,
+        history_id=None,
+        file_data=None,
+        name="Data Added to History",
+        info=None,
+        ext="txt",
+        dbkey="?",
+        copy_access_from=None,
+        **kwd
+    ):
         """Adds a POSTed file to a History.
         """
         # TODO: unencoded id
         try:
             history = trans.sa_session.query(trans.app.model.History).get(history_id)
-            data = trans.app.model.HistoryDatasetAssociation(name=name,
-                                                             info=info,
-                                                             extension=ext,
-                                                             dbkey=dbkey,
-                                                             create_dataset=True,
-                                                             sa_session=trans.sa_session)
+            data = trans.app.model.HistoryDatasetAssociation(
+                name=name,
+                info=info,
+                extension=ext,
+                dbkey=dbkey,
+                create_dataset=True,
+                sa_session=trans.sa_session,
+            )
             if copy_access_from:
-                copy_access_from = trans.sa_session.query(trans.app.model.HistoryDatasetAssociation).get(copy_access_from)
-                trans.app.security_agent.copy_dataset_permissions(copy_access_from.dataset, data.dataset)
+                copy_access_from = trans.sa_session.query(
+                    trans.app.model.HistoryDatasetAssociation
+                ).get(copy_access_from)
+                trans.app.security_agent.copy_dataset_permissions(
+                    copy_access_from.dataset, data.dataset
+                )
             else:
-                permissions = trans.app.security_agent.history_get_default_permissions(history)
-                trans.app.security_agent.set_all_dataset_permissions(data.dataset, permissions)
+                permissions = trans.app.security_agent.history_get_default_permissions(
+                    history
+                )
+                trans.app.security_agent.set_all_dataset_permissions(
+                    data.dataset, permissions
+                )
             trans.sa_session.add(data)
             trans.sa_session.flush()
             data_file = open(data.file_name, "wb")
@@ -338,8 +422,16 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
             trans.sa_session.flush()
             data.set_peek()
             trans.sa_session.flush()
-            trans.log_event("Added dataset %d to history %d" % (data.id, trans.history.id))
-            return trans.show_ok_message("Dataset " + str(data.hid) + " added to history " + str(history_id) + ".")
+            trans.log_event(
+                "Added dataset %d to history %d" % (data.id, trans.history.id)
+            )
+            return trans.show_ok_message(
+                "Dataset "
+                + str(data.hid)
+                + " added to history "
+                + str(history_id)
+                + "."
+            )
         except Exception as e:
             msg = "Failed to add dataset to history: %s" % (e)
             log.error(msg)
@@ -353,16 +445,23 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
         # TODO: unused?
         # TODO: unencoded id
         try:
-            old_data = trans.sa_session.query(self.app.model.HistoryDatasetAssociation).get(id)
+            old_data = trans.sa_session.query(
+                self.app.model.HistoryDatasetAssociation
+            ).get(id)
             new_data = old_data.copy()
             # new_data.parent = None
             history = trans.get_history()
             history.add_dataset(new_data)
             trans.sa_session.add(new_data)
             trans.sa_session.flush()
-            return trans.show_message("<p>Secondary dataset has been made primary.</p>", refresh_frames=['history'])
+            return trans.show_message(
+                "<p>Secondary dataset has been made primary.</p>",
+                refresh_frames=["history"],
+            )
         except Exception:
-            return trans.show_error_message("<p>Failed to make secondary dataset primary.</p>")
+            return trans.show_error_message(
+                "<p>Failed to make secondary dataset primary.</p>"
+            )
 
     @web.expose
     def welcome(self, trans):
@@ -372,8 +471,8 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
     @web.expose
     def bucket_proxy(self, trans, bucket=None, **kwd):
         if bucket:
-            trans.response.set_content_type('text/xml')
-            b_list_xml = requests.get('http://s3.amazonaws.com/%s/' % bucket)
+            trans.response.set_content_type("text/xml")
+            b_list_xml = requests.get("http://s3.amazonaws.com/%s/" % bucket)
             return b_list_xml.text
         raise Exception("You must specify a bucket")
 
@@ -403,7 +502,7 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
         for k in kwd:
             rval[k] = kwd[k]
             try:
-                if rval[k] in ['true', 'True', 'false', 'False']:
+                if rval[k] in ["true", "True", "false", "False"]:
                     rval[k] = string_as_bool(rval[k])
                 rval[k] = float(rval[k])
                 rval[k] = int(rval[k])
@@ -430,4 +529,4 @@ class RootController(controller.JSAppLauncher, UsesAnnotations):
         if code == 502:
             raise HTTPBadGateway()
         trans.response.status = code
-        return {'error': 'Fake error!'}
+        return {"error": "Fake error!"}

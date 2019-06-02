@@ -28,8 +28,8 @@ assert sys.version_info[:2] >= (2, 6)
 
 log = logging.getLogger(__name__)
 
-GAP_CHARS = ['-']
-SRC_SPLIT_CHAR = '.'
+GAP_CHARS = ["-"]
+SRC_SPLIT_CHAR = "."
 
 
 def src_split(src):
@@ -63,10 +63,10 @@ def tool_fail(msg="Unknown Error"):
 
 
 class TempFileHandler(object):
-    '''
+    """
     Handles creating, opening, closing, and deleting of Temp files, with a
     maximum number of files open at one time.
-    '''
+    """
 
     DEFAULT_MAX_OPEN_FILES = max(resource.getrlimit(resource.RLIMIT_NOFILE)[0] / 2, 1)
 
@@ -103,11 +103,11 @@ class TempFileHandler(object):
                         else:
                             raise e
                 tmp_file.close()
-                self.files.append(open(filename, 'w+b'))
+                self.files.append(open(filename, "w+b"))
             else:
                 while True:
                     try:
-                        self.files[index] = open(self.files[index].name, 'r+b')
+                        self.files[index] = open(self.files[index].name, "r+b")
                         break
                     except OSError as e:
                         if self.open_file_indexes and e.errno == EMFILE:
@@ -146,7 +146,10 @@ class RegionAlignment(object):
     MAX_SEQUENCE_SIZE = sys.maxsize  # Maximum length of sequence allowed
 
     def __init__(self, size, species=[], temp_file_handler=None):
-        assert size <= self.MAX_SEQUENCE_SIZE, "Maximum length allowed for an individual sequence has been exceeded (%i > %i)." % (size, self.MAX_SEQUENCE_SIZE)
+        assert size <= self.MAX_SEQUENCE_SIZE, (
+            "Maximum length allowed for an individual sequence has been exceeded (%i > %i)."
+            % (size, self.MAX_SEQUENCE_SIZE)
+        )
         self.size = size
         if not temp_file_handler:
             temp_file_handler = TempFileHandler()
@@ -178,13 +181,17 @@ class RegionAlignment(object):
 
     # returns the sequence for a species
     def get_sequence(self, species):
-        file_index, fh = self.temp_file_handler.get_open_tempfile(self.sequences[species])
+        file_index, fh = self.temp_file_handler.get_open_tempfile(
+            self.sequences[species]
+        )
         fh.seek(0)
         return fh.read()
 
     # returns the reverse complement of the sequence for a species
     def get_sequence_reverse_complement(self, species):
-        complement = [base for base in self.get_sequence(species).translate(self.DNA_COMPLEMENT)]
+        complement = [
+            base for base in self.get_sequence(species).translate(self.DNA_COMPLEMENT)
+        ]
         complement.reverse()
         return "".join(complement)
 
@@ -193,16 +200,23 @@ class RegionAlignment(object):
         if len(base) != 1:
             raise Exception("A genomic position can only have a length of 1.")
         return self.set_range(index, species, base)
+
     # sets a range for a species
 
     def set_range(self, index, species, bases):
         if index >= self.size or index < 0:
-            raise Exception("Your index (%i) is out of range (0 - %i)." % (index, self.size - 1))
+            raise Exception(
+                "Your index (%i) is out of range (0 - %i)." % (index, self.size - 1)
+            )
         if len(bases) == 0:
-            raise Exception("A set of genomic positions can only have a positive length.")
+            raise Exception(
+                "A set of genomic positions can only have a positive length."
+            )
         if species not in self.sequences.keys():
             self.add_species(species)
-        file_index, fh = self.temp_file_handler.get_open_tempfile(self.sequences[species])
+        file_index, fh = self.temp_file_handler.get_open_tempfile(
+            self.sequences[species]
+        )
         fh.seek(index)
         fh.write(bases)
 
@@ -217,9 +231,10 @@ class RegionAlignment(object):
 
 
 class GenomicRegionAlignment(RegionAlignment):
-
     def __init__(self, start, end, species=[], temp_file_handler=None):
-        RegionAlignment.__init__(self, end - start, species, temp_file_handler=temp_file_handler)
+        RegionAlignment.__init__(
+            self, end - start, species, temp_file_handler=temp_file_handler
+        )
         self.start = start
         self.end = end
 
@@ -233,13 +248,22 @@ class SplicedAlignment(object):
             exon_starts = [exon_starts]
         if not isinstance(exon_ends, list):
             exon_ends = [exon_ends]
-        assert len(exon_starts) == len(exon_ends), "The number of starts does not match the number of sizes."
+        assert len(exon_starts) == len(
+            exon_ends
+        ), "The number of starts does not match the number of sizes."
         self.exons = []
         if not temp_file_handler:
             temp_file_handler = TempFileHandler()
         self.temp_file_handler = temp_file_handler
         for i in range(len(exon_starts)):
-            self.exons.append(GenomicRegionAlignment(exon_starts[i], exon_ends[i], species, temp_file_handler=temp_file_handler))
+            self.exons.append(
+                GenomicRegionAlignment(
+                    exon_starts[i],
+                    exon_ends[i],
+                    species,
+                    temp_file_handler=temp_file_handler,
+                )
+            )
 
     # returns the names for species found in alignment, skipping names as requested
     def get_species_names(self, skip=[]):
@@ -271,7 +295,9 @@ class SplicedAlignment(object):
 
     # returns the reverse complement of the sequence for a species
     def get_sequence_reverse_complement(self, species):
-        complement = [base for base in self.get_sequence(species).translate(self.DNA_COMPLEMENT)]
+        complement = [
+            base for base in self.get_sequence(species).translate(self.DNA_COMPLEMENT)
+        ]
         complement.reverse()
         return "".join(complement)
 
@@ -292,13 +318,18 @@ def maf_index_by_uid(maf_uid, index_location_file):
             # read each line, if not enough fields, go to next line
             if line[0:1] == "#":
                 continue
-            fields = line.split('\t')
+            fields = line.split("\t")
             if maf_uid == fields[1]:
                 try:
                     maf_files = fields[4].replace("\n", "").replace("\r", "").split(",")
-                    return bx.align.maf.MultiIndexed(maf_files, keep_open=True, parse_e_rows=False)
+                    return bx.align.maf.MultiIndexed(
+                        maf_files, keep_open=True, parse_e_rows=False
+                    )
                 except Exception as e:
-                    raise Exception('MAF UID (%s) found, but configuration appears to be malformed: %s' % (maf_uid, e))
+                    raise Exception(
+                        "MAF UID (%s) found, but configuration appears to be malformed: %s"
+                        % (maf_uid, e)
+                    )
         except Exception:
             pass
     return None
@@ -307,7 +338,15 @@ def maf_index_by_uid(maf_uid, index_location_file):
 # return ( index, temp_index_filename ) for user maf, if available, or build one and return it, return None when no tempfile is created
 def open_or_build_maf_index(maf_file, index_filename, species=None):
     try:
-        return (bx.align.maf.Indexed(maf_file, index_filename=index_filename, keep_open=True, parse_e_rows=False), None)
+        return (
+            bx.align.maf.Indexed(
+                maf_file,
+                index_filename=index_filename,
+                keep_open=True,
+                parse_e_rows=False,
+            ),
+            None,
+        )
     except Exception:
         return build_maf_index(maf_file, species=species)
 
@@ -347,23 +386,39 @@ def build_maf_index_species_chromosomes(filename, index_species=None):
                         # could a species exist as only e rows? should the
                     if forward_strand_end > forward_strand_start:
                         # require positive length; i.e. certain lines have start = end = 0 and cannot be indexed
-                        indexes.add(c.src, forward_strand_start, forward_strand_end, pos, max=c.src_size)
+                        indexes.add(
+                            c.src,
+                            forward_strand_start,
+                            forward_strand_end,
+                            pos,
+                            max=c.src_size,
+                        )
     except Exception as e:
         # most likely a bad MAF
-        log.debug('Building MAF index on %s failed: %s' % (filename, e))
+        log.debug("Building MAF index on %s failed: %s" % (filename, e))
         return (None, [], {}, 0)
     return (indexes, species, species_chromosomes, blocks)
 
 
 # builds and returns ( index, index_filename ) for specified maf_file
 def build_maf_index(maf_file, species=None):
-    indexes, found_species, species_chromosomes, blocks = build_maf_index_species_chromosomes(maf_file, species)
+    indexes, found_species, species_chromosomes, blocks = build_maf_index_species_chromosomes(
+        maf_file, species
+    )
     if indexes is not None:
         fd, index_filename = tempfile.mkstemp()
-        out = os.fdopen(fd, 'w')
+        out = os.fdopen(fd, "w")
         indexes.write(out)
         out.close()
-        return (bx.align.maf.Indexed(maf_file, index_filename=index_filename, keep_open=True, parse_e_rows=False), index_filename)
+        return (
+            bx.align.maf.Indexed(
+                maf_file,
+                index_filename=index_filename,
+                keep_open=True,
+                parse_e_rows=False,
+            ),
+            index_filename,
+        )
     return (None, None)
 
 
@@ -423,30 +478,50 @@ def orient_block_by_region(block, src, region, force_strand=None):
     # cache strand for each of overlaping regions
     # if force_strand / region.strand not in strand cache, reverse complement
     # we could have 2 sequences with same src, overlapping region, on different strands, this would cause no reverse_complementing
-    strands = [c.strand for c in iter_components_by_src(block, src) if component_overlaps_region(c, region)]
-    if strands and (force_strand is None and region.strand not in strands) or (force_strand is not None and force_strand not in strands):
+    strands = [
+        c.strand
+        for c in iter_components_by_src(block, src)
+        if component_overlaps_region(c, region)
+    ]
+    if (
+        strands
+        and (force_strand is None and region.strand not in strands)
+        or (force_strand is not None and force_strand not in strands)
+    ):
         block = block.reverse_complement()
     return block
 
 
-def get_oriented_chopped_blocks_for_region(index, src, region, species=None, mincols=0, force_strand=None):
-    for block, idx, offset in get_oriented_chopped_blocks_with_index_offset_for_region(index, src, region, species, mincols, force_strand):
+def get_oriented_chopped_blocks_for_region(
+    index, src, region, species=None, mincols=0, force_strand=None
+):
+    for block, idx, offset in get_oriented_chopped_blocks_with_index_offset_for_region(
+        index, src, region, species, mincols, force_strand
+    ):
         yield block
 
 
-def get_oriented_chopped_blocks_with_index_offset_for_region(index, src, region, species=None, mincols=0, force_strand=None):
-    for block, idx, offset in get_chopped_blocks_with_index_offset_for_region(index, src, region, species, mincols):
+def get_oriented_chopped_blocks_with_index_offset_for_region(
+    index, src, region, species=None, mincols=0, force_strand=None
+):
+    for block, idx, offset in get_chopped_blocks_with_index_offset_for_region(
+        index, src, region, species, mincols
+    ):
         yield orient_block_by_region(block, src, region, force_strand), idx, offset
 
 
 # split a block with multiple occurances of src into one block per src
 def iter_blocks_split_by_src(block, src):
     for src_c in iter_components_by_src(block, src):
-        new_block = bx.align.Alignment(score=block.score, attributes=deepcopy(block.attributes))
+        new_block = bx.align.Alignment(
+            score=block.score, attributes=deepcopy(block.attributes)
+        )
         new_block.text_size = block.text_size
         for c in block.components:
             if c == src_c or c.src != src:
-                new_block.add_component(deepcopy(c))  # components have reference to alignment, don't want to lose reference to original alignment block in original components
+                new_block.add_component(
+                    deepcopy(c)
+                )  # components have reference to alignment, don't want to lose reference to original alignment block in original components
         yield new_block
 
 
@@ -460,7 +535,9 @@ def iter_blocks_split_by_species(block, species=None):
             for c in spec_comps:
                 newer_block = deepcopy(new_block)
                 newer_block.add_component(deepcopy(c))
-                for value in __split_components_by_species(components_by_species, newer_block):
+                for value in __split_components_by_species(
+                    components_by_species, newer_block
+                ):
                     yield value
         else:
             # no more components to add, yield this block
@@ -482,7 +559,9 @@ def iter_blocks_split_by_species(block, species=None):
             for c in iter_components_by_src_start(block, spec):
                 spec_dict[spec].append(c)
 
-    empty_block = bx.align.Alignment(score=block.score, attributes=deepcopy(block.attributes))  # should we copy attributes?
+    empty_block = bx.align.Alignment(
+        score=block.score, attributes=deepcopy(block.attributes)
+    )  # should we copy attributes?
     empty_block.text_size = block.text_size
     # call recursive function to split into each combo of spec/blocks
     for value in __split_components_by_species(list(spec_dict.values()), empty_block):
@@ -492,24 +571,56 @@ def iter_blocks_split_by_species(block, species=None):
 
 # generator yielding only chopped and valid blocks for a specified region
 def get_chopped_blocks_for_region(index, src, region, species=None, mincols=0):
-    for block, idx, offset in get_chopped_blocks_with_index_offset_for_region(index, src, region, species, mincols):
+    for block, idx, offset in get_chopped_blocks_with_index_offset_for_region(
+        index, src, region, species, mincols
+    ):
         yield block
 
 
-def get_chopped_blocks_with_index_offset_for_region(index, src, region, species=None, mincols=0):
-    for block, idx, offset in index.get_as_iterator_with_index_and_offset(src, region.start, region.end):
+def get_chopped_blocks_with_index_offset_for_region(
+    index, src, region, species=None, mincols=0
+):
+    for block, idx, offset in index.get_as_iterator_with_index_and_offset(
+        src, region.start, region.end
+    ):
         block = chop_block_by_region(block, src, region, species, mincols)
         if block is not None:
             yield block, idx, offset
 
 
 # returns a filled region alignment for specified regions
-def get_region_alignment(index, primary_species, chrom, start, end, strand='+', species=None, mincols=0, overwrite_with_gaps=True, temp_file_handler=None):
+def get_region_alignment(
+    index,
+    primary_species,
+    chrom,
+    start,
+    end,
+    strand="+",
+    species=None,
+    mincols=0,
+    overwrite_with_gaps=True,
+    temp_file_handler=None,
+):
     if species is not None:
-        alignment = RegionAlignment(end - start, species, temp_file_handler=temp_file_handler)
+        alignment = RegionAlignment(
+            end - start, species, temp_file_handler=temp_file_handler
+        )
     else:
-        alignment = RegionAlignment(end - start, primary_species, temp_file_handler=temp_file_handler)
-    return fill_region_alignment(alignment, index, primary_species, chrom, start, end, strand, species, mincols, overwrite_with_gaps)
+        alignment = RegionAlignment(
+            end - start, primary_species, temp_file_handler=temp_file_handler
+        )
+    return fill_region_alignment(
+        alignment,
+        index,
+        primary_species,
+        chrom,
+        start,
+        end,
+        strand,
+        species,
+        mincols,
+        overwrite_with_gaps,
+    )
 
 
 # reduces a block to only positions exisiting in the src provided
@@ -521,19 +632,30 @@ def reduce_block_by_primary_genome(block, species, chromosome, region_start):
     start_offset = ref.start - region_start
     species_texts = {}
     for c in block.components:
-        species_texts[c.src.split('.')[0]] = list(c.text)
+        species_texts[c.src.split(".")[0]] = list(c.text)
     # remove locations which are gaps in the primary species, starting from the downstream end
     for i in range(len(species_texts[species]) - 1, -1, -1):
-        if species_texts[species][i] == '-':
+        if species_texts[species][i] == "-":
             for text in species_texts.values():
                 text.pop(i)
     for spec, text in species_texts.items():
-        species_texts[spec] = ''.join(text)
+        species_texts[spec] = "".join(text)
     return (start_offset, species_texts)
 
 
 # fills a region alignment
-def fill_region_alignment(alignment, index, primary_species, chrom, start, end, strand='+', species=None, mincols=0, overwrite_with_gaps=True):
+def fill_region_alignment(
+    alignment,
+    index,
+    primary_species,
+    chrom,
+    start,
+    end,
+    strand="+",
+    species=None,
+    mincols=0,
+    overwrite_with_gaps=True,
+):
     region = bx.intervals.Interval(start, end)
     region.chrom = chrom
     region.strand = strand
@@ -541,7 +663,9 @@ def fill_region_alignment(alignment, index, primary_species, chrom, start, end, 
 
     # Order blocks overlaping this position by score, lowest first
     blocks = []
-    for block, idx, offset in index.get_as_iterator_with_index_and_offset(primary_src, start, end):
+    for block, idx, offset in index.get_as_iterator_with_index_and_offset(
+        primary_src, start, end
+    ):
         score = float(block.score)
         for i in range(0, len(blocks)):
             if score < blocks[i][0]:
@@ -551,20 +675,32 @@ def fill_region_alignment(alignment, index, primary_species, chrom, start, end, 
             blocks.append((score, idx, offset))
 
     # gap_chars_tuple = tuple( GAP_CHARS )
-    gap_chars_str = ''.join(GAP_CHARS)
+    gap_chars_str = "".join(GAP_CHARS)
     # Loop through ordered blocks and layer by increasing score
     for block_dict in blocks:
-        for block in iter_blocks_split_by_species(block_dict[1].get_at_offset(block_dict[2])):  # need to handle each occurance of sequence in block seperately
-            if component_overlaps_region(block.get_component_by_src(primary_src), region):
-                block = chop_block_by_region(block, primary_src, region, species, mincols)  # chop block
-                block = orient_block_by_region(block, primary_src, region)  # orient block
-                start_offset, species_texts = reduce_block_by_primary_genome(block, primary_species, chrom, start)
+        for block in iter_blocks_split_by_species(
+            block_dict[1].get_at_offset(block_dict[2])
+        ):  # need to handle each occurance of sequence in block seperately
+            if component_overlaps_region(
+                block.get_component_by_src(primary_src), region
+            ):
+                block = chop_block_by_region(
+                    block, primary_src, region, species, mincols
+                )  # chop block
+                block = orient_block_by_region(
+                    block, primary_src, region
+                )  # orient block
+                start_offset, species_texts = reduce_block_by_primary_genome(
+                    block, primary_species, chrom, start
+                )
                 for spec, text in species_texts.items():
                     # we should trim gaps from both sides, since these are not positions in this species genome (sequence)
                     text = text.rstrip(gap_chars_str)
                     gap_offset = 0
                     # while text.startswith( gap_chars_tuple ):
-                    while True in [text.startswith(gap_char) for gap_char in GAP_CHARS]:  # python2.4 doesn't accept a tuple for .startswith()
+                    while True in [
+                        text.startswith(gap_char) for gap_char in GAP_CHARS
+                    ]:  # python2.4 doesn't accept a tuple for .startswith()
                         gap_offset += 1
                         text = text[1:]
                         if not text:
@@ -575,24 +711,52 @@ def fill_region_alignment(alignment, index, primary_species, chrom, start, end, 
                         else:
                             for i, char in enumerate(text):
                                 if char not in GAP_CHARS:
-                                    alignment.set_position(start_offset + gap_offset + i, spec, char)
+                                    alignment.set_position(
+                                        start_offset + gap_offset + i, spec, char
+                                    )
     return alignment
 
 
 # returns a filled spliced region alignment for specified region with start and end lists
-def get_spliced_region_alignment(index, primary_species, chrom, starts, ends, strand='+', species=None, mincols=0, overwrite_with_gaps=True, temp_file_handler=None):
+def get_spliced_region_alignment(
+    index,
+    primary_species,
+    chrom,
+    starts,
+    ends,
+    strand="+",
+    species=None,
+    mincols=0,
+    overwrite_with_gaps=True,
+    temp_file_handler=None,
+):
     # create spliced alignment object
     if species is not None:
-        alignment = SplicedAlignment(starts, ends, species, temp_file_handler=temp_file_handler)
+        alignment = SplicedAlignment(
+            starts, ends, species, temp_file_handler=temp_file_handler
+        )
     else:
-        alignment = SplicedAlignment(starts, ends, [primary_species], temp_file_handler=temp_file_handler)
+        alignment = SplicedAlignment(
+            starts, ends, [primary_species], temp_file_handler=temp_file_handler
+        )
     for exon in alignment.exons:
-        fill_region_alignment(exon, index, primary_species, chrom, exon.start, exon.end, strand, species, mincols, overwrite_with_gaps)
+        fill_region_alignment(
+            exon,
+            index,
+            primary_species,
+            chrom,
+            exon.start,
+            exon.end,
+            strand,
+            species,
+            mincols,
+            overwrite_with_gaps,
+        )
     return alignment
 
 
 # loop through string array, only return non-commented lines
-def line_enumerator(lines, comment_start='#'):
+def line_enumerator(lines, comment_start="#"):
     i = 0
     for line in lines:
         if not line.startswith(comment_start):
@@ -612,16 +776,16 @@ def get_starts_ends_fields_from_gene_bed(line):
         raise Exception("Not a proper 12 column BED line (%s)." % line)
     tx_start = int(fields[1])
     strand = fields[5]
-    if strand != '-':
-        strand = '+'  # Default strand is +
+    if strand != "-":
+        strand = "+"  # Default strand is +
     cds_start = int(fields[6])
     cds_end = int(fields[7])
 
     # Calculate and store starts and ends of coding exons
     region_start, region_end = cds_start, cds_end
-    exon_starts = list(map(int, fields[11].rstrip(',\n').split(',')))
+    exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
     exon_starts = [x + tx_start for x in exon_starts]
-    exon_ends = list(map(int, fields[10].rstrip(',').split(',')))
+    exon_ends = list(map(int, fields[10].rstrip(",").split(",")))
     exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
     for start, end in zip(exon_starts, exon_ends):
         start = max(start, region_start)
@@ -656,7 +820,11 @@ def sort_block_components_by_block(block1, block2):
     # orders the components in block1 by the index of the component in block2
     # block1 must be a subset of block2
     # occurs in-place
-    return block1.components.sort(key=functools.cmp_to_key(lambda x, y: block2.components.index(x) - block2.components.index(y)))
+    return block1.components.sort(
+        key=functools.cmp_to_key(
+            lambda x, y: block2.components.index(x) - block2.components.index(y)
+        )
+    )
 
 
 def get_species_in_maf(maf_filename):
@@ -670,8 +838,8 @@ def get_species_in_maf(maf_filename):
 
 def parse_species_option(species):
     if species:
-        species = species.split(',')
-        if 'None' not in species:
+        species = species.split(",")
+        if "None" not in species:
             return species
     return None  # provided species was '', None, or had 'None' in it
 
@@ -682,11 +850,17 @@ def remove_temp_index_file(index_filename):
     except Exception:
         pass
 
+
 # Below are methods to deal with FASTA files
 
 
 def get_fasta_header(component, attributes={}, suffix=None):
-    header = ">%s(%s):%i-%i|" % (component.src, component.strand, component.get_forward_strand_start(), component.get_forward_strand_end())
+    header = ">%s(%s):%i-%i|" % (
+        component.src,
+        component.strand,
+        component.get_forward_strand_start(),
+        component.get_forward_strand_end(),
+    )
     for key, value in attributes.items():
         header = "%s%s=%s|" % (header, key, value)
     if suffix:
@@ -700,33 +874,33 @@ def get_attributes_from_fasta_header(header):
     if not header:
         return {}
     attributes = {}
-    header = header.lstrip('>')
+    header = header.lstrip(">")
     header = header.strip()
-    fields = header.split('|')
+    fields = header.split("|")
     try:
         region = fields[0]
-        region = region.split('(', 1)
-        temp = region[0].split('.', 1)
-        attributes['species'] = temp[0]
+        region = region.split("(", 1)
+        temp = region[0].split(".", 1)
+        attributes["species"] = temp[0]
         if len(temp) == 2:
-            attributes['chrom'] = temp[1]
+            attributes["chrom"] = temp[1]
         else:
-            attributes['chrom'] = temp[0]
-        region = region[1].split(')', 1)
-        attributes['strand'] = region[0]
-        region = region[1].lstrip(':').split('-')
-        attributes['start'] = int(region[0])
-        attributes['end'] = int(region[1])
+            attributes["chrom"] = temp[0]
+        region = region[1].split(")", 1)
+        attributes["strand"] = region[0]
+        region = region[1].lstrip(":").split("-")
+        attributes["start"] = int(region[0])
+        attributes["end"] = int(region[1])
     except Exception:
         # fields 0 is not a region coordinate
         pass
     if len(fields) > 2:
         for i in range(1, len(fields) - 1):
-            prop = fields[i].split('=', 1)
+            prop = fields[i].split("=", 1)
             if len(prop) == 2:
                 attributes[prop[0]] = prop[1]
     if len(fields) > 1:
-        attributes['__suffix__'] = fields[-1]
+        attributes["__suffix__"] = fields[-1]
     return attributes
 
 
@@ -737,9 +911,10 @@ def iter_fasta_alignment(filename):
             self.text = text
 
         def extend(self, text):
-            self.text = self.text + text.replace('\n', '').replace('\r', '').strip()
+            self.text = self.text + text.replace("\n", "").replace("\r", "").strip()
+
     # yields a list of fastaComponents for a FASTA file
-    f = open(filename, 'rb')
+    f = open(filename, "rb")
     components = []
     # cur_component = None
     while True:
@@ -753,8 +928,8 @@ def iter_fasta_alignment(filename):
             if components:
                 yield components
             components = []
-        elif line.startswith('>'):
+        elif line.startswith(">"):
             attributes = get_attributes_from_fasta_header(line)
-            components.append(fastaComponent(attributes['species']))
+            components.append(fastaComponent(attributes["species"]))
         elif components:
             components[-1].extend(line)

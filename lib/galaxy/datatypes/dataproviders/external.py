@@ -10,10 +10,7 @@ import tempfile
 from six.moves.urllib.parse import urlencode, urlparse
 from six.moves.urllib.request import urlopen
 
-from . import (
-    base,
-    line
-)
+from . import base, line
 
 _TODO = """
 YAGNI: ftp, image, cryptos, sockets
@@ -30,6 +27,7 @@ class SubprocessDataProvider(base.DataProvider):
     Data provider that uses the output from an intermediate program and
     subprocess as its data source.
     """
+
     # TODO: need better ways of checking returncode, stderr for errors and raising
 
     def __init__(self, *args, **kwargs):
@@ -53,33 +51,38 @@ class SubprocessDataProvider(base.DataProvider):
         """
         try:
             # how expensive is this?
-            popen = subprocess.Popen(command_list, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-            log.info('opened subrocess (%s), PID: %s' % (str(command_list), str(popen.pid)))
+            popen = subprocess.Popen(
+                command_list, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            )
+            log.info(
+                "opened subrocess (%s), PID: %s" % (str(command_list), str(popen.pid))
+            )
 
         except OSError as os_err:
-            command_str = ' '.join(self.command)
-            raise OSError(' '.join([str(os_err), ':', command_str]))
+            command_str = " ".join(self.command)
+            raise OSError(" ".join([str(os_err), ":", command_str]))
 
         return popen
 
     def __exit__(self, *args):
         # poll the subrocess for an exit code
         self.exit_code = self.popen.poll()
-        log.info('%s.__exit__, exit_code: %s' % (str(self), str(self.exit_code)))
+        log.info("%s.__exit__, exit_code: %s" % (str(self), str(self.exit_code)))
         return super(SubprocessDataProvider, self).__exit__(*args)
 
     def __str__(self):
         # provide the pid and current return code
-        source_str = ''
-        if hasattr(self, 'popen'):
-            source_str = '%s:%s' % (str(self.popen.pid), str(self.popen.poll()))
-        return '%s(%s)' % (self.__class__.__name__, str(source_str))
+        source_str = ""
+        if hasattr(self, "popen"):
+            source_str = "%s:%s" % (str(self.popen.pid), str(self.popen.poll()))
+        return "%s(%s)" % (self.__class__.__name__, str(source_str))
 
 
 class RegexSubprocessDataProvider(line.RegexLineDataProvider):
     """
     RegexLineDataProvider that uses a SubprocessDataProvider as its data source.
     """
+
     # this is a conv. class and not really all that necc...
 
     def __init__(self, *args, **kwargs):
@@ -95,9 +98,10 @@ class URLDataProvider(base.DataProvider):
 
     This can be piped through other providers (column, map, genome region, etc.).
     """
-    VALID_METHODS = ('GET', 'POST')
 
-    def __init__(self, url, method='GET', data=None, **kwargs):
+    VALID_METHODS = ("GET", "POST")
+
+    def __init__(self, url, method="GET", data=None, **kwargs):
         """
         :param url: the base URL to open.
         :param method: the HTTP method to use.
@@ -113,15 +117,15 @@ class URLDataProvider(base.DataProvider):
         encoded_data = urlencode(self.data)
 
         scheme = urlparse(url).scheme
-        assert scheme in ('http', 'https', 'ftp'), 'Invalid URL scheme: %s' % scheme
+        assert scheme in ("http", "https", "ftp"), "Invalid URL scheme: %s" % scheme
 
-        if method == 'GET':
-            self.url += '?%s' % (encoded_data)
+        if method == "GET":
+            self.url += "?%s" % (encoded_data)
             opened = urlopen(url)
-        elif method == 'POST':
+        elif method == "POST":
             opened = urlopen(url, encoded_data)
         else:
-            raise ValueError('Not a valid method: %s' % (method))
+            raise ValueError("Not a valid method: %s" % (method))
 
         super(URLDataProvider, self).__init__(opened, **kwargs)
         # NOTE: the request object is now accessible as self.source
@@ -142,7 +146,7 @@ class GzipDataProvider(base.DataProvider):
     """
 
     def __init__(self, source, **kwargs):
-        unzipped = gzip.GzipFile(source, 'rb')
+        unzipped = gzip.GzipFile(source, "rb")
         super(GzipDataProvider, self).__init__(unzipped, **kwargs)
         # NOTE: the GzipFile is now accessible in self.source
 
@@ -168,6 +172,6 @@ class TempfileDataProvider(base.DataProvider):
 
     def write_to_file(self):
         parent_gen = super(TempfileDataProvider, self).__iter__()
-        with open(self.tmp_file, 'w') as open_file:
+        with open(self.tmp_file, "w") as open_file:
             for datum in parent_gen:
-                open_file.write(datum + '\n')
+                open_file.write(datum + "\n")

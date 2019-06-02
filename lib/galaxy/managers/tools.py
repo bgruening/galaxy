@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 class DynamicToolManager(ModelManager):
     """ Manages dynamic tools stored in Galaxy's database.
     """
+
     model_class = model.DynamicTool
 
     def __init__(self, app):
@@ -49,9 +50,13 @@ class DynamicToolManager(ModelManager):
                 "Current tool representations require 'class'."
             )
 
-        enable_beta_formats = getattr(self.app.config, "enable_beta_tool_formats", False)
+        enable_beta_formats = getattr(
+            self.app.config, "enable_beta_tool_formats", False
+        )
         if not enable_beta_formats:
-            raise exceptions.ConfigDoesNotAllowException("Set 'enable_beta_tool_formats' in Galaxy config to create dynamic tools.")
+            raise exceptions.ConfigDoesNotAllowException(
+                "Set 'enable_beta_tool_formats' in Galaxy config to create dynamic tools."
+            )
 
         tool_format = representation["class"]
         if tool_format == "GalaxyTool":
@@ -94,34 +99,35 @@ class DynamicToolManager(ModelManager):
 
 
 class ToolFilterMixin(object):
-
     def create_tool_filter(self, attr, op, val):
-
         def _create_tool_filter(model_class=None):
-            if op == 'eq':
+            if op == "eq":
                 cond = model.Job.table.c.tool_id == val
-            elif op == 'contains':
+            elif op == "contains":
                 cond = model.Job.table.c.tool_id.contains(val, autoescape=True)
             else:
-                self.raise_filter_err(attr, op, val, 'bad op in filter')
+                self.raise_filter_err(attr, op, val, "bad op in filter")
             if model_class is model.HistoryDatasetAssociation:
                 return sql.expression.and_(
-                    model.Job.table.c.id == model.JobToOutputDatasetAssociation.table.c.job_id,
-                    model.HistoryDatasetAssociation.table.c.id == model.JobToOutputDatasetAssociation.table.c.dataset_id,
-                    cond
+                    model.Job.table.c.id
+                    == model.JobToOutputDatasetAssociation.table.c.job_id,
+                    model.HistoryDatasetAssociation.table.c.id
+                    == model.JobToOutputDatasetAssociation.table.c.dataset_id,
+                    cond,
                 )
             elif model_class is model.HistoryDatasetCollectionAssociation:
                 return sql.expression.and_(
                     model.Job.id == model.JobToOutputDatasetAssociation.job_id,
-                    model.JobToOutputDatasetAssociation.dataset_id == model.DatasetCollectionElement.hda_id,
-                    model.DatasetCollectionElement.dataset_collection_id == model.HistoryDatasetCollectionAssociation.collection_id,
+                    model.JobToOutputDatasetAssociation.dataset_id
+                    == model.DatasetCollectionElement.hda_id,
+                    model.DatasetCollectionElement.dataset_collection_id
+                    == model.HistoryDatasetCollectionAssociation.collection_id,
                     cond,
                 )
             else:
                 return True
+
         return _create_tool_filter
 
     def _add_parsers(self):
-        self.orm_filter_parsers.update({
-            'tool_id': self.create_tool_filter,
-        })
+        self.orm_filter_parsers.update({"tool_id": self.create_tool_filter})

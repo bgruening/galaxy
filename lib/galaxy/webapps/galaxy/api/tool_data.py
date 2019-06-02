@@ -1,14 +1,8 @@
 import os
 
 import galaxy.queue_worker
-from galaxy import (
-    exceptions,
-    web
-)
-from galaxy.web import (
-    expose_api,
-    expose_api_raw
-)
+from galaxy import exceptions, web
+from galaxy.web import expose_api, expose_api_raw
 from galaxy.web.base.controller import BaseAPIController
 
 
@@ -29,7 +23,7 @@ class ToolData(BaseAPIController):
     @web.require_admin
     @expose_api
     def show(self, trans, id, **kwds):
-        return self._data_table(id).to_dict(view='element')
+        return self._data_table(id).to_dict(view="element")
 
     @web.require_admin
     @expose_api
@@ -42,10 +36,13 @@ class ToolData(BaseAPIController):
         decoded_tool_data_id = id
         data_table = trans.app.tool_data_tables.data_tables.get(decoded_tool_data_id)
         data_table.reload_from_files()
-        galaxy.queue_worker.send_control_task(trans.app, 'reload_tool_data_tables',
-                                              noop_self=True,
-                                              kwargs={'table_name': decoded_tool_data_id})
-        return self._data_table(decoded_tool_data_id).to_dict(view='element')
+        galaxy.queue_worker.send_control_task(
+            trans.app,
+            "reload_tool_data_tables",
+            noop_self=True,
+            kwargs={"table_name": decoded_tool_data_id},
+        )
+        return self._data_table(decoded_tool_data_id).to_dict(view="element")
 
     @web.require_admin
     @expose_api
@@ -65,7 +62,9 @@ class ToolData(BaseAPIController):
         decoded_tool_data_id = id
 
         try:
-            data_table = trans.app.tool_data_tables.data_tables.get(decoded_tool_data_id)
+            data_table = trans.app.tool_data_tables.data_tables.get(
+                decoded_tool_data_id
+            )
         except Exception:
             data_table = None
         if not data_table:
@@ -73,8 +72,8 @@ class ToolData(BaseAPIController):
             return "Invalid data table id ( %s ) specified." % str(decoded_tool_data_id)
 
         values = None
-        if kwd.get('payload', None):
-            values = kwd['payload'].get('values', '')
+        if kwd.get("payload", None):
+            values = kwd["payload"].get("values", "")
 
         if not values:
             trans.response.status = 400
@@ -84,13 +83,23 @@ class ToolData(BaseAPIController):
 
         if len(split_values) != len(data_table.get_column_name_list()):
             trans.response.status = 400
-            return "Invalid data table item ( %s ) specified. Wrong number of columns (%s given, %s required)." % (str(values), str(len(split_values)), str(len(data_table.get_column_name_list())))
+            return (
+                "Invalid data table item ( %s ) specified. Wrong number of columns (%s given, %s required)."
+                % (
+                    str(values),
+                    str(len(split_values)),
+                    str(len(data_table.get_column_name_list())),
+                )
+            )
 
         data_table.remove_entry(split_values)
-        galaxy.queue_worker.send_control_task(trans.app, 'reload_tool_data_tables',
-                                              noop_self=True,
-                                              kwargs={'table_name': decoded_tool_data_id})
-        return self._data_table(decoded_tool_data_id).to_dict(view='element')
+        galaxy.queue_worker.send_control_task(
+            trans.app,
+            "reload_tool_data_tables",
+            noop_self=True,
+            kwargs={"table_name": decoded_tool_data_id},
+        )
+        return self._data_table(decoded_tool_data_id).to_dict(view="element")
 
     @web.require_admin
     @expose_api
@@ -115,7 +124,9 @@ class ToolData(BaseAPIController):
     def _data_table_field(self, id, value):
         out = self._data_table(id).get_field(value)
         if out is None:
-            raise exceptions.ObjectNotFound("No such field %s in data table %s." % (value, id))
+            raise exceptions.ObjectNotFound(
+                "No such field %s in data table %s." % (value, id)
+            )
         return out
 
     def _data_table(self, id):

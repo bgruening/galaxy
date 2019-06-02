@@ -22,27 +22,41 @@ class UsesItemRatings(object):
         """ Returns the average rating for an item."""
         if webapp_model is None:
             webapp_model = galaxy.model
-        item_rating_assoc_class = self._get_item_rating_assoc_class(item, webapp_model=webapp_model)
+        item_rating_assoc_class = self._get_item_rating_assoc_class(
+            item, webapp_model=webapp_model
+        )
         if not item_rating_assoc_class:
             raise Exception("Item does not have ratings: %s" % item.__class__.__name__)
         item_id_filter = self._get_item_id_filter_str(item, item_rating_assoc_class)
-        ave_rating = db_session.query(func.avg(item_rating_assoc_class.rating)).filter(item_id_filter).scalar()
+        ave_rating = (
+            db_session.query(func.avg(item_rating_assoc_class.rating))
+            .filter(item_id_filter)
+            .scalar()
+        )
         # Convert ave_rating to float; note: if there are no item ratings, ave rating is None.
         if ave_rating:
             ave_rating = float(ave_rating)
         else:
             ave_rating = 0
-        num_ratings = int(db_session.query(func.count(item_rating_assoc_class.rating)).filter(item_id_filter).scalar())
+        num_ratings = int(
+            db_session.query(func.count(item_rating_assoc_class.rating))
+            .filter(item_id_filter)
+            .scalar()
+        )
         return (ave_rating, num_ratings)
 
     def rate_item(self, db_session, user, item, rating, webapp_model=None):
         """ Rate an item. Return type is <item_class>RatingAssociation. """
         if webapp_model is None:
             webapp_model = galaxy.model
-        item_rating = self.get_user_item_rating(db_session, user, item, webapp_model=webapp_model)
+        item_rating = self.get_user_item_rating(
+            db_session, user, item, webapp_model=webapp_model
+        )
         if not item_rating:
             # User has not yet rated item; create rating.
-            item_rating_assoc_class = self._get_item_rating_assoc_class(item, webapp_model=webapp_model)
+            item_rating_assoc_class = self._get_item_rating_assoc_class(
+                item, webapp_model=webapp_model
+            )
             item_rating = item_rating_assoc_class()
             item_rating.user = user
             item_rating.set_item(item)
@@ -59,19 +73,26 @@ class UsesItemRatings(object):
         """ Returns user's rating for an item. Return type is <item_class>RatingAssociation. """
         if webapp_model is None:
             webapp_model = galaxy.model
-        item_rating_assoc_class = self._get_item_rating_assoc_class(item, webapp_model=webapp_model)
+        item_rating_assoc_class = self._get_item_rating_assoc_class(
+            item, webapp_model=webapp_model
+        )
         if not item_rating_assoc_class:
             raise Exception("Item does not have ratings: %s" % item.__class__.__name__)
 
         # Query rating table by user and item id.
         item_id_filter = self._get_item_id_filter_str(item, item_rating_assoc_class)
-        return db_session.query(item_rating_assoc_class).filter_by(user=user).filter(item_id_filter).first()
+        return (
+            db_session.query(item_rating_assoc_class)
+            .filter_by(user=user)
+            .filter(item_id_filter)
+            .first()
+        )
 
     def _get_item_rating_assoc_class(self, item, webapp_model=None):
         """ Returns an item's item-rating association class. """
         if webapp_model is None:
             webapp_model = galaxy.model
-        item_rating_assoc_class = '%sRatingAssociation' % item.__class__.__name__
+        item_rating_assoc_class = "%sRatingAssociation" % item.__class__.__name__
         return getattr(webapp_model, item_rating_assoc_class, None)
 
     def _get_item_id_filter_str(self, item, item_rating_assoc_class, webapp_model=None):
@@ -101,12 +122,18 @@ class UsesAnnotations(object):
             db_session.delete(annotation_assoc)
             db_session.flush()
 
-    def copy_item_annotation(self, db_session, source_user, source_item, target_user, target_item):
+    def copy_item_annotation(
+        self, db_session, source_user, source_item, target_user, target_item
+    ):
         """ Copy an annotation from a user/item source to a user/item target. """
         if source_user and target_user:
-            annotation_str = self.get_item_annotation_str(db_session, source_user, source_item)
+            annotation_str = self.get_item_annotation_str(
+                db_session, source_user, source_item
+            )
             if annotation_str:
-                annotation = self.add_item_annotation(db_session, target_user, target_item, annotation_str)
+                annotation = self.add_item_annotation(
+                    db_session, target_user, target_item, annotation_str
+                )
                 return annotation
         return None
 
@@ -142,7 +169,7 @@ def get_item_annotation_obj(db_session, user, item):
 
 def get_item_annotation_str(db_session, user, item):
     """ Returns a user's annotation string for an item. """
-    if hasattr(item, 'annotations'):
+    if hasattr(item, "annotations"):
         # If we already have an annotations object we use it.
         annotation_obj = None
         for annotation in item.annotations:
@@ -174,7 +201,7 @@ def add_item_annotation(db_session, user, item, annotation):
 
 def _get_annotation_assoc_class(item):
     """ Returns an item's item-annotation association class. """
-    class_name = '%sAnnotationAssociation' % item.__class__.__name__
+    class_name = "%sAnnotationAssociation" % item.__class__.__name__
     return getattr(galaxy.model, class_name, None)
 
 
@@ -186,12 +213,11 @@ def get_foreign_key(source_class, target_class):
             target_fk = fk
             break
     if not target_fk:
-        raise Exception("No foreign key found between objects: %s, %s" % source_class.table, target_class.table)
+        raise Exception(
+            "No foreign key found between objects: %s, %s" % source_class.table,
+            target_class.table,
+        )
     return target_fk
 
 
-__all__ = (
-    'get_foreign_key',
-    'UsesAnnotations',
-    'UsesItemRatings',
-)
+__all__ = ("get_foreign_key", "UsesAnnotations", "UsesItemRatings")

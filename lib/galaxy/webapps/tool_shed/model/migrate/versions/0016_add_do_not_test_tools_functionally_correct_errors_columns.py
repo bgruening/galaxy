@@ -34,40 +34,53 @@ def upgrade(migrate_engine):
         c.create(RepositoryMetadata_table, index_name="ix_repository_metadata_tfc")
         assert c is RepositoryMetadata_table.c.tools_functionally_correct
         # Initialize.
-        if migrate_engine.name == 'mysql' or migrate_engine.name == 'sqlite':
+        if migrate_engine.name == "mysql" or migrate_engine.name == "sqlite":
             default_false = "0"
-        elif migrate_engine.name in ['postgresql', 'postgres']:
+        elif migrate_engine.name in ["postgresql", "postgres"]:
             default_false = "false"
-        migrate_engine.execute("UPDATE repository_metadata SET tools_functionally_correct=%s" % default_false)
+        migrate_engine.execute(
+            "UPDATE repository_metadata SET tools_functionally_correct=%s"
+            % default_false
+        )
     except Exception:
-        log.exception("Adding tools_functionally_correct column to the repository_metadata table failed.")
+        log.exception(
+            "Adding tools_functionally_correct column to the repository_metadata table failed."
+        )
     c = Column("do_not_test", Boolean, default=False, index=True)
     try:
         # Create do_not_test column
         c.create(RepositoryMetadata_table, index_name="ix_repository_metadata_dnt")
         assert c is RepositoryMetadata_table.c.do_not_test
         # Initialize.
-        if migrate_engine.name == 'mysql' or migrate_engine.name == 'sqlite':
+        if migrate_engine.name == "mysql" or migrate_engine.name == "sqlite":
             default_false = "0"
-        elif migrate_engine.name in ['postgresql', 'postgres']:
+        elif migrate_engine.name in ["postgresql", "postgres"]:
             default_false = "false"
-        migrate_engine.execute("UPDATE repository_metadata SET do_not_test=%s" % default_false)
+        migrate_engine.execute(
+            "UPDATE repository_metadata SET do_not_test=%s" % default_false
+        )
     except Exception:
-        log.exception("Adding do_not_test column to the repository_metadata table failed.")
+        log.exception(
+            "Adding do_not_test column to the repository_metadata table failed."
+        )
     c = Column("time_last_tested", DateTime, default=None, nullable=True)
     try:
         # Create time_last_tested column
         c.create(RepositoryMetadata_table, index_name="ix_repository_metadata_tlt")
         assert c is RepositoryMetadata_table.c.time_last_tested
     except Exception:
-        log.exception("Adding time_last_tested column to the repository_metadata table failed.")
+        log.exception(
+            "Adding time_last_tested column to the repository_metadata table failed."
+        )
     c = Column("tool_test_errors", JSONType, nullable=True)
     try:
         # Create tool_test_errors column
         c.create(RepositoryMetadata_table, index_name="ix_repository_metadata_tte")
         assert c is RepositoryMetadata_table.c.tool_test_errors
     except Exception:
-        log.exception("Adding tool_test_errors column to the repository_metadata table failed.")
+        log.exception(
+            "Adding tool_test_errors column to the repository_metadata table failed."
+        )
 
 
 def downgrade(migrate_engine):
@@ -78,16 +91,24 @@ def downgrade(migrate_engine):
     try:
         RepositoryMetadata_table.c.tool_test_errors.drop()
     except Exception:
-        log.exception("Dropping column tool_test_errors from the repository_metadata table failed.")
+        log.exception(
+            "Dropping column tool_test_errors from the repository_metadata table failed."
+        )
     try:
         RepositoryMetadata_table.c.time_last_tested.drop()
     except Exception:
-        log.exception("Dropping column time_last_tested from the repository_metadata table failed.")
+        log.exception(
+            "Dropping column time_last_tested from the repository_metadata table failed."
+        )
     try:
         RepositoryMetadata_table.c.do_not_test.drop()
     except Exception:
-        log.exception("Dropping column do_not_test from the repository_metadata table failed.")
+        log.exception(
+            "Dropping column do_not_test from the repository_metadata table failed."
+        )
     try:
         RepositoryMetadata_table.c.tools_functionally_correct.drop()
     except Exception:
-        log.exception("Dropping column tools_functionally_correct from the repository_metadata table failed.")
+        log.exception(
+            "Dropping column tools_functionally_correct from the repository_metadata table failed."
+        )

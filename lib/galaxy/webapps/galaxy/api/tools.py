@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 # provides access via a different API endpoint.
 PROTECTED_TOOLS = ["__DATA_FETCH__"]
 # Tool search bypasses the fulltext for the following list of terms
-SEARCH_RESERVED_TERMS_FAVORITES = ['#favs', '#favorites', '#favourites']
+SEARCH_RESERVED_TERMS_FAVORITES = ["#favs", "#favorites", "#favourites"]
 
 
 class ToolsController(BaseAPIController, UsesVisualizationMixin):
@@ -54,17 +54,17 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         """
 
         # Read params.
-        in_panel = util.string_as_bool(kwds.get('in_panel', 'True'))
-        trackster = util.string_as_bool(kwds.get('trackster', 'False'))
-        q = kwds.get('q', '')
-        tool_id = kwds.get('tool_id', '')
+        in_panel = util.string_as_bool(kwds.get("in_panel", "True"))
+        trackster = util.string_as_bool(kwds.get("trackster", "False"))
+        q = kwds.get("q", "")
+        tool_id = kwds.get("tool_id", "")
 
         # Find whether to search.
         if q:
             if trans.user and q in SEARCH_RESERVED_TERMS_FAVORITES:
-                if 'favorites' in trans.user.preferences:
-                    favorites = loads(trans.user.preferences['favorites'])
-                    hits = favorites['tools']
+                if "favorites" in trans.user.preferences:
+                    favorites = loads(trans.user.preferences["favorites"])
+                    hits = favorites["tools"]
                 else:
                     hits = None
             else:
@@ -89,9 +89,13 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
 
         # Return everything.
         try:
-            return self.app.toolbox.to_dict(trans, in_panel=in_panel, trackster=trackster)
+            return self.app.toolbox.to_dict(
+                trans, in_panel=in_panel, trackster=trackster
+            )
         except Exception:
-            raise exceptions.InternalServerError("Error: Could not convert toolbox to dictionary")
+            raise exceptions.InternalServerError(
+                "Error: Could not convert toolbox to dictionary"
+            )
 
     @expose_api_anonymous_and_sessionless
     def show(self, trans, id, **kwd):
@@ -106,9 +110,9 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
                 link_details - if true, hyperlink to the tool is returned
                 tool_version - if provided return this tool version
         """
-        io_details = util.string_as_bool(kwd.get('io_details', False))
-        link_details = util.string_as_bool(kwd.get('link_details', False))
-        tool_version = kwd.get('tool_version')
+        io_details = util.string_as_bool(kwd.get("io_details", False))
+        link_details = util.string_as_bool(kwd.get("link_details", False))
+        tool_version = kwd.get("tool_version")
         tool = self._get_tool(id, user=trans.user, tool_version=tool_version)
         return tool.to_dict(trans, io_details=io_details, link_details=link_details)
 
@@ -118,11 +122,11 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         GET /api/tools/{tool_id}/build
         Returns a tool model including dynamic parameters and updated values, repeats block etc.
         """
-        if 'payload' in kwd:
-            kwd = kwd.get('payload')
-        tool_version = kwd.get('tool_version', None)
+        if "payload" in kwd:
+            kwd = kwd.get("payload")
+        tool_version = kwd.get("tool_version", None)
         tool = self._get_tool(id, tool_version=tool_version, user=trans.user)
-        return tool.to_json(trans, kwd.get('inputs', kwd))
+        return tool.to_json(trans, kwd.get("inputs", kwd))
 
     @expose_api
     @web.require_admin
@@ -131,9 +135,9 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         GET /api/tools/{tool_id}/test_data_path?tool_version={tool_version}
         """
         # TODO: eliminate copy and paste with above code.
-        if 'payload' in kwd:
-            kwd = kwd.get('payload')
-        tool_version = kwd.get('tool_version', None)
+        if "payload" in kwd:
+            kwd = kwd.get("payload")
+        tool_version = kwd.get("tool_version", None)
         tool = self._get_tool(id, tool_version=tool_version, user=trans.user)
         path = tool.test_data_path(kwd.get("filename"))
         if path:
@@ -146,7 +150,7 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         """
         GET /api/tools/{tool_id}/test_data_download?tool_version={tool_version}&filename={filename}
         """
-        tool_version = kwd.get('tool_version', None)
+        tool_version = kwd.get("tool_version", None)
         tool = self._get_tool(id, tool_version=tool_version, user=trans.user)
         filename = kwd.get("filename")
         if filename is None:
@@ -154,10 +158,14 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         path = tool.test_data_path(filename)
         if path:
             if os.path.isfile(path):
-                trans.response.headers["Content-Disposition"] = 'attachment; filename="%s"' % filename
-                return open(path, mode='rb')
+                trans.response.headers["Content-Disposition"] = (
+                    'attachment; filename="%s"' % filename
+                )
+                return open(path, mode="rb")
             elif os.path.isdir(path):
-                return util.streamball.stream_archive(trans=trans, path=path, upstream_gzip=self.app.config.upstream_gzip)
+                return util.streamball.stream_archive(
+                    trans=trans, path=path, upstream_gzip=self.app.config.upstream_gzip
+                )
         raise exceptions.ObjectNotFound("Specified test data path not found.")
 
     @expose_api_anonymous_and_sessionless
@@ -196,9 +204,9 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         from this API to change its format in some ways.
         """
         # TODO: eliminate copy and paste with above code.
-        if 'payload' in kwd:
-            kwd = kwd.get('payload')
-        tool_version = kwd.get('tool_version', None)
+        if "payload" in kwd:
+            kwd = kwd.get("payload")
+        tool_version = kwd.get("tool_version", None)
         tool = self._get_tool(id, tool_version=tool_version, user=trans.user)
 
         # Encode in this method to handle odict objects in tool representation.
@@ -220,11 +228,13 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         GET /api/tools/{tool_id}/reload
         Reload specified tool.
         """
-        galaxy.queue_worker.send_control_task(trans.app, 'reload_tool', noop_self=True, kwargs={'tool_id': id})
+        galaxy.queue_worker.send_control_task(
+            trans.app, "reload_tool", noop_self=True, kwargs={"tool_id": id}
+        )
         message, status = trans.app.toolbox.reload_tool_by_id(id)
-        if status == 'error':
+        if status == "error":
             raise exceptions.MessageException(message)
-        return {'message': message}
+        return {"message": message}
 
     @expose_api
     @web.require_admin
@@ -267,7 +277,7 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         """
         tool = self._get_tool(id, user=trans.user)
         tool._view.install_dependencies(tool.requirements, **kwds)
-        if kwds.get('build_dependency_cache'):
+        if kwds.get("build_dependency_cache"):
             tool.build_dependency_cache(**kwds)
         # TODO: rework resolver install system to log and report what has been done.
         # _view.install_dependencies should return a dict with stdout, stderr and success status
@@ -318,7 +328,7 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
             return x.to_dict()
 
         tool = self._get_tool(id, user=trans.user)
-        if hasattr(tool, 'lineage'):
+        if hasattr(tool, "lineage"):
             lineage_dict = tool.lineage.to_dict()
         else:
             lineage_dict = None
@@ -371,28 +381,32 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         :return:      Dictionary containing the tools' ids of the best hits.
         :return type: dict
         """
-        tool_name_boost = self.app.config.get('tool_name_boost', 9)
-        tool_section_boost = self.app.config.get('tool_section_boost', 3)
-        tool_description_boost = self.app.config.get('tool_description_boost', 2)
-        tool_label_boost = self.app.config.get('tool_label_boost', 1)
-        tool_stub_boost = self.app.config.get('tool_stub_boost', 5)
-        tool_help_boost = self.app.config.get('tool_help_boost', 0.5)
-        tool_search_limit = self.app.config.get('tool_search_limit', 20)
-        tool_enable_ngram_search = self.app.config.get('tool_enable_ngram_search', False)
-        tool_ngram_minsize = self.app.config.get('tool_ngram_minsize', 3)
-        tool_ngram_maxsize = self.app.config.get('tool_ngram_maxsize', 4)
+        tool_name_boost = self.app.config.get("tool_name_boost", 9)
+        tool_section_boost = self.app.config.get("tool_section_boost", 3)
+        tool_description_boost = self.app.config.get("tool_description_boost", 2)
+        tool_label_boost = self.app.config.get("tool_label_boost", 1)
+        tool_stub_boost = self.app.config.get("tool_stub_boost", 5)
+        tool_help_boost = self.app.config.get("tool_help_boost", 0.5)
+        tool_search_limit = self.app.config.get("tool_search_limit", 20)
+        tool_enable_ngram_search = self.app.config.get(
+            "tool_enable_ngram_search", False
+        )
+        tool_ngram_minsize = self.app.config.get("tool_ngram_minsize", 3)
+        tool_ngram_maxsize = self.app.config.get("tool_ngram_maxsize", 4)
 
-        results = self.app.toolbox_search.search(q=q,
-                                                 tool_name_boost=tool_name_boost,
-                                                 tool_section_boost=tool_section_boost,
-                                                 tool_description_boost=tool_description_boost,
-                                                 tool_label_boost=tool_label_boost,
-                                                 tool_stub_boost=tool_stub_boost,
-                                                 tool_help_boost=tool_help_boost,
-                                                 tool_search_limit=tool_search_limit,
-                                                 tool_enable_ngram_search=tool_enable_ngram_search,
-                                                 tool_ngram_minsize=tool_ngram_minsize,
-                                                 tool_ngram_maxsize=tool_ngram_maxsize)
+        results = self.app.toolbox_search.search(
+            q=q,
+            tool_name_boost=tool_name_boost,
+            tool_section_boost=tool_section_boost,
+            tool_description_boost=tool_description_boost,
+            tool_label_boost=tool_label_boost,
+            tool_stub_boost=tool_stub_boost,
+            tool_help_boost=tool_help_boost,
+            tool_search_limit=tool_search_limit,
+            tool_enable_ngram_search=tool_enable_ngram_search,
+            tool_ngram_minsize=tool_ngram_minsize,
+            tool_ngram_maxsize=tool_ngram_maxsize,
+        )
         return results
 
     @expose_api_anonymous_and_sessionless
@@ -400,30 +414,32 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         tool = self._get_tool(id, user=trans.user)
         rval = []
         for citation in tool.citations:
-            rval.append(citation.to_dict('bibtex'))
+            rval.append(citation.to_dict("bibtex"))
         return rval
 
     @web.legacy_expose_api_raw
     @web.require_admin
     def download(self, trans, id, **kwds):
         tool_tarball = trans.app.toolbox.package_tool(trans, id)
-        trans.response.set_content_type('application/x-gzip')
+        trans.response.set_content_type("application/x-gzip")
         download_file = open(tool_tarball, "rb")
-        trans.response.headers["Content-Disposition"] = 'attachment; filename="%s.tgz"' % (id)
+        trans.response.headers[
+            "Content-Disposition"
+        ] = 'attachment; filename="%s.tgz"' % (id)
         return download_file
 
     @expose_api_anonymous
     def fetch(self, trans, payload, **kwd):
         """Adapt clean API to tool-constrained API.
         """
-        request_version = '1'
+        request_version = "1"
         history_id = payload.pop("history_id")
         clean_payload = {}
         files_payload = {}
         for key, value in payload.items():
             if key == "key":
                 continue
-            if key.startswith('files_') or key.startswith('__files_'):
+            if key.startswith("files_") or key.startswith("__files_"):
                 files_payload[key] = value
                 continue
             clean_payload[key] = value
@@ -431,12 +447,12 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         clean_payload["check_content"] = trans.app.config.check_upload_content
         request = dumps(clean_payload)
         create_payload = {
-            'tool_id': "__DATA_FETCH__",
-            'history_id': history_id,
-            'inputs': {
-                'request_version': request_version,
-                'request_json': request,
-                'file_count': str(len(files_payload))
+            "tool_id": "__DATA_FETCH__",
+            "history_id": history_id,
+            "inputs": {
+                "request_version": request_version,
+                "request_json": request,
+                "file_count": str(len(files_payload)),
             },
         }
         create_payload.update(files_payload)
@@ -460,53 +476,63 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         tool_id = payload.get("tool_id")
         tool_uuid = payload.get("tool_uuid")
         if tool_id in PROTECTED_TOOLS:
-            raise exceptions.RequestParameterInvalidException("Cannot execute tool [%s] directly, must use alternative endpoint." % tool_id)
+            raise exceptions.RequestParameterInvalidException(
+                "Cannot execute tool [%s] directly, must use alternative endpoint."
+                % tool_id
+            )
         if tool_id is None and tool_uuid is None:
-            raise exceptions.RequestParameterInvalidException("Must specify a valid tool_id to use this endpoint.")
+            raise exceptions.RequestParameterInvalidException(
+                "Must specify a valid tool_id to use this endpoint."
+            )
         return self._create(trans, payload, **kwd)
 
     def _create(self, trans, payload, **kwd):
-        action = payload.get('action', None)
-        if action == 'rerun':
+        action = payload.get("action", None)
+        if action == "rerun":
             raise Exception("'rerun' action has been deprecated")
 
         # Get tool.
-        tool_version = payload.get('tool_version', None)
-        tool_id = payload.get('tool_id', None)
-        tool_uuid = payload.get('tool_uuid', None)
-        get_kwds = dict(
-            tool_id=tool_id,
-            tool_uuid=tool_uuid,
-            tool_version=tool_version,
-        )
+        tool_version = payload.get("tool_version", None)
+        tool_id = payload.get("tool_id", None)
+        tool_uuid = payload.get("tool_uuid", None)
+        get_kwds = dict(tool_id=tool_id, tool_uuid=tool_uuid, tool_version=tool_version)
         if tool_id is None and tool_uuid is None:
-            raise exceptions.RequestParameterMissingException("Must specify either a tool_id or a tool_uuid.")
+            raise exceptions.RequestParameterMissingException(
+                "Must specify either a tool_id or a tool_uuid."
+            )
 
         tool = trans.app.toolbox.get_tool(**get_kwds)
         if not tool or not tool.allow_user_access(trans.user):
-            raise exceptions.MessageException('Tool not found or not accessible.')
+            raise exceptions.MessageException("Tool not found or not accessible.")
         if trans.app.config.user_activation_on:
             if not trans.user:
-                log.warning("Anonymous user attempts to execute tool, but account activation is turned on.")
+                log.warning(
+                    "Anonymous user attempts to execute tool, but account activation is turned on."
+                )
             elif not trans.user.active:
-                log.warning("User \"%s\" attempts to execute tool, but account activation is turned on and user account is not active." % trans.user.email)
+                log.warning(
+                    'User "%s" attempts to execute tool, but account activation is turned on and user account is not active.'
+                    % trans.user.email
+                )
 
         # Set running history from payload parameters.
         # History not set correctly as part of this API call for
         # dataset upload.
-        history_id = payload.get('history_id', None)
+        history_id = payload.get("history_id", None)
         if history_id:
             decoded_id = self.decode_id(history_id)
-            target_history = self.history_manager.get_owned(decoded_id, trans.user, current_history=trans.history)
+            target_history = self.history_manager.get_owned(
+                decoded_id, trans.user, current_history=trans.history
+            )
         else:
             target_history = None
 
         # Set up inputs.
-        inputs = payload.get('inputs', {})
+        inputs = payload.get("inputs", {})
 
         # Find files coming in as multipart file data and add to inputs.
         for k, v in payload.items():
-            if k.startswith('files_') or k.startswith('__files_'):
+            if k.startswith("files_") or k.startswith("__files_"):
                 inputs[k] = v
 
         # for inputs that are coming from the Library, copy them into the history
@@ -520,42 +546,63 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         # use_cached_job can be passed in via the top-level payload or among the tool inputs.
         # I think it should be a top-level parameter, but because the selector is implemented
         # as a regular tool parameter we accept both.
-        use_cached_job = payload.get('use_cached_job', False) or util.string_as_bool(inputs.get('use_cached_job', 'false'))
-        vars = tool.handle_input(trans, incoming, history=target_history, use_cached_job=use_cached_job)
+        use_cached_job = payload.get("use_cached_job", False) or util.string_as_bool(
+            inputs.get("use_cached_job", "false")
+        )
+        vars = tool.handle_input(
+            trans, incoming, history=target_history, use_cached_job=use_cached_job
+        )
 
         # TODO: check for errors and ensure that output dataset(s) are available.
-        output_datasets = vars.get('out_data', [])
-        rval = {'outputs': [], 'output_collections': [], 'jobs': [], 'implicit_collections': []}
+        output_datasets = vars.get("out_data", [])
+        rval = {
+            "outputs": [],
+            "output_collections": [],
+            "jobs": [],
+            "implicit_collections": [],
+        }
 
-        job_errors = vars.get('job_errors', [])
+        job_errors = vars.get("job_errors", [])
         if job_errors:
             # If we are here - some jobs were successfully executed but some failed.
-            rval['errors'] = job_errors
+            rval["errors"] = job_errors
 
-        outputs = rval['outputs']
+        outputs = rval["outputs"]
         # TODO:?? poss. only return ids?
         for output_name, output in output_datasets:
             output_dict = output.to_dict()
             # add the output name back into the output data structure
             # so it's possible to figure out which newly created elements
             # correspond with which tool file outputs
-            output_dict['output_name'] = output_name
-            outputs.append(trans.security.encode_dict_ids(output_dict, skip_startswith="metadata_"))
+            output_dict["output_name"] = output_name
+            outputs.append(
+                trans.security.encode_dict_ids(output_dict, skip_startswith="metadata_")
+            )
 
-        for job in vars.get('jobs', []):
-            rval['jobs'].append(self.encode_all_ids(trans, job.to_dict(view='collection'), recursive=True))
+        for job in vars.get("jobs", []):
+            rval["jobs"].append(
+                self.encode_all_ids(
+                    trans, job.to_dict(view="collection"), recursive=True
+                )
+            )
 
-        for output_name, collection_instance in vars.get('output_collections', []):
+        for output_name, collection_instance in vars.get("output_collections", []):
             history = target_history or trans.history
-            output_dict = dictify_dataset_collection_instance(collection_instance, security=trans.security, parent=history)
-            output_dict['output_name'] = output_name
-            rval['output_collections'].append(output_dict)
+            output_dict = dictify_dataset_collection_instance(
+                collection_instance, security=trans.security, parent=history
+            )
+            output_dict["output_name"] = output_name
+            rval["output_collections"].append(output_dict)
 
-        for output_name, collection_instance in vars.get('implicit_collections', {}).items():
+        for output_name, collection_instance in vars.get(
+            "implicit_collections", {}
+        ).items():
             history = target_history or trans.history
-            output_dict = dictify_dataset_collection_instance(collection_instance, security=trans.security, parent=history)
-            output_dict['output_name'] = output_name
-            rval['implicit_collections'].append(output_dict)
+            output_dict = dictify_dataset_collection_instance(
+                collection_instance, security=trans.security, parent=history
+            )
+            output_dict["output_name"] = output_name
+            rval["implicit_collections"].append(output_dict)
 
         return rval
 
@@ -567,18 +614,24 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
             new_value = self._patch_library_dataset(trans, v, target_history)
             if new_value:
                 v = new_value
-            elif isinstance(v, dict) and 'values' in v:
-                for index, value in enumerate(v['values']):
+            elif isinstance(v, dict) and "values" in v:
+                for index, value in enumerate(v["values"]):
                     patched = self._patch_library_dataset(trans, value, target_history)
                     if patched:
-                        v['values'][index] = patched
+                        v["values"][index] = patched
             inputs[k] = v
 
     def _patch_library_dataset(self, trans, v, target_history):
-        if isinstance(v, dict) and 'id' in v and v.get('src') == 'ldda':
-            ldda = trans.sa_session.query(trans.app.model.LibraryDatasetDatasetAssociation).get(self.decode_id(v['id']))
-            if trans.user_is_admin or trans.app.security_agent.can_access_dataset(trans.get_current_user_roles(), ldda.dataset):
-                return ldda.to_history_dataset_association(target_history, add_to_history=True)
+        if isinstance(v, dict) and "id" in v and v.get("src") == "ldda":
+            ldda = trans.sa_session.query(
+                trans.app.model.LibraryDatasetDatasetAssociation
+            ).get(self.decode_id(v["id"]))
+            if trans.user_is_admin or trans.app.security_agent.can_access_dataset(
+                trans.get_current_user_roles(), ldda.dataset
+            ):
+                return ldda.to_history_dataset_association(
+                    target_history, add_to_history=True
+                )
 
     #
     # -- Helper methods --
@@ -588,5 +641,7 @@ class ToolsController(BaseAPIController, UsesVisualizationMixin):
         if not tool:
             raise exceptions.ObjectNotFound("Could not find tool with id '%s'." % id)
         if not tool.allow_user_access(user):
-            raise exceptions.AuthenticationFailed("Access denied, please login for tool with id '%s'." % id)
+            raise exceptions.AuthenticationFailed(
+                "Access denied, please login for tool with id '%s'." % id
+            )
         return tool

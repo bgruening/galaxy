@@ -2,18 +2,11 @@
 
 import logging
 import os
-from abc import (
-    ABCMeta,
-    abstractmethod,
-    abstractproperty,
-)
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 import six
 
-from galaxy.util.filelock import (
-    FileLock,
-    FileLockException
-)
+from galaxy.util.filelock import FileLock, FileLockException
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +47,10 @@ def ensure_installed(installable_context, install_func, auto_init):
                     else:
                         installed = installable_context.is_installed()
                         if not installed:
-                            log.warning("%s installation requested, seemed to succeed, but not found." % desc)
+                            log.warning(
+                                "%s installation requested, seemed to succeed, but not found."
+                                % desc
+                            )
                 else:
                     installed = False
             else:
@@ -74,4 +70,6 @@ def ensure_installed(installable_context, install_func, auto_init):
         else:
             return _check()
     except FileLockException:
-        raise Exception("Failed to get file lock for %s" % os.path.join(parent_path, desc.lower()))
+        raise Exception(
+            "Failed to get file lock for %s" % os.path.join(parent_path, desc.lower())
+        )

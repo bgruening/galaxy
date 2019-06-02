@@ -22,7 +22,6 @@ except ImportError:
 
 
 class _Memoized(object):
-
     def __init__(self, func):
         self.func = func
         self.cache = {}
@@ -51,11 +50,13 @@ def _render_jinja2(recipe_dir):
     try:
         import jinja2
     except ImportError:
-        raise Exception("Failed to import jinja2 for evaluating Conda recipe templates.")
+        raise Exception(
+            "Failed to import jinja2 for evaluating Conda recipe templates."
+        )
 
     loaders = [jinja2.FileSystemLoader(recipe_dir)]
     env = jinja2.Environment(loader=jinja2.ChoiceLoader(loaders))
-    template = env.get_or_select_template('meta.yaml')
+    template = env.get_or_select_template("meta.yaml")
     return template.render(environment=env)
 
 
@@ -77,23 +78,22 @@ if parse is None:
 
 def raw_metadata(recipe_dir):
     """Evaluate Conda template if needed and return raw metadata for supplied recipe directory."""
-    meta_path = os.path.join(recipe_dir, 'meta.yaml')
-    with open(meta_path, 'rb') as fi:
+    meta_path = os.path.join(recipe_dir, "meta.yaml")
+    with open(meta_path, "rb") as fi:
         data = fi.read()
-        if b'{{' in data:
+        if b"{{" in data:
             data = render_jinja2(recipe_dir)
     meta = parse(data, None)
     return meta
 
 
 class _MetaData(object):
-
     def __init__(self, input_dir):
         self.meta = raw_metadata(input_dir)
 
     def get_value(self, field, default=None):
         """Get nested field value or supplied default is not present."""
-        section, key = field.split('/')
+        section, key = field.split("/")
         submeta = self.meta.get(section)
         if submeta is None:
             submeta = {}
@@ -106,7 +106,4 @@ class _MetaData(object):
 if MetaData is None:
     MetaData = _MetaData
 
-__all__ = (
-    "MetaData",
-    "raw_metadata",
-)
+__all__ = ("MetaData", "raw_metadata")

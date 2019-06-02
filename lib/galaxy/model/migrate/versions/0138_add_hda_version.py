@@ -37,4 +37,6 @@ def downgrade(migrate_engine):
         version_column = hda_table.c.version
         version_column.drop()
     except Exception:
-        log.exception("Dropping 'copied_from_job_id_column' column from job table failed.")
+        log.exception(
+            "Dropping 'copied_from_job_id_column' column from job table failed."
+        )

@@ -10,6 +10,6 @@ def write_evalute_script(in_directory):
     """
     script = os.path.join(in_directory, EXPRESSION_SCRIPT_NAME)
     with open(script, "w") as f:
-        f.write('from galaxy_ext.expressions.handle_job import run; run()')
+        f.write("from galaxy_ext.expressions.handle_job import run; run()")
 
     return script

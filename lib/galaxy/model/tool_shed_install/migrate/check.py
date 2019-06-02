@@ -2,21 +2,16 @@ import logging
 import os.path
 import sys
 
-from migrate.versioning import (
-    repository,
-    schema
-)
-from sqlalchemy import (
-    create_engine,
-    MetaData,
-    Table
-)
+from migrate.versioning import repository, schema
+from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.exc import NoSuchTableError
 
 log = logging.getLogger(__name__)
 
 # path relative to galaxy
-migrate_repository_directory = os.path.abspath(os.path.dirname(__file__)).replace(os.getcwd() + os.path.sep, '', 1)
+migrate_repository_directory = os.path.abspath(os.path.dirname(__file__)).replace(
+    os.getcwd() + os.path.sep, "", 1
+)
 migrate_repository = repository.Repository(migrate_repository_directory)
 
 
@@ -37,7 +32,7 @@ def create_or_verify_database(url, engine_options={}, app=None):
         migrate_to_current_version(engine, db_schema)
 
     meta = MetaData(bind=engine)
-    if app and getattr(app.config, 'database_auto_migrate', False):
+    if app and getattr(app.config, "database_auto_migrate", False):
         migrate()
         return
 
@@ -65,7 +60,10 @@ def create_or_verify_database(url, engine_options={}, app=None):
     # Verify that the code and the DB are in sync
     db_schema = schema.ControlledSchema(engine, migrate_repository)
     if migrate_repository.versions.latest != db_schema.version:
-        exception_msg = "Your database has version '%d' but this code expects version '%d'.  " % (db_schema.version, migrate_repository.versions.latest)
+        exception_msg = (
+            "Your database has version '%d' but this code expects version '%d'.  "
+            % (db_schema.version, migrate_repository.versions.latest)
+        )
         exception_msg += "Back up your database and then migrate the schema by running the following from your Galaxy installation directory:"
         exception_msg += "\n\nsh manage_db.sh upgrade install\n"
 
@@ -78,7 +76,7 @@ def migrate_to_current_version(engine, schema):
     changeset = schema.changeset(None)
     for ver, change in changeset:
         nextver = ver + changeset.step
-        log.info('Migrating %s -> %s... ' % (ver, nextver))
+        log.info("Migrating %s -> %s... " % (ver, nextver))
         old_stdout = sys.stdout
 
         class FakeStdout(object):

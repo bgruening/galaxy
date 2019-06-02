@@ -1,47 +1,48 @@
 import logging
 
-from sqlalchemy import (
-    Index,
-    Table
-)
+from sqlalchemy import Index, Table
 
 log = logging.getLogger(__name__)
 
 
 def engine_false(migrate_engine):
-    if migrate_engine.name in ['postgres', 'postgresql']:
+    if migrate_engine.name in ["postgres", "postgresql"]:
         return "FALSE"
-    elif migrate_engine.name in ['mysql', 'sqlite']:
+    elif migrate_engine.name in ["mysql", "sqlite"]:
         return 0
     else:
-        raise Exception('Unknown database type: %s' % migrate_engine.name)
+        raise Exception("Unknown database type: %s" % migrate_engine.name)
 
 
 def engine_true(migrate_engine):
-    if migrate_engine.name in ['postgres', 'postgresql']:
+    if migrate_engine.name in ["postgres", "postgresql"]:
         return "TRUE"
-    elif migrate_engine.name in ['mysql', 'sqlite']:
+    elif migrate_engine.name in ["mysql", "sqlite"]:
         return 1
     else:
-        raise Exception('Unknown database type: %s' % migrate_engine.name)
+        raise Exception("Unknown database type: %s" % migrate_engine.name)
 
 
-def nextval(migrate_engine, table, col='id'):
-    if migrate_engine.name in ['postgres', 'postgresql']:
+def nextval(migrate_engine, table, col="id"):
+    if migrate_engine.name in ["postgres", "postgresql"]:
         return "nextval('%s_%s_seq')" % (table, col)
-    elif migrate_engine.name in ['mysql', 'sqlite']:
+    elif migrate_engine.name in ["mysql", "sqlite"]:
         return "null"
     else:
-        raise Exception('Unable to convert data for unknown database type: %s' % migrate_engine.name)
+        raise Exception(
+            "Unable to convert data for unknown database type: %s" % migrate_engine.name
+        )
 
 
 def localtimestamp(migrate_engine):
-    if migrate_engine.name in ['mysql', 'postgres', 'postgresql']:
+    if migrate_engine.name in ["mysql", "postgres", "postgresql"]:
         return "LOCALTIMESTAMP"
-    elif migrate_engine.name == 'sqlite':
+    elif migrate_engine.name == "sqlite":
         return "current_date || ' ' || current_time"
     else:
-        raise Exception('Unable to convert data for unknown database type: %s' % migrate_engine.name)
+        raise Exception(
+            "Unable to convert data for unknown database type: %s" % migrate_engine.name
+        )
 
 
 def create_table(table):
@@ -109,7 +110,9 @@ def drop_column(column_name, table, metadata=None):
         column = table.c[column_name]
         column.drop()
     except Exception:
-        log.exception("Dropping column '%s' from table '%s' failed.", column_name, table)
+        log.exception(
+            "Dropping column '%s' from table '%s' failed.", column_name, table
+        )
 
 
 def add_index(index_name, table, column_name, metadata=None):
@@ -128,9 +131,19 @@ def add_index(index_name, table, column_name, metadata=None):
             index = Index(index_name, table.c[column_name])
             index.create()
         else:
-            log.debug("Index '%s' on column '%s' in table '%s' already exists.", index_name, column_name, table)
+            log.debug(
+                "Index '%s' on column '%s' in table '%s' already exists.",
+                index_name,
+                column_name,
+                table,
+            )
     except Exception:
-        log.exception("Adding index '%s' on column '%s' to table '%s' failed.", index_name, column_name, table)
+        log.exception(
+            "Adding index '%s' on column '%s' to table '%s' failed.",
+            index_name,
+            column_name,
+            table,
+        )
 
 
 def drop_index(index_name, table, column_name, metadata=None):

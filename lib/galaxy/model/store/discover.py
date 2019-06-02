@@ -14,14 +14,9 @@ import six
 
 import galaxy.model
 from galaxy import util
-from galaxy.exceptions import (
-    RequestParameterInvalidException
-)
+from galaxy.exceptions import RequestParameterInvalidException
 from galaxy.model.dataset_collections import builder
-from galaxy.util import (
-    ExecutionTimer,
-    odict
-)
+from galaxy.util import ExecutionTimer, odict
 from galaxy.util.hash_util import HASH_NAME_MAP
 
 log = logging.getLogger(__name__)
@@ -76,30 +71,36 @@ class ModelPersistenceContext(object):
             primary_data.dbkey = dbkey
         else:
             if not library_folder:
-                primary_data = galaxy.model.HistoryDatasetAssociation(extension=ext,
-                                                                      designation=designation,
-                                                                      visible=visible,
-                                                                      dbkey=dbkey,
-                                                                      create_dataset=True,
-                                                                      flush=False,
-                                                                      sa_session=sa_session)
+                primary_data = galaxy.model.HistoryDatasetAssociation(
+                    extension=ext,
+                    designation=designation,
+                    visible=visible,
+                    dbkey=dbkey,
+                    create_dataset=True,
+                    flush=False,
+                    sa_session=sa_session,
+                )
 
                 self.persist_object(primary_data)
                 if init_from:
-                    self.permission_provider.copy_dataset_permissions(init_from, primary_data)
+                    self.permission_provider.copy_dataset_permissions(
+                        init_from, primary_data
+                    )
                     primary_data.state = init_from.state
                 else:
                     self.permission_provider.set_default_hda_permissions(primary_data)
             else:
                 ld = galaxy.model.LibraryDataset(folder=library_folder, name=name)
-                ldda = galaxy.model.LibraryDatasetDatasetAssociation(name=name,
-                                                                     extension=ext,
-                                                                     dbkey=dbkey,
-                                                                     # library_dataset=ld,
-                                                                     user=self.user,
-                                                                     create_dataset=True,
-                                                                     flush=False,
-                                                                     sa_session=sa_session)
+                ldda = galaxy.model.LibraryDatasetDatasetAssociation(
+                    name=name,
+                    extension=ext,
+                    dbkey=dbkey,
+                    # library_dataset=ld,
+                    user=self.user,
+                    create_dataset=True,
+                    flush=False,
+                    sa_session=sa_session,
+                )
                 ld.library_dataset_dataset_association = ldda
                 ldda.raw_set_dataset_state(ldda.states.OK)
 
@@ -127,7 +128,9 @@ class ModelPersistenceContext(object):
 
         # Move data from temp location to dataset location
         if not link_data:
-            self.object_store.update_from_file(primary_data.dataset, file_name=filename, create=True)
+            self.object_store.update_from_file(
+                primary_data.dataset, file_name=filename, create=True
+            )
         else:
             primary_data.link_to(filename)
 
@@ -139,7 +142,9 @@ class ModelPersistenceContext(object):
 
         # Copy metadata from one of the inputs if requested.
         if metadata_source_name:
-            metadata_source = self.metadata_source_provider.get_metadata_source(metadata_source_name)
+            metadata_source = self.metadata_source_provider.get_metadata_source(
+                metadata_source_name
+            )
             primary_data.init_meta(copy_from=metadata_source)
         elif init_from:
             metadata_source = init_from
@@ -158,12 +163,18 @@ class ModelPersistenceContext(object):
             # TODO: discover_files should produce a match that encorporates this -
             # would simplify ToolProvidedMetadata interface and eliminate this
             # crap path.
-            dataset_att_by_name = dict(ext='extension')
-            for att_set in ['name', 'info', 'ext', 'dbkey']:
+            dataset_att_by_name = dict(ext="extension")
+            for att_set in ["name", "info", "ext", "dbkey"]:
                 dataset_att_name = dataset_att_by_name.get(att_set, att_set)
-                setattr(primary_data, dataset_att_name, dataset_attributes.get(att_set, getattr(primary_data, dataset_att_name)))
+                setattr(
+                    primary_data,
+                    dataset_att_name,
+                    dataset_attributes.get(
+                        att_set, getattr(primary_data, dataset_att_name)
+                    ),
+                )
 
-        metadata_dict = dataset_attributes.get('metadata', None)
+        metadata_dict = dataset_attributes.get("metadata", None)
         if metadata_dict:
             if "dbkey" in dataset_attributes:
                 metadata_dict["dbkey"] = dataset_attributes["dbkey"]
@@ -176,7 +187,14 @@ class ModelPersistenceContext(object):
 
         return primary_data
 
-    def populate_collection_elements(self, collection, root_collection_builder, filenames, name=None, metadata_source_name=None):
+    def populate_collection_elements(
+        self,
+        collection,
+        root_collection_builder,
+        filenames,
+        name=None,
+        metadata_source_name=None,
+    ):
         # TODO: allow configurable sorting.
         #    <sort by="lexical" /> <!-- default -->
         #    <sort by="reverse_lexical" />
@@ -190,7 +208,9 @@ class ModelPersistenceContext(object):
             create_dataset_timer = ExecutionTimer()
             fields_match = discovered_file.match
             if not fields_match:
-                raise Exception("Problem parsing metadata fields for file %s" % filename)
+                raise Exception(
+                    "Problem parsing metadata fields for file %s" % filename
+                )
             element_identifiers = fields_match.element_identifiers
             designation = fields_match.designation
             visible = fields_match.visible
@@ -251,10 +271,13 @@ class ModelPersistenceContext(object):
 
             # Associate new dataset with job
             element_identifier_str = ":".join(element_identifiers)
-            association_name = '__new_primary_file_%s|%s__' % (name, element_identifier_str)
+            association_name = "__new_primary_file_%s|%s__" % (
+                name,
+                element_identifier_str,
+            )
             self.add_output_dataset_association(association_name, dataset)
 
-            dataset.raw_set_dataset_state('ok')
+            dataset.raw_set_dataset_state("ok")
 
         self.flush()
 
@@ -285,7 +308,7 @@ class ModelPersistenceContext(object):
         """Add datasets to the history this context points at."""
 
     def job_id(self):
-        return ''
+        return ""
 
     def persist_object(self, obj):
         """Add the target to the persistence layer."""
@@ -311,7 +334,6 @@ class PermissionProvider(object):
 
 
 class UnusedPermissionProvider(PermissionProvider):
-
     def copy_dataset_permissions(self, init_from, primary_data):
         """Throws NotImplementedError.
 
@@ -331,7 +353,6 @@ class MetadataSourceProvider(object):
 
 
 class UnusedMetadataSourceProvider(MetadataSourceProvider):
-
     def get_metadata_source(self, input_name):
         """Throws NotImplementedError.
 
@@ -368,7 +389,9 @@ class SessionlessModelPersistenceContext(ModelPersistenceContext):
         library_folder.item_count += 1
 
     def create_library_folder(self, parent_folder, name, description):
-        nested_folder = galaxy.model.LibraryFolder(name=name, description=description, order_id=parent_folder.item_count)
+        nested_folder = galaxy.model.LibraryFolder(
+            name=name, description=description, order_id=parent_folder.item_count
+        )
         parent_folder.item_count += 1
         parent_folder.folders.append(nested_folder)
         return nested_folder
@@ -393,9 +416,13 @@ class SessionlessModelPersistenceContext(ModelPersistenceContext):
         """No-op, no job context to persist this association for."""
 
 
-def persist_target_to_export_store(target_dict, export_store, object_store, work_directory):
+def persist_target_to_export_store(
+    target_dict, export_store, object_store, work_directory
+):
     replace_request_syntax_sugar(target_dict)
-    model_persistence_context = SessionlessModelPersistenceContext(object_store, export_store, work_directory)
+    model_persistence_context = SessionlessModelPersistenceContext(
+        object_store, export_store, work_directory
+    )
 
     assert "destination" in target_dict
     assert "elements" in target_dict
@@ -410,7 +437,7 @@ def persist_target_to_export_store(target_dict, export_store, object_store, work
         name = get_required_item(destination, "name", "Must specify a library name")
         description = destination.get("description", "")
         synopsis = destination.get("synopsis", "")
-        root_folder = galaxy.model.LibraryFolder(name=name, description='')
+        root_folder = galaxy.model.LibraryFolder(name=name, description="")
         library = galaxy.model.Library(
             name=name,
             description=description,
@@ -423,13 +450,12 @@ def persist_target_to_export_store(target_dict, export_store, object_store, work
         persist_hdas(elements, model_persistence_context)
     elif destination_type == "hdca":
         name = get_required_item(target_dict, "name", "Must specify a HDCA name")
-        collection_type = get_required_item(target_dict, "collection_type", "Must specify an HDCA collection_type")
-        collection = galaxy.model.DatasetCollection(
-            collection_type=collection_type,
+        collection_type = get_required_item(
+            target_dict, "collection_type", "Must specify an HDCA collection_type"
         )
+        collection = galaxy.model.DatasetCollection(collection_type=collection_type)
         hdca = galaxy.model.HistoryDatasetCollectionAssociation(
-            name=name,
-            collection=collection,
+            name=name, collection=collection
         )
         persist_elements_to_hdca(model_persistence_context, elements, hdca)
         export_store.add_dataset_collection(hdca)
@@ -441,9 +467,16 @@ def persist_elements_to_hdca(model_persistence_context, elements, hdca, collecto
     def add_to_discovered_files(elements, parent_identifiers=[]):
         for element in elements:
             if "elements" in element:
-                add_to_discovered_files(element["elements"], parent_identifiers + [element["name"]])
+                add_to_discovered_files(
+                    element["elements"], parent_identifiers + [element["name"]]
+                )
             else:
-                discovered_file = discovered_file_for_element(element, model_persistence_context.job_working_directory, parent_identifiers, collector=collector)
+                discovered_file = discovered_file_for_element(
+                    element,
+                    model_persistence_context.job_working_directory,
+                    parent_identifiers,
+                    collector=collector,
+                )
                 filenames[discovered_file.path] = discovered_file
 
     add_to_discovered_files(elements)
@@ -451,9 +484,7 @@ def persist_elements_to_hdca(model_persistence_context, elements, hdca, collecto
     collection = hdca.collection
     collection_builder = builder.BoundCollectionBuilder(collection)
     model_persistence_context.populate_collection_elements(
-        collection,
-        collection_builder,
-        filenames,
+        collection, collection_builder, filenames
     )
     collection_builder.populate()
 
@@ -464,10 +495,16 @@ def persist_elements_to_folder(model_persistence_context, elements, library_fold
             assert "name" in element
             name = element["name"]
             description = element.get("description")
-            nested_folder = model_persistence_context.create_library_folder(library_folder, name, description)
-            persist_elements_to_folder(model_persistence_context, element["elements"], nested_folder)
+            nested_folder = model_persistence_context.create_library_folder(
+                library_folder, name, description
+            )
+            persist_elements_to_folder(
+                model_persistence_context, element["elements"], nested_folder
+            )
         else:
-            discovered_file = discovered_file_for_element(element, model_persistence_context.job_working_directory)
+            discovered_file = discovered_file_for_element(
+                element, model_persistence_context.job_working_directory
+            )
             fields_match = discovered_file.match
             designation = fields_match.designation
             visible = fields_match.visible
@@ -508,7 +545,9 @@ def persist_hdas(elements, model_persistence_context):
             if "elements" in element:
                 collect_elements_for_history(element["elements"])
             else:
-                discovered_file = discovered_file_for_element(element, model_persistence_context.job_working_directory)
+                discovered_file = discovered_file_for_element(
+                    element, model_persistence_context.job_working_directory
+                )
                 fields_match = discovered_file.match
                 designation = fields_match.designation
                 ext = fields_match.ext
@@ -522,7 +561,9 @@ def persist_hdas(elements, model_persistence_context):
                 hda_id = discovered_file.match.object_id
                 primary_dataset = None
                 if hda_id:
-                    primary_dataset = model_persistence_context.sa_session.query(galaxy.model.HistoryDatasetAssociation).get(hda_id)
+                    primary_dataset = model_persistence_context.sa_session.query(
+                        galaxy.model.HistoryDatasetAssociation
+                    ).get(hda_id)
 
                 sources = fields_match.sources
                 hashes = fields_match.hashes
@@ -542,7 +583,7 @@ def persist_hdas(elements, model_persistence_context):
                     hashes=hashes,
                     created_from_basename=created_from_basename,
                 )
-                dataset.raw_set_dataset_state('ok')
+                dataset.raw_set_dataset_state("ok")
                 if not hda_id:
                     datasets.append(dataset)
 
@@ -597,7 +638,9 @@ def replace_request_syntax_sugar(obj):
                     new_hashes.append({"hash_function": key, "hash_value": obj[key]})
                     del obj[key]
                 if key.lower() in obj:
-                    new_hashes.append({"hash_function": key, "hash_value": obj[key.lower()]})
+                    new_hashes.append(
+                        {"hash_function": key, "hash_value": obj[key.lower()]}
+                    )
                     del obj[key.lower()]
 
             if "hashes" not in obj:
@@ -605,34 +648,51 @@ def replace_request_syntax_sugar(obj):
             obj["hashes"].extend(new_hashes)
 
 
-DiscoveredFile = namedtuple('DiscoveredFile', ['path', 'collector', 'match'])
+DiscoveredFile = namedtuple("DiscoveredFile", ["path", "collector", "match"])
 
 
-def discovered_file_for_element(dataset, job_working_directory, parent_identifiers=[], collector=None):
-    target_directory = discover_target_directory(getattr(collector, "directory", None), job_working_directory)
+def discovered_file_for_element(
+    dataset, job_working_directory, parent_identifiers=[], collector=None
+):
+    target_directory = discover_target_directory(
+        getattr(collector, "directory", None), job_working_directory
+    )
     filename = dataset["filename"]
     # handle link_data_only here, verify filename is in directory if not linking...
     if not dataset.get("link_data_only"):
         path = os.path.join(target_directory, filename)
         if not util.in_directory(path, target_directory):
-            raise Exception("Problem with tool configuration, attempting to pull in datasets from outside working directory.")
+            raise Exception(
+                "Problem with tool configuration, attempting to pull in datasets from outside working directory."
+            )
     else:
         path = filename
-    return DiscoveredFile(path, collector, JsonCollectedDatasetMatch(dataset, collector, filename, path=path, parent_identifiers=parent_identifiers))
+    return DiscoveredFile(
+        path,
+        collector,
+        JsonCollectedDatasetMatch(
+            dataset,
+            collector,
+            filename,
+            path=path,
+            parent_identifiers=parent_identifiers,
+        ),
+    )
 
 
 def discover_target_directory(dir_name, job_working_directory):
     if dir_name:
         directory = os.path.join(job_working_directory, dir_name)
         if not util.in_directory(directory, job_working_directory):
-            raise Exception("Problem with tool configuration, attempting to pull in datasets from outside working directory.")
+            raise Exception(
+                "Problem with tool configuration, attempting to pull in datasets from outside working directory."
+            )
         return directory
     else:
         return job_working_directory
 
 
 class JsonCollectedDatasetMatch(object):
-
     def __init__(self, as_dict, collector, filename, path=None, parent_identifiers=[]):
         self.as_dict = as_dict
         self.collector = collector
@@ -656,7 +716,9 @@ class JsonCollectedDatasetMatch(object):
 
     @property
     def element_identifiers(self):
-        return self._parent_identifiers + (self.raw_element_identifiers or [self.designation])
+        return self._parent_identifiers + (
+            self.raw_element_identifiers or [self.designation]
+        )
 
     @property
     def raw_element_identifiers(self):
@@ -719,7 +781,6 @@ class JsonCollectedDatasetMatch(object):
 
 
 class RegexCollectedDatasetMatch(JsonCollectedDatasetMatch):
-
     def __init__(self, re_match, collector, filename, path=None):
         super(RegexCollectedDatasetMatch, self).__init__(
             re_match.groupdict(), collector, filename, path=path

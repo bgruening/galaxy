@@ -4,7 +4,6 @@ from .mulled.mulled_build import DEFAULT_CHANNELS
 
 
 class AppInfo(object):
-
     def __init__(
         self,
         galaxy_root_dir=None,
@@ -36,7 +35,13 @@ class ToolInfo(object):
     # variables they can consume (e.g. JVM options, license keys, etc..)
     # and add these to env_path_through
 
-    def __init__(self, container_descriptions=None, requirements=None, requires_galaxy_python_environment=False, env_pass_through=["GALAXY_SLOTS"]):
+    def __init__(
+        self,
+        container_descriptions=None,
+        requirements=None,
+        requires_galaxy_python_environment=False,
+        env_pass_through=["GALAXY_SLOTS"],
+    ):
         if container_descriptions is None:
             container_descriptions = []
         if requirements is None:
@@ -48,9 +53,13 @@ class ToolInfo(object):
 
 
 class JobInfo(object):
-
     def __init__(
-        self, working_directory, tool_directory, job_directory, tmp_directory, job_directory_type
+        self,
+        working_directory,
+        tool_directory,
+        job_directory,
+        tmp_directory,
+        job_directory_type,
     ):
         self.working_directory = working_directory
         self.job_directory = job_directory
@@ -79,7 +88,10 @@ class DependenciesDescription(object):
     def to_dict(self):
         return dict(
             requirements=[r.to_dict() for r in self.requirements],
-            installed_tool_dependencies=[DependenciesDescription._toolshed_install_dependency_to_dict(d) for d in self.installed_tool_dependencies]
+            installed_tool_dependencies=[
+                DependenciesDescription._toolshed_install_dependency_to_dict(d)
+                for d in self.installed_tool_dependencies
+            ],
         )
 
     @staticmethod
@@ -87,13 +99,18 @@ class DependenciesDescription(object):
         if as_dict is None:
             return None
 
-        requirements_dicts = as_dict.get('requirements', [])
+        requirements_dicts = as_dict.get("requirements", [])
         requirements = ToolRequirements.from_list(requirements_dicts)
-        installed_tool_dependencies_dicts = as_dict.get('installed_tool_dependencies', [])
-        installed_tool_dependencies = map(DependenciesDescription._toolshed_install_dependency_from_dict, installed_tool_dependencies_dicts)
+        installed_tool_dependencies_dicts = as_dict.get(
+            "installed_tool_dependencies", []
+        )
+        installed_tool_dependencies = map(
+            DependenciesDescription._toolshed_install_dependency_from_dict,
+            installed_tool_dependencies_dicts,
+        )
         return DependenciesDescription(
             requirements=requirements,
-            installed_tool_dependencies=installed_tool_dependencies
+            installed_tool_dependencies=installed_tool_dependencies,
         )
 
     @staticmethod
@@ -102,14 +119,14 @@ class DependenciesDescription(object):
         # containing only properties and associations used to resolve
         # dependencies for tool execution.
         repository_object = bunch.Bunch(
-            name=as_dict['repository_name'],
-            owner=as_dict['repository_owner'],
-            installed_changeset_revision=as_dict['repository_installed_changeset'],
+            name=as_dict["repository_name"],
+            owner=as_dict["repository_owner"],
+            installed_changeset_revision=as_dict["repository_installed_changeset"],
         )
         dependency_object = bunch.Bunch(
-            name=as_dict['dependency_name'],
-            version=as_dict['dependency_version'],
-            type=as_dict['dependency_type'],
+            name=as_dict["dependency_name"],
+            version=as_dict["dependency_version"],
+            type=as_dict["dependency_type"],
             tool_shed_repository=repository_object,
         )
         return dependency_object

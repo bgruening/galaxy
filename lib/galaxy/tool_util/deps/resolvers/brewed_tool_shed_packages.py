@@ -7,10 +7,7 @@ import logging
 import os
 from xml.etree import ElementTree as ET
 
-from . import (
-    DependencyResolver,
-    NullDependency
-)
+from . import DependencyResolver, NullDependency
 from .resolver_mixins import (
     UsesHomebrewMixin,
     UsesInstalledRepositoriesMixin,
@@ -42,19 +39,29 @@ class HomebrewToolShedDependencyResolver(
         return self._find_tool_dependencies(name, version, type, **kwds)
 
     def _find_tool_dependencies(self, name, version, type, **kwds):
-        installed_tool_dependency = self._get_installed_dependency(name, type, version=version, **kwds)
+        installed_tool_dependency = self._get_installed_dependency(
+            name, type, version=version, **kwds
+        )
         if installed_tool_dependency:
-            return self._resolve_from_installed_tool_dependency(name, version, installed_tool_dependency)
+            return self._resolve_from_installed_tool_dependency(
+                name, version, installed_tool_dependency
+            )
 
         if "tool_dir" in kwds:
             tool_directory = os.path.abspath(kwds["tool_dir"])
-            tool_depenedencies_path = os.path.join(tool_directory, "tool_dependencies.xml")
+            tool_depenedencies_path = os.path.join(
+                tool_directory, "tool_dependencies.xml"
+            )
             if os.path.exists(tool_depenedencies_path):
-                return self._resolve_from_tool_dependencies_path(name, version, tool_depenedencies_path)
+                return self._resolve_from_tool_dependencies_path(
+                    name, version, tool_depenedencies_path
+                )
 
         return NullDependency(version=version, name=name)
 
-    def _resolve_from_installed_tool_dependency(self, name, version, installed_tool_dependency):
+    def _resolve_from_installed_tool_dependency(
+        self, name, version, installed_tool_dependency
+    ):
         tool_shed_repository = installed_tool_dependency.tool_shed_repository
         recipe_name = build_recipe_name(
             package_name=name,
@@ -64,11 +71,15 @@ class HomebrewToolShedDependencyResolver(
         )
         return self._find_dep_default(recipe_name, None)
 
-    def _resolve_from_tool_dependencies_path(self, name, version, tool_dependencies_path):
+    def _resolve_from_tool_dependencies_path(
+        self, name, version, tool_dependencies_path
+    ):
         try:
             raw_dependencies = RawDependencies(tool_dependencies_path)
         except Exception:
-            log.debug("Failed to parse dependencies in file %s" % tool_dependencies_path)
+            log.debug(
+                "Failed to parse dependencies in file %s" % tool_dependencies_path
+            )
             return NullDependency(version=version, name=name)
 
         raw_dependency = raw_dependencies.find(name, version)
@@ -79,14 +90,13 @@ class HomebrewToolShedDependencyResolver(
             package_name=name,
             package_version=version,
             repository_owner=raw_dependency.repository_owner,
-            repository_name=raw_dependency.repository_name
+            repository_name=raw_dependency.repository_name,
         )
         dep = self._find_dep_default(recipe_name, None)
         return dep
 
 
 class RawDependencies(object):
-
     def __init__(self, dependencies_file):
         self.root = ET.parse(dependencies_file).getroot()
         dependencies = []
@@ -103,14 +113,16 @@ class RawDependencies(object):
         target_dependency = None
 
         for dependency in self.dependencies:
-            if dependency.package_name == package_name and dependency.package_version == package_version:
+            if (
+                dependency.package_name == package_name
+                and dependency.package_version == package_version
+            ):
                 target_dependency = dependency
                 break
         return target_dependency
 
 
 class RawDependency(object):
-
     def __init__(self, dependencies, package_el, repository_el):
         self.dependencies = dependencies
         self.package_el = package_el
@@ -121,7 +133,7 @@ class RawDependency(object):
         return temp % (
             self.package_el.attrib["name"],
             self.package_el.attrib["version"],
-            self.repository_el.attrib["name"]
+            self.repository_el.attrib["name"],
         )
 
     @property
@@ -150,4 +162,4 @@ def build_recipe_name(package_name, package_version, repository_owner, repositor
     return base
 
 
-__all__ = ('HomebrewToolShedDependencyResolver', )
+__all__ = ("HomebrewToolShedDependencyResolver",)

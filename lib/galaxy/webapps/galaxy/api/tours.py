@@ -6,7 +6,7 @@ import logging
 from galaxy.web import (
     expose_api_anonymous_and_sessionless,
     legacy_expose_api,
-    require_admin
+    require_admin,
 )
 from galaxy.web.base.controller import BaseAPIController
 
@@ -14,7 +14,6 @@ log = logging.getLogger(__name__)
 
 
 class ToursController(BaseAPIController):
-
     def __init__(self, app):
         super(ToursController, self).__init__(app)
 

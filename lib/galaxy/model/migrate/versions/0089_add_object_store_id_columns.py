@@ -18,7 +18,7 @@ def upgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
 
-    for t_name in ('dataset', 'job', 'metadata_file'):
+    for t_name in ("dataset", "job", "metadata_file"):
         t = Table(t_name, metadata, autoload=True)
         c = Column("object_store_id", TrimmedString(255), index=True)
         try:
@@ -32,9 +32,11 @@ def downgrade(migrate_engine):
     metadata.bind = migrate_engine
     metadata.reflect()
 
-    for t_name in ('dataset', 'job', 'metadata_file'):
+    for t_name in ("dataset", "job", "metadata_file"):
         t = Table(t_name, metadata, autoload=True)
         try:
             t.c.object_store_id.drop()
         except Exception:
-            log.exception("Dropping object_store_id column from %s table failed.", t_name)
+            log.exception(
+                "Dropping object_store_id column from %s table failed.", t_name
+            )

@@ -22,12 +22,15 @@ def pgcalc(sa_session, id, dryrun=False):
                                 AND d.id NOT IN (SELECT dataset_id
                                                  FROM library_dataset_dataset_association)
                   ) sizes"""
-    sql_update = """UPDATE galaxy_user
+    sql_update = (
+        """UPDATE galaxy_user
                     SET disk_usage = (%s)
                     WHERE id = :id
-                    RETURNING disk_usage;""" % sql_calc
+                    RETURNING disk_usage;"""
+        % sql_calc
+    )
     if dryrun:
-        r = sa_session.execute(sql_calc, {'id': id})
+        r = sa_session.execute(sql_calc, {"id": id})
     else:
-        r = sa_session.execute(sql_update, {'id': id})
+        r = sa_session.execute(sql_update, {"id": id})
     return r.fetchone()[0]

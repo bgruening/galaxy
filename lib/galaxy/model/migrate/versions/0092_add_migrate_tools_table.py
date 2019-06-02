@@ -21,10 +21,13 @@ log.addHandler(handler)
 
 metadata = MetaData()
 
-MigrateTools_table = Table("migrate_tools", metadata,
-                           Column("repository_id", TrimmedString(255)),
-                           Column("repository_path", TEXT),
-                           Column("version", Integer))
+MigrateTools_table = Table(
+    "migrate_tools",
+    metadata,
+    Column("repository_id", TrimmedString(255)),
+    Column("repository_path", TEXT),
+    Column("version", Integer),
+)
 
 
 def upgrade(migrate_engine):
@@ -35,7 +38,10 @@ def upgrade(migrate_engine):
     # Create the table.
     try:
         MigrateTools_table.create()
-        cmd = "INSERT INTO migrate_tools VALUES ('GalaxyTools', 'lib/galaxy/tool_shed/migrate', %d)" % 1
+        cmd = (
+            "INSERT INTO migrate_tools VALUES ('GalaxyTools', 'lib/galaxy/tool_shed/migrate', %d)"
+            % 1
+        )
         migrate_engine.execute(cmd)
     except Exception:
         log.exception("Creating migrate_tools table failed.")

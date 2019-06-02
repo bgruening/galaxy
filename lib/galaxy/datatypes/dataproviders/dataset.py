@@ -8,18 +8,10 @@ Dataproviders that use either:
 import logging
 import sys
 
-from bx import (
-    seq as bx_seq,
-    wiggle as bx_wig
-)
+from bx import seq as bx_seq, wiggle as bx_wig
 
 from galaxy.util import sqlite
-from . import (
-    base,
-    column,
-    external,
-    line
-)
+from . import base, column, external, line
 
 _TODO = """
 use bx as much as possible
@@ -52,7 +44,7 @@ class DatasetDataProvider(base.DataProvider):
         self.dataset = dataset
         # this dataset file is obviously the source
         # TODO: this might be a good place to interface with the object_store...
-        super(DatasetDataProvider, self).__init__(open(dataset.file_name, 'rb'))
+        super(DatasetDataProvider, self).__init__(open(dataset.file_name, "rb"))
 
     # TODO: this is a bit of a mess
     @classmethod
@@ -65,9 +57,11 @@ class DatasetDataProvider(base.DataProvider):
         """
         # re-map keys to fit ColumnarProvider.__init__ kwargs
         params = {}
-        params['column_count'] = dataset.metadata.columns
-        params['column_types'] = dataset.metadata.column_types
-        params['column_names'] = dataset.metadata.column_names or getattr(dataset.datatype, 'column_names', None)
+        params["column_count"] = dataset.metadata.columns
+        params["column_types"] = dataset.metadata.column_types
+        params["column_names"] = dataset.metadata.column_names or getattr(
+            dataset.datatype, "column_names", None
+        )
         return params
 
     def get_metadata_column_types(self, indeces=None):
@@ -78,14 +72,21 @@ class DatasetDataProvider(base.DataProvider):
             Optional: defaults to None (return all types)
         :type indeces: list of ints
         """
-        metadata_column_types = (self.dataset.metadata.column_types or
-                                 getattr(self.dataset.datatype, 'column_types', None) or None)
+        metadata_column_types = (
+            self.dataset.metadata.column_types
+            or getattr(self.dataset.datatype, "column_types", None)
+            or None
+        )
         if not metadata_column_types:
             return metadata_column_types
         if indeces:
             column_types = []
             for index in indeces:
-                column_type = metadata_column_types[index] if index < len(metadata_column_types) else None
+                column_type = (
+                    metadata_column_types[index]
+                    if index < len(metadata_column_types)
+                    else None
+                )
                 column_types.append(column_type)
             return column_types
         return metadata_column_types
@@ -98,14 +99,21 @@ class DatasetDataProvider(base.DataProvider):
             Optional: defaults to None (return all names)
         :type indeces: list of ints
         """
-        metadata_column_names = (self.dataset.metadata.column_names or
-                                 getattr(self.dataset.datatype, 'column_names', None) or None)
+        metadata_column_names = (
+            self.dataset.metadata.column_names
+            or getattr(self.dataset.datatype, "column_names", None)
+            or None
+        )
         if not metadata_column_names:
             return metadata_column_names
         if indeces:
             column_names = []
             for index in indeces:
-                column_type = metadata_column_names[index] if index < len(metadata_column_names) else None
+                column_type = (
+                    metadata_column_names[index]
+                    if index < len(metadata_column_names)
+                    else None
+                )
                 column_names.append(column_type)
             return column_names
         return metadata_column_names
@@ -121,11 +129,17 @@ class DatasetDataProvider(base.DataProvider):
         :raises KeyError: if column_names are not found
         :raises ValueError: if an entry in list_of_column_names is not in column_names
         """
-        metadata_column_names = (self.dataset.metadata.column_names or
-                                 getattr(self.dataset.datatype, 'column_names', None) or None)
+        metadata_column_names = (
+            self.dataset.metadata.column_names
+            or getattr(self.dataset.datatype, "column_names", None)
+            or None
+        )
         if not metadata_column_names:
-            raise KeyError('No column_names found for ' +
-                           'datatype: %s, dataset: %s' % (str(self.dataset.datatype), str(self.dataset)))
+            raise KeyError(
+                "No column_names found for "
+                + "datatype: %s, dataset: %s"
+                % (str(self.dataset.datatype), str(self.dataset))
+            )
         indeces = []  # if indeces and column_names:
         # pull using indeces and re-name with given names - no need to alter (does as super would)
         #    pass
@@ -151,10 +165,15 @@ class DatasetDataProvider(base.DataProvider):
         :raises ValueError: if check is `True` and one or more indeces were not found.
         :returns: list of column indeces for the named columns.
         """
-        region_column_names = ('chromCol', 'startCol', 'endCol')
-        region_indices = [self.get_metadata_column_index_by_name(name) for name in region_column_names]
+        region_column_names = ("chromCol", "startCol", "endCol")
+        region_indices = [
+            self.get_metadata_column_index_by_name(name) for name in region_column_names
+        ]
         if check and not all(_ is not None for _ in region_indices):
-            raise ValueError("Could not determine proper column indices for chrom, start, end: %s" % (str(region_indices)))
+            raise ValueError(
+                "Could not determine proper column indices for chrom, start, end: %s"
+                % (str(region_indices))
+            )
         return region_indices
 
 
@@ -165,7 +184,7 @@ class ConvertedDatasetDataProvider(DatasetDataProvider):
     """
 
     def __init__(self, dataset, **kwargs):
-        raise NotImplementedError('Abstract class')
+        raise NotImplementedError("Abstract class")
         # self.original_dataset = dataset
         # self.converted_dataset = self.convert_dataset(dataset, **kwargs)
         # super(ConvertedDatasetDataProvider, self).__init__(self.converted_dataset, **kwargs)
@@ -197,9 +216,11 @@ class DatasetColumnarDataProvider(column.ColumnarDataProvider):
         any metadata available.
         """
         dataset_source = DatasetDataProvider(dataset)
-        if not kwargs.get('column_types', None):
-            indeces = kwargs.get('indeces', None)
-            kwargs['column_types'] = dataset_source.get_metadata_column_types(indeces=indeces)
+        if not kwargs.get("column_types", None):
+            indeces = kwargs.get("indeces", None)
+            kwargs["column_types"] = dataset_source.get_metadata_column_types(
+                indeces=indeces
+            )
         super(DatasetColumnarDataProvider, self).__init__(dataset_source, **kwargs)
 
 
@@ -233,24 +254,32 @@ class DatasetDictDataProvider(column.DictDataProvider):
 
         # TODO: getting too complicated - simplify at some lvl, somehow
         # if no column_types given, get column_types from indeces (or all if indeces == None)
-        indeces = kwargs.get('indeces', None)
-        column_names = kwargs.get('column_names', None)
+        indeces = kwargs.get("indeces", None)
+        column_names = kwargs.get("column_names", None)
 
         if not indeces and column_names:
             # pull columns by name
-            indeces = kwargs['indeces'] = dataset_source.get_indeces_by_column_names(column_names)
+            indeces = kwargs["indeces"] = dataset_source.get_indeces_by_column_names(
+                column_names
+            )
 
         elif indeces and not column_names:
             # pull using indeces, name with meta
-            column_names = kwargs['column_names'] = dataset_source.get_metadata_column_names(indeces=indeces)
+            column_names = kwargs[
+                "column_names"
+            ] = dataset_source.get_metadata_column_names(indeces=indeces)
 
         elif not indeces and not column_names:
             # pull all indeces and name using metadata
-            column_names = kwargs['column_names'] = dataset_source.get_metadata_column_names(indeces=indeces)
+            column_names = kwargs[
+                "column_names"
+            ] = dataset_source.get_metadata_column_names(indeces=indeces)
 
         # if no column_types given, use metadata column_types
-        if not kwargs.get('column_types', None):
-            kwargs['column_types'] = dataset_source.get_metadata_column_types(indeces=indeces)
+        if not kwargs.get("column_types", None):
+            kwargs["column_types"] = dataset_source.get_metadata_column_types(
+                indeces=indeces
+            )
 
         super(DatasetDictDataProvider, self).__init__(dataset_source, **kwargs)
 
@@ -266,16 +295,25 @@ class GenomicRegionDataProvider(column.ColumnarDataProvider):
     If `named_columns` is true, will return dictionaries with the keys
     'chrom', 'start', 'end'.
     """
+
     # dictionary keys when named_columns=True
-    COLUMN_NAMES = ['chrom', 'start', 'end']
+    COLUMN_NAMES = ["chrom", "start", "end"]
     settings = {
-        'chrom_column'  : 'int',
-        'start_column'  : 'int',
-        'end_column'    : 'int',
-        'named_columns' : 'bool',
+        "chrom_column": "int",
+        "start_column": "int",
+        "end_column": "int",
+        "named_columns": "bool",
     }
 
-    def __init__(self, dataset, chrom_column=None, start_column=None, end_column=None, named_columns=False, **kwargs):
+    def __init__(
+        self,
+        dataset,
+        chrom_column=None,
+        start_column=None,
+        end_column=None,
+        named_columns=False,
+        **kwargs
+    ):
         """
         :param dataset: the Galaxy dataset whose file will be the source
         :type dataset: model.DatasetInstance
@@ -296,19 +334,27 @@ class GenomicRegionDataProvider(column.ColumnarDataProvider):
         dataset_source = DatasetDataProvider(dataset)
 
         if chrom_column is None:
-            chrom_column = dataset_source.get_metadata_column_index_by_name('chromCol')
+            chrom_column = dataset_source.get_metadata_column_index_by_name("chromCol")
         if start_column is None:
-            start_column = dataset_source.get_metadata_column_index_by_name('startCol')
+            start_column = dataset_source.get_metadata_column_index_by_name("startCol")
         if end_column is None:
-            end_column = dataset_source.get_metadata_column_index_by_name('endCol')
+            end_column = dataset_source.get_metadata_column_index_by_name("endCol")
         indeces = [chrom_column, start_column, end_column]
         if not all(_ is not None for _ in indeces):
-            raise ValueError("Could not determine proper column indeces for" +
-                             " chrom, start, end: %s" % (str(indeces)))
-        kwargs.update({'indeces' : indeces})
+            raise ValueError(
+                "Could not determine proper column indeces for"
+                + " chrom, start, end: %s" % (str(indeces))
+            )
+        kwargs.update({"indeces": indeces})
 
-        if not kwargs.get('column_types', None):
-            kwargs.update({'column_types' : dataset_source.get_metadata_column_types(indeces=indeces)})
+        if not kwargs.get("column_types", None):
+            kwargs.update(
+                {
+                    "column_types": dataset_source.get_metadata_column_types(
+                        indeces=indeces
+                    )
+                }
+            )
 
         self.named_columns = named_columns
         if self.named_columns:
@@ -335,18 +381,28 @@ class IntervalDataProvider(column.ColumnarDataProvider):
     If `named_columns` is true, will return dictionaries with the keys
     'chrom', 'start', 'end' (and 'strand' and 'name' if available).
     """
-    COLUMN_NAMES = ['chrom', 'start', 'end', 'strand', 'name']
+
+    COLUMN_NAMES = ["chrom", "start", "end", "strand", "name"]
     settings = {
-        'chrom_column'  : 'int',
-        'start_column'  : 'int',
-        'end_column'    : 'int',
-        'strand_column' : 'int',
-        'name_column'   : 'int',
-        'named_columns' : 'bool',
+        "chrom_column": "int",
+        "start_column": "int",
+        "end_column": "int",
+        "strand_column": "int",
+        "name_column": "int",
+        "named_columns": "bool",
     }
 
-    def __init__(self, dataset, chrom_column=None, start_column=None, end_column=None,
-                 strand_column=None, name_column=None, named_columns=False, **kwargs):
+    def __init__(
+        self,
+        dataset,
+        chrom_column=None,
+        start_column=None,
+        end_column=None,
+        strand_column=None,
+        name_column=None,
+        named_columns=False,
+        **kwargs
+    ):
         """
         :param dataset: the Galaxy dataset whose file will be the source
         :type dataset: model.DatasetInstance
@@ -364,34 +420,42 @@ class IntervalDataProvider(column.ColumnarDataProvider):
         indeces = []
         # TODO: this is sort of involved and oogly
         if chrom_column is None:
-            chrom_column = dataset_source.get_metadata_column_index_by_name('chromCol')
+            chrom_column = dataset_source.get_metadata_column_index_by_name("chromCol")
             if chrom_column is not None:
-                self.column_names.append('chrom')
+                self.column_names.append("chrom")
                 indeces.append(chrom_column)
         if start_column is None:
-            start_column = dataset_source.get_metadata_column_index_by_name('startCol')
+            start_column = dataset_source.get_metadata_column_index_by_name("startCol")
             if start_column is not None:
-                self.column_names.append('start')
+                self.column_names.append("start")
                 indeces.append(start_column)
         if end_column is None:
-            end_column = dataset_source.get_metadata_column_index_by_name('endCol')
+            end_column = dataset_source.get_metadata_column_index_by_name("endCol")
             if end_column is not None:
-                self.column_names.append('end')
+                self.column_names.append("end")
                 indeces.append(end_column)
         if strand_column is None:
-            strand_column = dataset_source.get_metadata_column_index_by_name('strandCol')
+            strand_column = dataset_source.get_metadata_column_index_by_name(
+                "strandCol"
+            )
             if strand_column is not None:
-                self.column_names.append('strand')
+                self.column_names.append("strand")
                 indeces.append(strand_column)
         if name_column is None:
-            name_column = dataset_source.get_metadata_column_index_by_name('nameCol')
+            name_column = dataset_source.get_metadata_column_index_by_name("nameCol")
             if name_column is not None:
-                self.column_names.append('name')
+                self.column_names.append("name")
                 indeces.append(name_column)
 
-        kwargs.update({'indeces' : indeces})
-        if not kwargs.get('column_types', None):
-            kwargs.update({'column_types' : dataset_source.get_metadata_column_types(indeces=indeces)})
+        kwargs.update({"indeces": indeces})
+        if not kwargs.get("column_types", None):
+            kwargs.update(
+                {
+                    "column_types": dataset_source.get_metadata_column_types(
+                        indeces=indeces
+                    )
+                }
+            )
 
         self.named_columns = named_columns
 
@@ -417,9 +481,8 @@ class FastaDataProvider(base.FilteredDataProvider):
             sequence: <joined lines of nucleotide/amino data>
         }
     """
-    settings = {
-        'ids'  : 'list:str',
-    }
+
+    settings = {"ids": "list:str"}
 
     def __init__(self, source, ids=None, **kwargs):
         """
@@ -436,10 +499,7 @@ class FastaDataProvider(base.FilteredDataProvider):
     def __iter__(self):
         parent_gen = super(FastaDataProvider, self).__iter__()
         for fasta_record in parent_gen:
-            yield {
-                'id'  : fasta_record.name,
-                'seq' : fasta_record.text
-            }
+            yield {"id": fasta_record.name, "seq": fasta_record.text}
 
 
 class TwoBitFastaDataProvider(DatasetDataProvider):
@@ -451,9 +511,8 @@ class TwoBitFastaDataProvider(DatasetDataProvider):
             sequence: <joined lines of nucleotide/amino data>
         }
     """
-    settings = {
-        'ids'  : 'list:str',
-    }
+
+    settings = {"ids": "list:str"}
 
     def __init__(self, source, ids=None, **kwargs):
         """
@@ -469,10 +528,7 @@ class TwoBitFastaDataProvider(DatasetDataProvider):
 
     def __iter__(self):
         for id_ in self.ids:
-            yield {
-                'id': id_,
-                'seq': self.source[id_]
-            }
+            yield {"id": id_, "seq": self.source[id_]}
 
 
 # TODO:
@@ -480,11 +536,9 @@ class WiggleDataProvider(base.LimitedOffsetDataProvider):
     """
     Class that returns chrom, pos, data from a wiggle source.
     """
-    COLUMN_NAMES = ['chrom', 'pos', 'value']
-    settings = {
-        'named_columns' : 'bool',
-        'column_names'  : 'list:str',
-    }
+
+    COLUMN_NAMES = ["chrom", "pos", "value"]
+    settings = {"named_columns": "bool", "column_names": "list:str"}
 
     def __init__(self, source, named_columns=False, column_names=None, **kwargs):
         """
@@ -522,13 +576,20 @@ class BigWigDataProvider(base.LimitedOffsetDataProvider):
     """
     Class that returns chrom, pos, data from a wiggle source.
     """
-    COLUMN_NAMES = ['chrom', 'pos', 'value']
-    settings = {
-        'named_columns' : 'bool',
-        'column_names'  : 'list:str',
-    }
 
-    def __init__(self, source, chrom, start, end, named_columns=False, column_names=None, **kwargs):
+    COLUMN_NAMES = ["chrom", "pos", "value"]
+    settings = {"named_columns": "bool", "column_names": "list:str"}
+
+    def __init__(
+        self,
+        source,
+        chrom,
+        start,
+        end,
+        named_columns=False,
+        column_names=None,
+        **kwargs
+    ):
         """
         :param chrom: which chromosome within the bigbed file to extract data for
         :type chrom: str
@@ -548,7 +609,7 @@ class BigWigDataProvider(base.LimitedOffsetDataProvider):
             be as short as the number of column names provided.
         :type column_names:
         """
-        raise NotImplementedError('Work in progress')
+        raise NotImplementedError("Work in progress")
         # TODO: validate is a wig
         # still good to maintain a ref to the raw source bc Reader won't
         # self.raw_source = source
@@ -576,6 +637,7 @@ class DatasetSubprocessDataProvider(external.SubprocessDataProvider):
     Uses a subprocess as its source and has a dataset (gen. as an input file
     for the process).
     """
+
     # TODO: below should be a subclass of this and not RegexSubprocess
 
     def __init__(self, dataset, *args, **kwargs):
@@ -583,7 +645,7 @@ class DatasetSubprocessDataProvider(external.SubprocessDataProvider):
         :param args: the list of strings used to build commands.
         :type args: variadic function args
         """
-        raise NotImplementedError('Abstract class')
+        raise NotImplementedError("Abstract class")
         # super(DatasetSubprocessDataProvider, self).__init__(*args, **kwargs)
         # self.dataset = dataset
 
@@ -596,11 +658,14 @@ class SamtoolsDataProvider(line.RegexLineDataProvider):
 
     .. note:: that only the samtools 'view' command is currently implemented.
     """
-    FLAGS_WO_ARGS = 'bhHSu1xXcB'
-    FLAGS_W_ARGS = 'fFqlrs'
+
+    FLAGS_WO_ARGS = "bhHSu1xXcB"
+    FLAGS_W_ARGS = "fFqlrs"
     VALID_FLAGS = FLAGS_WO_ARGS + FLAGS_W_ARGS
 
-    def __init__(self, dataset, options_string='', options_dict=None, regions=None, **kwargs):
+    def __init__(
+        self, dataset, options_string="", options_dict=None, regions=None, **kwargs
+    ):
         """
         :param options_string: samtools options in string form (flags separated
             by spaces)
@@ -624,10 +689,12 @@ class SamtoolsDataProvider(line.RegexLineDataProvider):
 
         # TODO: view only for now
         # TODO: not properly using overriding super's validate_opts, command here
-        subcommand = 'view'
+        subcommand = "view"
         # TODO:?? do we need a path to samtools?
-        subproc_args = self.build_command_list(subcommand, options_string, options_dict, regions)
-# TODO: the composition/inheritance here doesn't make a lot sense
+        subproc_args = self.build_command_list(
+            subcommand, options_string, options_dict, regions
+        )
+        # TODO: the composition/inheritance here doesn't make a lot sense
         subproc_provider = external.SubprocessDataProvider(*subproc_args)
         super(SamtoolsDataProvider, self).__init__(subproc_provider, **kwargs)
 
@@ -635,7 +702,7 @@ class SamtoolsDataProvider(line.RegexLineDataProvider):
         """
         Convert all init args to list form.
         """
-        command = ['samtools', subcommand]
+        command = ["samtools", subcommand]
         # add options and switches, input file, regions list (if any)
         command.extend(self.to_options_list(options_string, options_dict))
         command.append(self.dataset.file_name)
@@ -651,21 +718,22 @@ class SamtoolsDataProvider(line.RegexLineDataProvider):
 
         # strip out any user supplied bash switch formating -> string of option chars
         #   then compress to single option string of unique, VALID flags with prefixed bash switch char '-'
-        options_string = options_string.strip('- ')
-        validated_flag_list = set([flag for flag in options_string if flag in self.FLAGS_WO_ARGS])
+        options_string = options_string.strip("- ")
+        validated_flag_list = set(
+            [flag for flag in options_string if flag in self.FLAGS_WO_ARGS]
+        )
 
         # if sam add -S
         # TODO: not the best test in the world...
-        if((self.dataset.ext == 'sam') and
-                ('S' not in validated_flag_list)):
-            validated_flag_list.append('S')
+        if (self.dataset.ext == "sam") and ("S" not in validated_flag_list):
+            validated_flag_list.append("S")
 
         if validated_flag_list:
-            opt_list.append('-' + ''.join(validated_flag_list))
+            opt_list.append("-" + "".join(validated_flag_list))
 
         for flag, arg in options_dict.items():
             if flag in self.FLAGS_W_ARGS:
-                opt_list.extend(['-' + flag, str(arg)])
+                opt_list.extend(["-" + flag, str(arg)])
 
         return opt_list
 
@@ -719,9 +787,8 @@ class SQliteDataProvider(base.DataProvider):
 
     Allows any query to be run and returns the resulting rows as sqlite3 row objects
     """
-    settings = {
-        'query': 'str'
-    }
+
+    settings = {"query": "str"}
 
     def __init__(self, source, query=None, **kwargs):
         self.query = query
@@ -741,11 +808,8 @@ class SQliteDataTableProvider(base.DataProvider):
     Data provider that uses a sqlite database file as its source.
     Allows any query to be run and returns the resulting rows as arrays of arrays
     """
-    settings = {
-        'query': 'str',
-        'headers': 'bool',
-        'limit': 'int'
-    }
+
+    settings = {"query": "str", "headers": "bool", "limit": "int"}
 
     def __init__(self, source, query=None, headers=False, limit=sys.maxsize, **kwargs):
         self.query = query
@@ -773,9 +837,8 @@ class SQliteDataDictProvider(base.DataProvider):
     Data provider that uses a sqlite database file as its source.
     Allows any query to be run and returns the resulting rows as arrays of dicts
     """
-    settings = {
-        'query': 'str'
-    }
+
+    settings = {"query": "str"}
 
     def __init__(self, source, query=None, **kwargs):
         self.query = query
@@ -786,6 +849,8 @@ class SQliteDataDictProvider(base.DataProvider):
         if (self.query is not None) and sqlite.is_read_only_query(self.query):
             cur = self.connection.cursor()
             for row in cur.execute(self.query):
-                yield [dict((cur.description[i][0], value) for i, value in enumerate(row))]
+                yield [
+                    dict((cur.description[i][0], value) for i, value in enumerate(row))
+                ]
         else:
             yield

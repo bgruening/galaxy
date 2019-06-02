@@ -13,29 +13,32 @@ from collections import namedtuple
 from sqlalchemy.orm import object_session
 
 from galaxy.exceptions import HandlerAssignmentError
-from galaxy.util import (
-    ExecutionTimer,
-    listify
-)
+from galaxy.util import ExecutionTimer, listify
 
 log = logging.getLogger(__name__)
 
 _handler_assignment_methods = (
-    'MEM_SELF', 'DB_SELF', 'DB_PREASSIGN', 'DB_TRANSACTION_ISOLATION', 'DB_SKIP_LOCKED', 'UWSGI_MULE_MESSAGE'
+    "MEM_SELF",
+    "DB_SELF",
+    "DB_PREASSIGN",
+    "DB_TRANSACTION_ISOLATION",
+    "DB_SKIP_LOCKED",
+    "UWSGI_MULE_MESSAGE",
 )
-HANDLER_ASSIGNMENT_METHODS = namedtuple('JOB_HANDLER_ASSIGNMENT_METHODS', _handler_assignment_methods)(
-    *[x.lower().replace('_', '-') for x in _handler_assignment_methods]
-)
+HANDLER_ASSIGNMENT_METHODS = namedtuple(
+    "JOB_HANDLER_ASSIGNMENT_METHODS", _handler_assignment_methods
+)(*[x.lower().replace("_", "-") for x in _handler_assignment_methods])
 
 
 class HandlerAssignmentSkip(Exception):
     """Exception for handler assignment methods to raise if the next method should be tried.
     """
+
     pass
 
 
 class ConfiguresHandlers(object):
-    DEFAULT_HANDLER_TAG = '_default_'
+    DEFAULT_HANDLER_TAG = "_default_"
     DEFAULT_BASE_HANDLER_POOLS = ()
     UNSUPPORTED_HANDLER_ASSIGNMENT_METHODS = ()
 
@@ -57,16 +60,28 @@ class ConfiguresHandlers(object):
 
         # Parse handlers
         if config_element is not None:
-            for handler in ConfiguresHandlers._findall_with_required(config_element, 'handler'):
-                handler_id = handler.get('id')
+            for handler in ConfiguresHandlers._findall_with_required(
+                config_element, "handler"
+            ):
+                handler_id = handler.get("id")
                 if handler_id in processes:
-                    log.error("Handler '%s' overlaps handler with the same name, ignoring", handler_id)
+                    log.error(
+                        "Handler '%s' overlaps handler with the same name, ignoring",
+                        handler_id,
+                    )
                 else:
                     log.debug("Read definition for handler '%s'", handler_id)
                     plugins = []
-                    for plugin in ConfiguresHandlers._findall_with_required(handler, 'plugin', ['id']):
+                    for plugin in ConfiguresHandlers._findall_with_required(
+                        handler, "plugin", ["id"]
+                    ):
                         plugins.append(plugin.get("id"))
-                    tags = [x.strip() for x in handler.get('tags', ConfiguresHandlers.DEFAULT_HANDLER_TAG).split(',')]
+                    tags = [
+                        x.strip()
+                        for x in handler.get(
+                            "tags", ConfiguresHandlers.DEFAULT_HANDLER_TAG
+                        ).split(",")
+                    ]
                     handler_def = {"tags": tags}
                     if plugins:
                         handler_def["plugins"] = plugins
@@ -75,10 +90,12 @@ class ConfiguresHandlers(object):
             if default_handler:
                 handling_config_dict["default"] = default_handler
 
-            assign = listify(config_element.attrib.get('assign_with', []), do_strip=True)
+            assign = listify(
+                config_element.attrib.get("assign_with", []), do_strip=True
+            )
             if len(assign) > 0:
                 handling_config_dict["assign"] = assign
-            max_grab_str = config_element.attrib.get('max_grab', None)
+            max_grab_str = config_element.attrib.get("max_grab", None)
             if max_grab_str:
                 handling_config_dict["max_grab"] = int(max_grab_str)
 
@@ -89,13 +106,22 @@ class ConfiguresHandlers(object):
         for handler_id, process in handling_config_dict.get("processes", {}).items():
             process = process or {}
             if handler_id in self.handlers:
-                log.error("Handler '%s' overlaps handler with the same name, ignoring", handler_id)
+                log.error(
+                    "Handler '%s' overlaps handler with the same name, ignoring",
+                    handler_id,
+                )
             else:
                 log.debug("Read definition for handler '%s'", handler_id)
                 self._parse_handler(handler_id, process)
-                self.add_handler(handler_id, process.get("tags") or [self.DEFAULT_HANDLER_TAG])
+                self.add_handler(
+                    handler_id, process.get("tags") or [self.DEFAULT_HANDLER_TAG]
+                )
 
-        self.default_handler_id = self._ensure_default_set(handling_config_dict.get("default"), list(self.handlers.keys()), required=False)
+        self.default_handler_id = self._ensure_default_set(
+            handling_config_dict.get("default"),
+            list(self.handlers.keys()),
+            required=False,
+        )
 
     def _init_handler_assignment_methods(self, handling_config_dict=None):
         handling_config_dict = handling_config_dict or {}
@@ -114,9 +140,10 @@ class ConfiguresHandlers(object):
         if handling_config_dict:
             for method in handling_config_dict.get("assign", []):
                 method = method.lower()
-                assert method in HANDLER_ASSIGNMENT_METHODS, \
-                    "Invalid job handler assignment method '%s', must be one of: %s" % (
-                        method, ', '.join(HANDLER_ASSIGNMENT_METHODS))
+                assert method in HANDLER_ASSIGNMENT_METHODS, (
+                    "Invalid job handler assignment method '%s', must be one of: %s"
+                    % (method, ", ".join(HANDLER_ASSIGNMENT_METHODS))
+                )
                 try:
                     self.handler_assignment_methods.append(method)
                 except AttributeError:
@@ -124,18 +151,25 @@ class ConfiguresHandlers(object):
                     self.handler_assignment_methods = [method]
             if self.handler_assignment_methods == [HANDLER_ASSIGNMENT_METHODS.MEM_SELF]:
                 self.app.config.track_jobs_in_database = False
-            self.handler_max_grab = handling_config_dict.get('max_grab', self.handler_max_grab)
+            self.handler_max_grab = handling_config_dict.get(
+                "max_grab", self.handler_max_grab
+            )
             if self.handler_max_grab is not None:
                 self.handler_max_grab = int(self.handler_max_grab)
 
     def _set_default_handler_assignment_methods(self):
         if not self.handler_assignment_methods_configured:
-            if not self.app.config.track_jobs_in_database and \
-                    HANDLER_ASSIGNMENT_METHODS.MEM_SELF not in self.UNSUPPORTED_HANDLER_ASSIGNMENT_METHODS:
+            if (
+                not self.app.config.track_jobs_in_database
+                and HANDLER_ASSIGNMENT_METHODS.MEM_SELF
+                not in self.UNSUPPORTED_HANDLER_ASSIGNMENT_METHODS
+            ):
                 # DEPRECATED: You should just set mem_self as the only method if you want this
-                log.warning("The `track_jobs_in_database` option is deprecated, please set `%s` as the job"
-                            " handler assignment method in the job handler configuration",
-                            HANDLER_ASSIGNMENT_METHODS.MEM_SELF)
+                log.warning(
+                    "The `track_jobs_in_database` option is deprecated, please set `%s` as the job"
+                    " handler assignment method in the job handler configuration",
+                    HANDLER_ASSIGNMENT_METHODS.MEM_SELF,
+                )
                 self.handler_assignment_methods = [HANDLER_ASSIGNMENT_METHODS.MEM_SELF]
             elif not self.handlers:
                 # No handlers defined, default is for processes to handle the jobs they create
@@ -143,24 +177,29 @@ class ConfiguresHandlers(object):
             else:
                 # Handlers are defined, default is the value if the default attribute, or any untagged handler if
                 # default attribute is unset
-                self.handler_assignment_methods = [HANDLER_ASSIGNMENT_METHODS.DB_PREASSIGN]
+                self.handler_assignment_methods = [
+                    HANDLER_ASSIGNMENT_METHODS.DB_PREASSIGN
+                ]
             # If the stack has handler pools it can override these defaults
             self.app.application_stack.init_job_handling(self)
-            log.info("%s: No job handler assignment method is set, defaulting to '%s', set the `assign_with` attribute"
-                     " on <handlers> to override the default", self.__class__.__name__,
-                     self.handler_assignment_methods[0])
+            log.info(
+                "%s: No job handler assignment method is set, defaulting to '%s', set the `assign_with` attribute"
+                " on <handlers> to override the default",
+                self.__class__.__name__,
+                self.handler_assignment_methods[0],
+            )
 
     def _parse_handler(self, handler_id, handler_def):
         pass
 
     @staticmethod
     def get_xml_default(config, parent):
-        rval = parent.get('default')
-        if 'default_from_environ' in parent.attrib:
-            environ_var = parent.attrib['default_from_environ']
+        rval = parent.get("default")
+        if "default_from_environ" in parent.attrib:
+            environ_var = parent.attrib["default_from_environ"]
             rval = os.environ.get(environ_var, rval)
-        elif 'default_from_config' in parent.attrib:
-            config_val = parent.attrib['default_from_config']
+        elif "default_from_config" in parent.attrib:
+            config_val = parent.attrib["default_from_config"]
             rval = config.config_dict.get(config_val, rval)
         return rval
 
@@ -188,13 +227,18 @@ class ConfiguresHandlers(object):
         if rval is not None:
             # If the parent element has a 'default' attribute, use the id or tag in that attribute
             if required and rval not in names:
-                raise Exception("default attribute '%s' does not match a defined id or tag in a child element" % (rval))
+                raise Exception(
+                    "default attribute '%s' does not match a defined id or tag in a child element"
+                    % (rval)
+                )
             log.debug("default set to child with id or tag '%s'" % (rval))
         elif auto and len(names) == 1:
             log.info("Setting default to child with id '%s'" % (names[0]))
             rval = names[0]
         elif required:
-            raise Exception("No default specified, please specify a valid id or tag with the 'default' attribute")
+            raise Exception(
+                "No default specified, please specify a valid id or tag with the 'default' attribute"
+            )
         return rval
 
     @staticmethod
@@ -212,11 +256,14 @@ class ConfiguresHandlers(object):
         """
         rval = []
         if attribs is None:
-            attribs = ('id',)
+            attribs = ("id",)
         for elem in parent.findall(match):
             for attrib in attribs:
                 if attrib not in elem.attrib:
-                    log.warning("required '%s' attribute is missing from <%s> element" % (attrib, match))
+                    log.warning(
+                        "required '%s' attribute is missing from <%s> element"
+                        % (attrib, match)
+                    )
                     break
             else:
                 rval.append(elem)
@@ -225,15 +272,23 @@ class ConfiguresHandlers(object):
     @property
     def use_messaging(self):
         # The job manager uses this to determine whether the messaging job queue should be used
-        return HANDLER_ASSIGNMENT_METHODS.UWSGI_MULE_MESSAGE in self.handler_assignment_methods
+        return (
+            HANDLER_ASSIGNMENT_METHODS.UWSGI_MULE_MESSAGE
+            in self.handler_assignment_methods
+        )
 
     @property
     def deterministic_handler_assignment(self):
         return self.handler_assignment_methods and any(
-            filter(lambda x: x in (
-                HANDLER_ASSIGNMENT_METHODS.UWSGI_MULE_MESSAGE,
-                HANDLER_ASSIGNMENT_METHODS.DB_PREASSIGN,
-            ), self.handler_assignment_methods))
+            filter(
+                lambda x: x
+                in (
+                    HANDLER_ASSIGNMENT_METHODS.UWSGI_MULE_MESSAGE,
+                    HANDLER_ASSIGNMENT_METHODS.DB_PREASSIGN,
+                ),
+                self.handler_assignment_methods,
+            )
+        )
 
     def _get_is_handler(self):
         """Indicate whether the current server is configured as a handler.
@@ -242,8 +297,10 @@ class ConfiguresHandlers(object):
         """
         if self.__is_handler is not None:
             return self.__is_handler
-        if (HANDLER_ASSIGNMENT_METHODS.DB_SELF in self.handler_assignment_methods
-                or HANDLER_ASSIGNMENT_METHODS.MEM_SELF in self.handler_assignment_methods):
+        if (
+            HANDLER_ASSIGNMENT_METHODS.DB_SELF in self.handler_assignment_methods
+            or HANDLER_ASSIGNMENT_METHODS.MEM_SELF in self.handler_assignment_methods
+        ):
             return True
         for collection in self.handlers.values():
             if self.app.config.server_name in collection:
@@ -270,13 +327,17 @@ class ConfiguresHandlers(object):
     def handler_tags(self):
         """Get an iteratable of all configured handler tags.
         """
-        return filter(lambda k: isinstance(self.handlers[k], list), self.handlers.keys())
+        return filter(
+            lambda k: isinstance(self.handlers[k], list), self.handlers.keys()
+        )
 
     @property
     def self_handler_tags(self):
         """Get an iterable of the current process's configured handler tags.
         """
-        return filter(lambda k: self.app.config.server_name in self.handlers[k], self.handler_tags)
+        return filter(
+            lambda k: self.app.config.server_name in self.handlers[k], self.handler_tags
+        )
 
     # If these get to be any more complex we should probably modularize them, or at least move to a separate class
 
@@ -299,7 +360,9 @@ class ConfiguresHandlers(object):
                 return configured
         return False
 
-    def _assign_mem_self_handler(self, obj, method, configured, queue_callback=None, **kwargs):
+    def _assign_mem_self_handler(
+        self, obj, method, configured, queue_callback=None, **kwargs
+    ):
         """Assign object to this handler using this process's in-memory queue.
 
         This method ignores all handler configuration.
@@ -313,12 +376,18 @@ class ConfiguresHandlers(object):
 
         :returns: str -- This process's server name (handler ID).
         """
-        assert queue_callback is not None, \
-            "Cannot perform '%s' handler assignment: `queue_callback` is None" % HANDLER_ASSIGNMENT_METHODS.MEM_SELF
+        assert queue_callback is not None, (
+            "Cannot perform '%s' handler assignment: `queue_callback` is None"
+            % HANDLER_ASSIGNMENT_METHODS.MEM_SELF
+        )
         if configured:
-            log.warning("(%s) Ignoring handler assignment to '%s' because configured handler assignment method"
-                        " '' overrides per-tool handler assignment", obj.log_str(),
-                        HANDLER_ASSIGNMENT_METHODS.MEM_SELF, configured)
+            log.warning(
+                "(%s) Ignoring handler assignment to '%s' because configured handler assignment method"
+                " '' overrides per-tool handler assignment",
+                obj.log_str(),
+                HANDLER_ASSIGNMENT_METHODS.MEM_SELF,
+                configured,
+            )
         _timed_flush_obj(obj)
         queue_callback()
         return self.app.config.server_name
@@ -336,14 +405,16 @@ class ConfiguresHandlers(object):
         :returns: str -- The assigned handler ID.
         """
         if configured:
-            return self._handler_assignment_method_methods[HANDLER_ASSIGNMENT_METHODS.DB_PREASSIGN](
-                obj, method, configured, **kwargs
-            )
+            return self._handler_assignment_method_methods[
+                HANDLER_ASSIGNMENT_METHODS.DB_PREASSIGN
+            ](obj, method, configured, **kwargs)
         obj.set_handler(self.app.config.server_name)
         _timed_flush_obj(obj)
         return self.app.config.server_name
 
-    def _assign_db_preassign_handler(self, obj, method, configured, index=None, **kwargs):
+    def _assign_db_preassign_handler(
+        self, obj, method, configured, index=None, **kwargs
+    ):
         """Assign object to a handler by setting its ``handler`` column in the database to a handler selected at random
         from the known handlers in the appropriate tag.
 
@@ -369,8 +440,12 @@ class ConfiguresHandlers(object):
         # HandlerAssigmentError.
         handler_id = self._get_single_item(self.handlers[handler], index=index)
         if handler != handler_id:
-            log.debug("(%s) Selected handler '%s' by random choice from handler tag '%s'", obj.log_str(),
-                      handler_id, handler)
+            log.debug(
+                "(%s) Selected handler '%s' by random choice from handler tag '%s'",
+                obj.log_str(),
+                handler_id,
+                handler,
+            )
         obj.set_handler(handler_id)
         _timed_flush_obj(obj)
         return handler_id
@@ -392,7 +467,9 @@ class ConfiguresHandlers(object):
         _timed_flush_obj(obj)
         return handler
 
-    def _assign_uwsgi_mule_message_handler(self, obj, method, configured, message_callback=None, **kwargs):
+    def _assign_uwsgi_mule_message_handler(
+        self, obj, method, configured, message_callback=None, **kwargs
+    ):
         """Assign object to a handler by sending a setup message to the appropriate handler pool (farm), where a handler
         (mule) will receive the message and assign itself.
 
@@ -406,13 +483,16 @@ class ConfiguresHandlers(object):
         :raises HandlerAssignmentSkip: if the configured or default handler is not a known handler pool (farm)
         :returns: str -- The assigned handler pool.
         """
-        assert message_callback is not None, \
-            "Cannot perform '%s' handler assignment: `message_callback` is None" \
+        assert message_callback is not None, (
+            "Cannot perform '%s' handler assignment: `message_callback` is None"
             % HANDLER_ASSIGNMENT_METHODS.UWSGI_MULE_MESSAGE
+        )
         tag = configured or self.DEFAULT_HANDLER_TAG
         pool = self.pool_for_tag.get(tag)
         if pool is None:
-            log.debug("(%s) No handler pool (uWSGI farm) for '%s' found", obj.log_str(), tag)
+            log.debug(
+                "(%s) No handler pool (uWSGI farm) for '%s' found", obj.log_str(), tag
+            )
             raise HandlerAssignmentSkip()
         else:
             _timed_flush_obj(obj)
@@ -439,20 +519,34 @@ class ConfiguresHandlers(object):
         # WorkflowSchedulingManager, which acts like a combined JobConfiguration and JobManager. Combining those two
         # classes would probably be reasonable (and would remove the need for the queue callback).
         if self._assign_handler_direct(obj, configured):
-            log.info("(%s) Skipped handler assignment logic due to explicit configuration to a single handler: %s",
-                     obj.log_str(), configured)
+            log.info(
+                "(%s) Skipped handler assignment logic due to explicit configuration to a single handler: %s",
+                obj.log_str(),
+                configured,
+            )
             return True
         for method in self.handler_assignment_methods:
             try:
                 handler = self._handler_assignment_method_methods[method](
-                    obj, method, configured=configured, **kwargs)
-                log.info("(%s) Handler '%s' assigned using '%s' assignment method", obj.log_str(), handler, method)
+                    obj, method, configured=configured, **kwargs
+                )
+                log.info(
+                    "(%s) Handler '%s' assigned using '%s' assignment method",
+                    obj.log_str(),
+                    handler,
+                    method,
+                )
                 return handler
             except HandlerAssignmentSkip:
-                log.debug("(%s) Handler assignment method '%s' did not assign a handler, trying next method",
-                          obj.log_str(), method)
+                log.debug(
+                    "(%s) Handler assignment method '%s' did not assign a handler, trying next method",
+                    obj.log_str(),
+                    method,
+                )
             except Exception:
-                log.exception("Caught exception in handler assignment method: %s", method)
+                log.exception(
+                    "Caught exception in handler assignment method: %s", method
+                )
         else:
             # Ideally we could just expunge the object from the SA session here, but in most cases, some of its related
             # objects have already been created, so instead we'll just have to fail it.

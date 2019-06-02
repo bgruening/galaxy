@@ -3,29 +3,26 @@ API operations on annotations.
 """
 import logging
 
-from galaxy import (
-    exceptions,
-    managers
-)
+from galaxy import exceptions, managers
 from galaxy.model.item_attrs import UsesAnnotations
 from galaxy.util.sanitize_html import sanitize_html
 from galaxy.web import expose_api
-from galaxy.web.base.controller import (
-    BaseAPIController,
-    UsesStoredWorkflowMixin
-)
+from galaxy.web.base.controller import BaseAPIController, UsesStoredWorkflowMixin
 
 log = logging.getLogger(__name__)
 
 
-class BaseAnnotationsController(BaseAPIController, UsesStoredWorkflowMixin, UsesAnnotations):
-
+class BaseAnnotationsController(
+    BaseAPIController, UsesStoredWorkflowMixin, UsesAnnotations
+):
     @expose_api
     def index(self, trans, **kwd):
         idnum = kwd[self.tagged_item_id]
         item = self._get_item_from_id(trans, idnum)
         if item is not None:
-            return self.get_item_annotation_str(trans.sa_session, trans.get_user(), item)
+            return self.get_item_annotation_str(
+                trans.sa_session, trans.get_user(), item
+            )
 
     @expose_api
     def create(self, trans, payload, **kwd):
@@ -38,7 +35,9 @@ class BaseAnnotationsController(BaseAPIController, UsesStoredWorkflowMixin, Uses
             # TODO: sanitize on display not entry
             new_annotation = sanitize_html(new_annotation)
 
-            self.add_item_annotation(trans.sa_session, trans.get_user(), item, new_annotation)
+            self.add_item_annotation(
+                trans.sa_session, trans.get_user(), item, new_annotation
+            )
             trans.sa_session.flush()
             return new_annotation
         return ""
@@ -65,7 +64,9 @@ class HistoryAnnotationsController(BaseAnnotationsController):
 
     def _get_item_from_id(self, trans, idstr):
         decoded_idstr = self.decode_id(idstr)
-        history = self.history_manager.get_accessible(decoded_idstr, trans.user, current_history=trans.history)
+        history = self.history_manager.get_accessible(
+            decoded_idstr, trans.user, current_history=trans.history
+        )
         return history
 
 

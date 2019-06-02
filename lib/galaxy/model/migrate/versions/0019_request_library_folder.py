@@ -39,7 +39,7 @@ def upgrade(migrate_engine):
     if Request_table is not None:
         try:
             col = Column("folder_id", Integer, index=True)
-            col.create(Request_table, index_name='ix_request_folder_id')
+            col.create(Request_table, index_name="ix_request_folder_id")
             assert col is Request_table.c.folder_id
         except Exception:
             log.exception("Adding column 'folder_id' to request table failed.")
@@ -49,15 +49,23 @@ def upgrade(migrate_engine):
             LibraryFolder_table = None
             log.debug("Failed loading table library_folder")
         # Add 1 foreign key constraint to the library_folder table
-        if migrate_engine.name != 'sqlite' and Request_table is not None and LibraryFolder_table is not None:
+        if (
+            migrate_engine.name != "sqlite"
+            and Request_table is not None
+            and LibraryFolder_table is not None
+        ):
             try:
-                cons = ForeignKeyConstraint([Request_table.c.folder_id],
-                                            [LibraryFolder_table.c.id],
-                                            name='request_folder_id_fk')
+                cons = ForeignKeyConstraint(
+                    [Request_table.c.folder_id],
+                    [LibraryFolder_table.c.id],
+                    name="request_folder_id_fk",
+                )
                 # Create the constraint
                 cons.create()
             except Exception:
-                log.exception("Adding foreign key constraint 'request_folder_id_fk' to table 'library_folder' failed.")
+                log.exception(
+                    "Adding foreign key constraint 'request_folder_id_fk' to table 'library_folder' failed."
+                )
     # Create the type column in form_definition
     try:
         FormDefinition_table = Table("form_definition", metadata, autoload=True)
@@ -67,7 +75,7 @@ def upgrade(migrate_engine):
     if FormDefinition_table is not None:
         try:
             col = Column("type", TrimmedString(255), index=True)
-            col.create(FormDefinition_table, index_name='ix_form_definition_type')
+            col.create(FormDefinition_table, index_name="ix_form_definition_type")
             assert col is FormDefinition_table.c.type
         except Exception:
             log.exception("Adding column 'type' to form_definition table failed.")

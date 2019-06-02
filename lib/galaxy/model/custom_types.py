@@ -11,17 +11,9 @@ import numpy
 import six
 import sqlalchemy
 from sqlalchemy.ext.mutable import Mutable
-from sqlalchemy.types import (
-    CHAR,
-    LargeBinary,
-    String,
-    TypeDecorator
-)
+from sqlalchemy.types import CHAR, LargeBinary, String, TypeDecorator
 
-from galaxy.util import (
-    smart_str,
-    unicodify
-)
+from galaxy.util import smart_str, unicodify
 from galaxy.util.aliaspickler import AliasPickleModule
 
 log = logging.getLogger(__name__)
@@ -51,9 +43,9 @@ def _sniffnfix_pg9_hex(value):
     Sniff for and fix postgres 9 hex decoding issue
     """
     try:
-        if value[0] == 'x':
+        if value[0] == "x":
             return binascii.unhexlify(value[1:])
-        elif smart_str(value).startswith(b'\\x'):
+        elif smart_str(value).startswith(b"\\x"):
             return binascii.unhexlify(value[2:])
         else:
             return value
@@ -68,14 +60,16 @@ class GalaxyLargeBinary(LargeBinary):
     # likely because `result` should be binary.
     # This doesn't seem to be the case in galaxy.
     if six.PY3:
+
         def result_processor(self, dialect, coltype):
             def process(value):
                 if value is not None:
                     if isinstance(value, str):
-                        value = bytes(value, encoding='utf-8')
+                        value = bytes(value, encoding="utf-8")
                     else:
                         value = bytes(value)
                 return value
+
             return process
 
 
@@ -112,7 +106,7 @@ class JSONType(sqlalchemy.types.TypeDecorator):
         return copy.deepcopy(value)
 
     def compare_values(self, x, y):
-        return (x == y)
+        return x == y
 
 
 class MutationObj(Mutable):
@@ -125,6 +119,7 @@ class MutationObj(Mutable):
 
     And other minor changes to make it work for us.
     """
+
     @classmethod
     def coerce(cls, key, value):
         if isinstance(value, dict) and not isinstance(value, MutationDict):
@@ -162,20 +157,24 @@ class MutationObj(Mutable):
         def pickle(state, state_dict):
             val = state.dict.get(key, None)
             if isinstance(val, cls):
-                if 'ext.mutable.values' not in state_dict:
-                    state_dict['ext.mutable.values'] = []
-                state_dict['ext.mutable.values'].append(val)
+                if "ext.mutable.values" not in state_dict:
+                    state_dict["ext.mutable.values"] = []
+                state_dict["ext.mutable.values"].append(val)
 
         def unpickle(state, state_dict):
-            if 'ext.mutable.values' in state_dict:
-                for val in state_dict['ext.mutable.values']:
+            if "ext.mutable.values" in state_dict:
+                for val in state_dict["ext.mutable.values"]:
                     val._parents[state.obj()] = key
 
-        sqlalchemy.event.listen(parent_cls, 'load', load, raw=True, propagate=True)
-        sqlalchemy.event.listen(parent_cls, 'refresh', load, raw=True, propagate=True)
-        sqlalchemy.event.listen(attribute, 'set', set, raw=True, retval=True, propagate=True)
-        sqlalchemy.event.listen(parent_cls, 'pickle', pickle, raw=True, propagate=True)
-        sqlalchemy.event.listen(parent_cls, 'unpickle', unpickle, raw=True, propagate=True)
+        sqlalchemy.event.listen(parent_cls, "load", load, raw=True, propagate=True)
+        sqlalchemy.event.listen(parent_cls, "refresh", load, raw=True, propagate=True)
+        sqlalchemy.event.listen(
+            attribute, "set", set, raw=True, retval=True, propagate=True
+        )
+        sqlalchemy.event.listen(parent_cls, "pickle", pickle, raw=True, propagate=True)
+        sqlalchemy.event.listen(
+            parent_cls, "unpickle", unpickle, raw=True, propagate=True
+        )
 
 
 class MutationDict(MutationObj, dict):
@@ -187,7 +186,7 @@ class MutationDict(MutationObj, dict):
         return self
 
     def __setitem__(self, key, value):
-        if hasattr(self, '_key'):
+        if hasattr(self, "_key"):
             value = MutationObj.coerce(self._key, value)
         dict.__setitem__(self, key, value)
         self.changed()
@@ -216,7 +215,9 @@ class MutationList(MutationObj, list):
         self.changed()
 
     def __setslice__(self, start, stop, values):
-        list.__setslice__(self, start, stop, (MutationObj.coerce(self._key, v) for v in values))
+        list.__setslice__(
+            self, start, stop, (MutationObj.coerce(self._key, v) for v in values)
+        )
         self.changed()
 
     def __delitem__(self, idx):
@@ -257,9 +258,9 @@ class MutationList(MutationObj, list):
 
 MutationObj.associate_with(JSONType)
 
-metadata_pickler = AliasPickleModule({
-    ("cookbook.patterns", "Bunch"): ("galaxy.util.bunch", "Bunch")
-})
+metadata_pickler = AliasPickleModule(
+    {("cookbook.patterns", "Bunch"): ("galaxy.util.bunch", "Bunch")}
+)
 
 
 def total_size(o, handlers={}, verbose=False):
@@ -274,21 +275,24 @@ def total_size(o, handlers={}, verbose=False):
 
     Recipe from:  https://code.activestate.com/recipes/577504-compute-memory-footprint-of-an-object-and-its-cont/
     """
+
     def dict_handler(d):
         return chain.from_iterable(d.items())
 
-    all_handlers = {tuple: iter,
-                    list: iter,
-                    deque: iter,
-                    dict: dict_handler,
-                    set: iter,
-                    frozenset: iter}
-    all_handlers.update(handlers)     # user handlers take precedence
-    seen = set()                      # track which object id's have already been seen
-    default_size = getsizeof(0)       # estimate sizeof object without __sizeof__
+    all_handlers = {
+        tuple: iter,
+        list: iter,
+        deque: iter,
+        dict: dict_handler,
+        set: iter,
+        frozenset: iter,
+    }
+    all_handlers.update(handlers)  # user handlers take precedence
+    seen = set()  # track which object id's have already been seen
+    default_size = getsizeof(0)  # estimate sizeof object without __sizeof__
 
     def sizeof(o):
-        if id(o) in seen:       # do not double count the same object
+        if id(o) in seen:  # do not double count the same object
             return 0
         seen.add(id(o))
         s = getsizeof(o, default_size)
@@ -315,7 +319,10 @@ class MetadataType(JSONType):
                     sz = total_size(v)
                     if sz > MAX_METADATA_VALUE_SIZE:
                         del value[k]
-                        log.warning('Refusing to bind metadata key %s due to size (%s)' % (k, sz))
+                        log.warning(
+                            "Refusing to bind metadata key %s due to size (%s)"
+                            % (k, sz)
+                        )
             value = json_encoder.encode(value).encode()
         return value
 
@@ -344,6 +351,7 @@ class UUIDType(TypeDecorator):
 
     CHAR(32), storing as stringified hex values.
     """
+
     impl = CHAR
 
     def load_dialect_impl(self, dialect):
@@ -370,5 +378,5 @@ class TrimmedString(TypeDecorator):
     def process_bind_param(self, value, dialect):
         """Automatically truncate string values"""
         if self.impl.length and value is not None:
-            value = value[0:self.impl.length]
+            value = value[0 : self.impl.length]
         return value
