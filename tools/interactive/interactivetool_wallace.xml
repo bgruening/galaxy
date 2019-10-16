@@ -4,8 +4,9 @@
         <container type="docker">quay.io/bgruening/wilson-app</container>
     </requirements>
     <entry_points>
-        <entry_point name="Wilson visualisation of $infile.display_name" requires_domain="True">
+        <entry_point name="Wallace visualisation of $infile.display_name" requires_domain="True">
             <port>3838</port>
+            <url>/sample-apps/SIG/wallace/shiny/</url>
         </entry_point>
     </entry_points>
     <environment_variables>
@@ -23,7 +24,7 @@
         </environment_variable> <!-- FIXME: We should have a better way to get user's API key -->
     </environment_variables>
     <command><![CDATA[
-        ln -s '${infile}' /import/input.TODO &&
+        ln -s '${infile}' /srv/shiny-server/data/inputdata.txt &&
         /usr/bin/shiny-server.sh
     ]]>
     </command>
