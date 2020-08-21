@@ -1,0 +1,54 @@
+[
+    {
+        "id": "1cd8e2f6b131e891",
+        "element_index": 0,
+        "element_type": "dataset_collection",
+        "element_identifier": "M117-bl.fq",
+        "model_class": "DatasetCollectionElement",
+        "object": {
+            "id": "1cd8e2f6b131e891",
+            "collection_type": "paired",
+            "contents_url": "/api/dataset_collections/f597429621d6eb2b/contents/1cd8e2f6b131e891",
+            "model_class": "DatasetCollection"
+        }
+    },
+    {
+        "id": "a799d38679e985db",
+        "element_index": 1,
+        "element_type": "dataset_collection",
+        "element_identifier": "M117-ch.fq",
+        "model_class": "DatasetCollectionElement",
+        "object": {
+            "id": "ebfb8f50c6abde6d",
+            "collection_type": "paired",
+            "contents_url": "/api/dataset_collections/f597429621d6eb2b/contents/ebfb8f50c6abde6d",
+            "model_class": "DatasetCollection"
+        }
+    },
+    {
+        "id": "0a248a1f62a0cc04",
+        "element_index": 2,
+        "element_type": "dataset_collection",
+        "element_identifier": "M117C1-bl.fq",
+        "model_class": "DatasetCollectionElement",
+        "object": {
+            "id": "33b43b4e7093c91f",
+            "collection_type": "paired",
+            "contents_url": "/api/dataset_collections/f597429621d6eb2b/contents/33b43b4e7093c91f",
+            "model_class": "DatasetCollection"
+        }
+    },
+    {
+        "id": "e85a3be143d5905b",
+        "element_index": 3,
+        "element_type": "dataset_collection",
+        "element_identifier": "M117C1-ch.fq",
+        "model_class": "DatasetCollectionElement",
+        "object": {
+            "id": "a799d38679e985db",
+            "collection_type": "paired",
+            "contents_url": "/api/dataset_collections/f597429621d6eb2b/contents/a799d38679e985db",
+            "model_class": "DatasetCollection"
+        }
+    }
+]

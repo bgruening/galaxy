@@ -1,0 +1,28 @@
+{
+    "create_time": "2020-06-22T01:21:52.260055",
+    "purged": false,
+    "annotation": "I am the annotation",
+    "state": "ok",
+    "size": 11102,
+    "slug": null,
+    "tags": [],
+    "deleted": false,
+    "genome_build": "?",
+    "contents_active": {
+        "hidden": 32,
+        "active": 16000,
+        "deleted": 1
+    },
+    "username_and_slug": null,
+    "nice_size": "10.8 KB",
+    "empty": false,
+    "user_id": "f2db41e1fa331b3e",
+    "id": "03501d7626bd192f",
+    "update_time": "2020-07-02T17:25:09.653771",
+    "contents_url": "/api/histories/03501d7626bd192f/contents",
+    "hid_counter": 16034,
+    "url": "/api/histories/03501d7626bd192f",
+    "importable": false,
+    "name": "many items",
+    "published": false
+}

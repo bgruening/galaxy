@@ -101,7 +101,10 @@ export var HistoryContents = _super.extend(BASE_MVC.LoggableMixin).extend({
 
             this.jobStateSummariesCollection = new JOB_STATES_MODEL.JobStatesSummaryCollection();
             this.jobStateSummariesCollection.historyId = newId;
-            this.jobStateSummariesCollection.monitor();
+            const useBeta = sessionStorage.getItem("useBetaHistory");
+            if (!useBeta) {
+                this.jobStateSummariesCollection.monitor();
+            }
         }
     },
 

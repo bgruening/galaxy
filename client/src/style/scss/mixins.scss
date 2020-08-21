@@ -14,6 +14,24 @@ $fa-font-path: "../../../node_modules/@fortawesome/fontawesome-free/webfonts/";
     height: 100%;
 }
 
+@mixin absfill() {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+// Centers object inside parent
+// position parent container relative or absolute
+@mixin absCenter() {
+    position: absolute;
+    display: block;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
 // animates max-height and visibility hidden by default, add .active to show
 // boxHeight must be larger than the expected maximum height of the element
 // or it will be clipped
@@ -48,31 +66,21 @@ $fa-font-path: "../../../node_modules/@fortawesome/fontawesome-free/webfonts/";
 // top selector fixed, bottom list scrolls
 @mixin scrollingListLayout($fixedTop, $listRegion) {
     @include fill();
-
     display: flex;
     flex-direction: column;
 
-    #{$fixedTop} {
+    & #{$fixedTop} {
         flex-grow: 0;
     }
 
-    #{$listRegion} {
+    & #{$listRegion} {
         flex-grow: 1;
         @include scrollMe();
     }
 }
 
-// Removes browser formatting of lists
-
-@mixin list_reset() {
-    list-style: none;
-    padding: 0 0 0 0;
-    margin: 0 0 0 0;
-}
-
 // font awesome as a mixin
 // icon variables come from ~font-awesome/scss/_variables.scss
-
 @mixin fontawesome($icon) {
     @include fa-icon();
     &:before {
@@ -83,4 +91,10 @@ $fa-font-path: "../../../node_modules/@fortawesome/fontawesome-free/webfonts/";
         // <a><span>Label</span></a>
         @include sr-only();
     }
+}
+
+@mixin list_reset() {
+    list-style: none;
+    padding: 0 0 0 0;
+    margin: 0 0 0 0;
 }

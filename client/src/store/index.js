@@ -18,15 +18,18 @@ import { workflowStore } from "./workflowStore";
 import { datasetPathDestinationStore } from "./datasetPathDestinationStore";
 import { datasetExtFilesStore } from "./datasetExtFilesStore";
 
+// beta features
+import { historyStore as betaHistoryStore, historyPersist } from "components/History/model/historyStore";
+
 Vue.use(Vuex);
 
 export function createStore() {
-    return new Vuex.Store({
+    const storeConfig = {
         plugins: [
             createCache(),
             (store) => {
-                store.dispatch("user/$init", { store });
                 store.dispatch("config/$init", { store });
+                store.dispatch("user/$init", { store });
             },
         ],
         modules: {
@@ -42,7 +45,18 @@ export function createStore() {
             config: configStore,
             workflows: workflowStore,
         },
-    });
+    };
+
+    // beta history panel features features
+    const useBetaHistory = sessionStorage.getItem("useBetaHistory");
+    if (useBetaHistory) {
+        storeConfig.modules.history = betaHistoryStore;
+        storeConfig.plugins.push(historyPersist.plugin, (store) => {
+            store.dispatch("history/$init", { store });
+        });
+    }
+
+    return new Vuex.Store(storeConfig);
 }
 
 const store = createStore();

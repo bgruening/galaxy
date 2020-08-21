@@ -26,6 +26,7 @@ const mutations = {
 };
 
 export const jobDestinationParametersStore = {
+    namespaced: true,
     state,
     getters,
     actions,

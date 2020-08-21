@@ -22,7 +22,9 @@ import { getAppRoot } from "onload/loadConfig";
 import { getGalaxyInstance } from "app";
 
 export default {
-    props: ["history"],
+    props: {
+        history: { type: Object, required: true },
+    },
     created() {
         this.root = getAppRoot();
     },

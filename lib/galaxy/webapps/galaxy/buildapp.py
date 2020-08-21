@@ -265,6 +265,14 @@ def populate_api_routes(webapp, app):
                           controller="datasets",
                           action="get_metadata_file",
                           conditions=dict(method=["GET"]))
+
+    # Yet another history contents route.
+    # bi-directional query around HID for non-paginated content search
+    webapp.mapper.connect("/api/histories/{history_id}/contents/near/{hid}/{limit}",
+                          action="contents_near",
+                          controller='history_contents',
+                          conditions=dict(method=["GET"]))
+
     webapp.mapper.resource('user',
                            'users',
                            controller='group_users',
