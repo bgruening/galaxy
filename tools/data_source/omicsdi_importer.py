@@ -12,26 +12,28 @@ from galaxy.util.bunch import Bunch
 
 
 # Mappings for known genomespace formats to galaxy formats
-GENOMESPACE_EXT_TO_GALAXY_EXT = {'rifles': 'rifles',
-                                 'lifes': 'lifes',
-                                 'cn': 'cn',
-                                 'gtf': 'gtf',
-                                 'res': 'res',
-                                 'xcn': 'xcn',
-                                 'lowercasetxt': 'lowercasetxt',
-                                 'bed': 'bed',
-                                 'cbs': 'cbs',
-                                 'genomicatab': 'genomicatab',
-                                 'gxp': 'gxp',
-                                 'reversedtxt': 'reversedtxt',
-                                 'nowhitespace': 'nowhitespace',
-                                 'unknown': 'unknown',
-                                 'txt': 'txt',
-                                 'uppercasetxt': 'uppercasetxt',
-                                 'gistic': 'gistic',
-                                 'gff': 'gff',
-                                 'gmt': 'gmt',
-                                 'gct': 'gct'}
+GENOMESPACE_EXT_TO_GALAXY_EXT = {
+    "rifles": "rifles",
+    "lifes": "lifes",
+    "cn": "cn",
+    "gtf": "gtf",
+    "res": "res",
+    "xcn": "xcn",
+    "lowercasetxt": "lowercasetxt",
+    "bed": "bed",
+    "cbs": "cbs",
+    "genomicatab": "genomicatab",
+    "gxp": "gxp",
+    "reversedtxt": "reversedtxt",
+    "nowhitespace": "nowhitespace",
+    "unknown": "unknown",
+    "txt": "txt",
+    "uppercasetxt": "uppercasetxt",
+    "gistic": "gistic",
+    "gff": "gff",
+    "gmt": "gmt",
+    "gct": "gct",
+}
 
 
 def _prepare_json_list(param_list):
@@ -77,27 +79,31 @@ def exec_before_job(app, inp_data, out_data, param_dict=None, tool=None):
     if param_dict is None:
         param_dict = {}
     json_params = {}
-    json_params['param_dict'] = _prepare_json_param_dict(param_dict)
-    json_params['output_data'] = []
-    json_params['job_config'] = dict(GALAXY_DATATYPES_CONF_FILE=param_dict.get('GALAXY_DATATYPES_CONF_FILE'),
-                                     GALAXY_ROOT_DIR=param_dict.get('GALAXY_ROOT_DIR'),
-                                     TOOL_PROVIDED_JOB_METADATA_FILE=galaxy.jobs.TOOL_PROVIDED_JOB_METADATA_FILE)
+    json_params["param_dict"] = _prepare_json_param_dict(param_dict)
+    json_params["output_data"] = []
+    json_params["job_config"] = dict(
+        GALAXY_DATATYPES_CONF_FILE=param_dict.get("GALAXY_DATATYPES_CONF_FILE"),
+        GALAXY_ROOT_DIR=param_dict.get("GALAXY_ROOT_DIR"),
+        TOOL_PROVIDED_JOB_METADATA_FILE=galaxy.jobs.TOOL_PROVIDED_JOB_METADATA_FILE,
+    )
     json_filename = None
     for i, (out_name, data) in enumerate(out_data.items()):
         file_name = data.get_file_name()
-        data_dict = dict(out_data_name=out_name,
-                         ext=data.ext,
-                         dataset_id=data.dataset.id,
-                         hda_id=data.id,
-                         file_name=file_name)
-        json_params['output_data'].append(data_dict)
+        data_dict = dict(
+            out_data_name=out_name,
+            ext=data.ext,
+            dataset_id=data.dataset.id,
+            hda_id=data.id,
+            file_name=file_name,
+        )
+        json_params["output_data"].append(data_dict)
         if json_filename is None:
             json_filename = file_name
-    with open(json_filename, 'w') as out:
+    with open(json_filename, "w") as out:
         out.write(json.dumps(json_params))
 
 
-#def get_galaxy_ext_from_genomespace_format(format):
+# def get_galaxy_ext_from_genomespace_format(format):
 #    return GENOMESPACE_EXT_TO_GALAXY_EXT.get(format, None)
 
 
@@ -105,8 +111,8 @@ def get_galaxy_ext_from_file_ext(filename):
     if not filename:
         return None
     filename = filename.lower()
-    ext = filename.rsplit('.', 1)[-1]
-    return 'txt'  ##get_galaxy_ext_from_genomespace_format(ext)
+    # ext = filename.rsplit(".", 1)[-1]
+    return "txt"  # get_galaxy_ext_from_genomespace_format(ext)
 
 
 def sniff_and_handle_data_type(json_params, output_file):
@@ -118,11 +124,10 @@ def sniff_and_handle_data_type(json_params, output_file):
     try:
         datatypes_registry = Registry()
         datatypes_registry.load_datatypes(
-            root_dir=json_params['job_config']['GALAXY_ROOT_DIR'],
-            config=json_params['job_config']['GALAXY_DATATYPES_CONF_FILE'])
-        file_type = sniff.handle_uploaded_dataset_file(
-            output_file,
-            datatypes_registry)
+            root_dir=json_params["job_config"]["GALAXY_ROOT_DIR"],
+            config=json_params["job_config"]["GALAXY_DATATYPES_CONF_FILE"],
+        )
+        file_type = sniff.handle_uploaded_dataset_file(output_file, datatypes_registry)
         return file_type
     except Exception:
         return None
@@ -134,23 +139,31 @@ def determine_output_filename(input_url, metadata, json_params, primary_dataset)
     is used. If multiple files are being downloaded, each file is given a unique dataset
     name
     """
-    return os.path.join(os.getcwd(), 'outputs', '%s.%s' % (metadata.name, metadata.data_format))
-    output_filename = json_params['output_data'][0]['file_name']
+    return os.path.join(
+        os.getcwd(), "outputs", "%s.%s" % (metadata.name, metadata.data_format)
+    )
+    output_filename = json_params["output_data"][0]["file_name"]
 
     if not primary_dataset or not output_filename:
-        hda_id = json_params['output_data'][0]['hda_id']
-        output_filename = 'primary_%i_%s_visible_%s' % (hda_id, metadata.name, uuid.uuid4())
+        hda_id = json_params["output_data"][0]["hda_id"]
+        output_filename = "primary_%i_%s_visible_%s" % (
+            hda_id,
+            metadata.name,
+            uuid.uuid4(),
+        )
 
     return os.path.join(os.getcwd(), output_filename)
 
 
-def determine_file_type(input_url, output_filename, metadata, json_params, sniffed_type):
+def determine_file_type(
+    input_url, output_filename, metadata, json_params, sniffed_type
+):
     """
     Determine the Galaxy data format for this file.
     """
     # Use genomespace metadata to map type
-    file_format = metadata.data_format_name if metadata.data_format else None
-    file_type = 'txt' ##get_galaxy_ext_from_genomespace_format(file_format)
+    # file_format = metadata.data_format_name if metadata.data_format else None
+    file_type = "txt"  # get_galaxy_ext_from_genomespace_format(file_format)
 
     # If genomespace metadata has no identifiable format, attempt to sniff type
     if not file_type:
@@ -167,101 +180,135 @@ def determine_file_type(input_url, output_filename, metadata, json_params, sniff
     return file_type
 
 
-def save_result_metadata(output_filename, file_type, metadata, json_params,
-                         primary_dataset=False):
+def save_result_metadata(
+    output_filename, file_type, metadata, json_params, primary_dataset=False
+):
     """
     Generates a new job metadata file (typically galaxy.json) with details of
     all downloaded files, which Galaxy can read and use to display history items
     and associated metadata
     """
-    dataset_id = json_params['output_data'][0]['dataset_id']
-    with open(json_params['job_config']['TOOL_PROVIDED_JOB_METADATA_FILE'], 'ab') as metadata_parameter_file:
+    dataset_id = json_params["output_data"][0]["dataset_id"]
+    with open(
+        json_params["job_config"]["TOOL_PROVIDED_JOB_METADATA_FILE"], "ab"
+    ) as metadata_parameter_file:
         if primary_dataset:
-            metadata_parameter_file.write("%s\n" % json.dumps(dict(type='dataset',
-                                                                   dataset_id=dataset_id,
-                                                                   ext=file_type,
-                                                                   name="GenomeSpace importer on %s" % (metadata.name))))
+            metadata_parameter_file.write(
+                "%s\n"
+                % json.dumps(
+                    dict(
+                        type="dataset",
+                        dataset_id=dataset_id,
+                        ext=file_type,
+                        name="GenomeSpace importer on %s" % (metadata.name),
+                    )
+                )
+            )
         else:
-            metadata_parameter_file.write("%s\n" % json.dumps(dict(type='new_primary_dataset',
-                                                                   base_dataset_id=dataset_id,
-                                                                   ext=file_type,
-                                                                   filename=output_filename,
-                                                                   name="GenomeSpace importer on %s" % (metadata.name))))
+            metadata_parameter_file.write(
+                "%s\n"
+                % json.dumps(
+                    dict(
+                        type="new_primary_dataset",
+                        base_dataset_id=dataset_id,
+                        ext=file_type,
+                        filename=output_filename,
+                        name="GenomeSpace importer on %s" % (metadata.name),
+                    )
+                )
+            )
 
 
-def download_single_file(input_url, json_params,
-                         primary_dataset=False):
+def download_single_file(input_url, json_params, primary_dataset=False):
     # 1. Get file metadata
-    #metadata = gs_client.get_metadata(input_url)
+    # metadata = gs_client.get_metadata(input_url)
 
     metadata = Bunch()
     metadata.name = os.path.split(input_url)[-1]
-    metadata.data_format_name = 'FASTA'
-    metadata.data_format = 'fasta'
+    metadata.data_format_name = "FASTA"
+    metadata.data_format = "fasta"
     metadata.url = input_url
 
     # 2. Determine output file name
-    output_filename = determine_output_filename(input_url, metadata, json_params, primary_dataset)
-    print('output_filename is: %s', output_filename)
+    output_filename = determine_output_filename(
+        input_url, metadata, json_params, primary_dataset
+    )
+    print("output_filename is: %s", output_filename)
     # 3. Download file
-    #gs_client.copy(input_url, output_filename)
-    os.system('wget --quiet -O %s %s ' % (output_filename, input_url))
-
+    # gs_client.copy(input_url, output_filename)
+    os.system("wget --quiet -O %s %s " % (output_filename, input_url))
 
     # 4. Decompress file if compressed and sniff type
     sniffed_type = sniff_and_handle_data_type(json_params, output_filename)
 
     # 5. Determine file type from available metadata
-    file_type = determine_file_type(input_url, output_filename, metadata, json_params, sniffed_type)
+    file_type = determine_file_type(
+        input_url, output_filename, metadata, json_params, sniffed_type
+    )
 
     # 6. Write job output metadata
-    save_result_metadata(output_filename, file_type, metadata, json_params,
-                         primary_dataset=primary_dataset)
-    print(json_params['job_config']['TOOL_PROVIDED_JOB_METADATA_FILE'])
-    print(open(json_params['job_config']['TOOL_PROVIDED_JOB_METADATA_FILE']).read())
+    save_result_metadata(
+        output_filename,
+        file_type,
+        metadata,
+        json_params,
+        primary_dataset=primary_dataset,
+    )
+    print(json_params["job_config"]["TOOL_PROVIDED_JOB_METADATA_FILE"])
+    print(open(json_params["job_config"]["TOOL_PROVIDED_JOB_METADATA_FILE"]).read())
 
 
 def download_from_omicsdi_importer(json_parameter_file, root, data_conf):
-    with open(json_parameter_file, 'r') as param_file:
+    with open(json_parameter_file, "r") as param_file:
         json_params = json.load(param_file)
 
-    print('###########')
+    print("###########")
     print(json_params)
-    print('###########')
+    print("###########")
     # Add in missing job config properties that could not be set in the exec_before_job hook
-    json_params['job_config']['GALAXY_ROOT_DIR'] = root
-    json_params['job_config']['GALAXY_DATATYPES_CONF_FILE'] = data_conf
+    json_params["job_config"]["GALAXY_ROOT_DIR"] = root
+    json_params["job_config"]["GALAXY_DATATYPES_CONF_FILE"] = data_conf
 
     # Extract input_urls and token  (format is input_urls^token). If a custom_token is
     # provided, use that instead.
-    url = json_params.get('param_dict', {}).get("URL", "")
+    url = json_params.get("param_dict", {}).get("URL", "")
     print(url)
     response = urllib.urlopen(url)
     data = json.loads(response.read())
     print(data)
-    #if data:
+    # if data:
     #    input_urls = url_with_token.split('^')[0]
     #    token = custom_token
-    #else:
+    # else:
     #    input_urls, token = url_with_token.split('^')
     input_url_list = data
 
-    #gs_client = GenomeSpaceClient(token=token)
+    # gs_client = GenomeSpaceClient(token=token)
 
     for idx, input_url in enumerate(input_url_list):
         print(input_url)
-        download_single_file(input_url, json_params,
-                             primary_dataset=(idx == 0))
+        download_single_file(input_url, json_params, primary_dataset=(idx == 0))
 
 
 def process_args(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--json_parameter_file', type=str,
-                        help="JSON parameter file", required=True)
-    parser.add_argument('-r', '--galaxy_root', type=str,
-                        help="Galaxy root dir", required=True)
-    parser.add_argument('-c', '--data_conf', type=str,
-                        help="Galaxy data types conf file for mapping file types", required=True)
+    parser.add_argument(
+        "-p",
+        "--json_parameter_file",
+        type=str,
+        help="JSON parameter file",
+        required=True,
+    )
+    parser.add_argument(
+        "-r", "--galaxy_root", type=str, help="Galaxy root dir", required=True
+    )
+    parser.add_argument(
+        "-c",
+        "--data_conf",
+        type=str,
+        help="Galaxy data types conf file for mapping file types",
+        required=True,
+    )
 
     args = parser.parse_args(args[1:])
     return args
@@ -269,7 +316,9 @@ def process_args(args):
 
 def main():
     args = process_args(sys.argv)
-    download_from_omicsdi_importer(args.json_parameter_file, args.galaxy_root, args.data_conf)
+    download_from_omicsdi_importer(
+        args.json_parameter_file, args.galaxy_root, args.data_conf
+    )
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <tool name="OmicsDI" id="omicsdi" tool_type="data_source" version="1.0.0">
     <description>Sync dataset's files from OmicsDI</description>
-    <command detect_errors="agressive"><![CDATA[
+    <command detect_errors="aggressive"><![CDATA[
         mkdir -p outputs &&
         python '$__tool_directory__/omicsdi_importer.py'
         --json_parameter_file '${output}'
