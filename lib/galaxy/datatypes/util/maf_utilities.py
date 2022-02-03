@@ -12,6 +12,7 @@ import sys
 import tempfile
 from copy import deepcopy
 from errno import EMFILE
+from typing import Any, Dict, List, Tuple
 
 import bx.align.maf
 import bx.interval_index_file
@@ -319,7 +320,7 @@ def open_or_build_maf_index(maf_file, index_filename, species=None):
 
 def build_maf_index_species_chromosomes(filename, index_species=None):
     species = []
-    species_chromosomes = {}
+    species_chromosomes: Dict[str, List[str]] = {}
     indexes = bx.interval_index_file.Indexes()
     blocks = 0
     try:
@@ -482,7 +483,7 @@ def iter_blocks_split_by_species(block, species=None):
             yield new_block
 
     # divide components by species
-    spec_dict = {}
+    spec_dict: Dict[str, List[str]] = {}
     if not species:
         species = []
         for c in block.components:
@@ -549,15 +550,16 @@ def reduce_block_by_primary_genome(block, species, chromosome, region_start):
     src = f"{species}.{chromosome}"
     ref = block.get_component_by_src(src)
     start_offset = ref.start - region_start
-    species_texts = {}
+    species_dict: Dict[str, List[Any]] = {}
     for c in block.components:
-        species_texts[c.src.split(".")[0]] = list(c.text)
+        species_dict[c.src.split(".")[0]] = list(c.text)
     # remove locations which are gaps in the primary species, starting from the downstream end
-    for i in range(len(species_texts[species]) - 1, -1, -1):
-        if species_texts[species][i] == "-":
-            for text in species_texts.values():
+    for i in range(len(species_dict[species]) - 1, -1, -1):
+        if species_dict[species][i] == "-":
+            for text in species_dict.values():
                 text.pop(i)
-    for spec, text in species_texts.items():
+    species_texts: Dict[str, str] = {}
+    for spec, text in species_dict.items():
         species_texts[spec] = "".join(text)
     return (start_offset, species_texts)
 
@@ -572,7 +574,7 @@ def fill_region_alignment(
     primary_src = f"{primary_species}.{chrom}"
 
     # Order blocks overlaping this position by score, lowest first
-    blocks = []
+    blocks: List[Tuple[float, Any, Any]] = []
     for block, idx, offset in index.get_as_iterator_with_index_and_offset(primary_src, start, end):
         score = float(block.score)
         for i in range(0, len(blocks)):
@@ -799,7 +801,7 @@ def iter_fasta_alignment(filename):
 
     # yields a list of fastaComponents for a FASTA file
     f = open(filename, "rb")
-    components = []
+    components: List[fastaComponent] = []
     # cur_component = None
     while True:
         line = f.readline()
@@ -812,7 +814,7 @@ def iter_fasta_alignment(filename):
             if components:
                 yield components
             components = []
-        elif line.startswith(">"):
+        elif line.startswith(b">"):
             attributes = get_attributes_from_fasta_header(line)
             components.append(fastaComponent(attributes["species"]))
         elif components:

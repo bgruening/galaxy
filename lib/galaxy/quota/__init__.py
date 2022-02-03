@@ -1,5 +1,6 @@
 """Galaxy Quotas"""
 import logging
+from typing import Optional
 
 import galaxy.util
 
@@ -85,7 +86,7 @@ class DatabaseQuotaAgent(QuotaAgent):
         self.model = model
         self.sa_session = model.context
 
-    def get_quota(self, user):
+    def get_quota(self, user) -> Optional[int]:
         """
         Calculated like so:
 
@@ -108,15 +109,12 @@ class DatabaseQuotaAgent(QuotaAgent):
             if quota not in quotas:
                 quotas.append(quota)
         use_default = True
-        max = 0
         adjustment = 0
-        rval = 0
         for quota in quotas:
             if quota.deleted:
                 continue
             if quota.operation == "=" and quota.bytes == -1:
-                rval = None
-                break
+                return None
             elif quota.operation == "=":
                 use_default = False
                 if quota.bytes > max:
@@ -126,14 +124,11 @@ class DatabaseQuotaAgent(QuotaAgent):
             elif quota.operation == "-":
                 adjustment -= quota.bytes
         if use_default:
-            max = self.default_registered_quota
-            if max is None:
-                rval = None
-        if rval is not None:
-            rval = max + adjustment
-            if rval <= 0:
-                rval = 0
-        return rval
+            max_value = self.default_registered_quota
+            if max_value is None:
+                return None
+        rval = max_value + adjustment
+        return max(rval, 0)
 
     @property
     def default_unregistered_quota(self):
