@@ -17,6 +17,8 @@ total-perspective-vortex>=2.3.2,<3
 
 # For file sources plugins
 fs.webdavfs>=0.4.2  # type: webdav
+# webdavclient3 on the develop branch contains an important fix for username-based authentification containing the '@' symbol
+webdavclient3 @ git+https://github.com/bgruening/webdav-client-python-3@develop
 fs.dropboxfs>=1.0  # type: dropbox
 fs.sshfs  # type: ssh
 fs.anvilfs # type: anvil
