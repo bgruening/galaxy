@@ -40,7 +40,9 @@ DEFAULTS = {"STRATEGY": "Strategy", "STORAGE": "Storage"}
 BACKENDS = {
     "google": "social_core.backends.google_openidconnect.GoogleOpenIdConnect",
     "globus": "social_core.backends.globus.GlobusOpenIdConnect",
-    "elixir": "social_core.backends.elixir.ElixirOpenIdConnect",
+    "elixir": "social_core.backends.elixir.ElixirOpenIdConnect", # deprecated
+    "lifescience": "social_core.backends.lifescience.LifeScienceOpenIdConnect",
+    "nfdi": "social_core.backends.nfdi.NFDIOpenIdConnect",
     "okta": "social_core.backends.okta_openidconnect.OktaOpenIdConnect",
     "azure": "social_core.backends.azuread_tenant.AzureADV2TenantOAuth2",
     "egi_checkin": "social_core.backends.egi_checkin.EGICheckinOpenIdConnect",
@@ -50,7 +52,9 @@ BACKENDS = {
 BACKENDS_NAME = {
     "google": "google-openidconnect",
     "globus": "globus",
-    "elixir": "elixir",
+    "elixir": "elixir", # deprecated
+    "lifescience": "lifescience",
+    "nfdi": "nfdi",
     "okta": "okta-openidconnect",
     "azure": "azuread-v2-tenant-oauth2",
     "egi_checkin": "egi-checkin",
