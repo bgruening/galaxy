@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import posixpath
 import re
 import urllib.request
 from tempfile import NamedTemporaryFile
@@ -17,7 +18,10 @@ from urllib.parse import (
 import pytest
 import responses
 
-from galaxy.exceptions import AuthenticationRequired
+from galaxy.exceptions import (
+    AuthenticationRequired,
+    MessageException,
+)
 from galaxy.files.models import FilesSourceOptions
 from galaxy.schema.remote_files import CreateEntryPayload
 from ._util import configured_file_sources
@@ -141,6 +145,28 @@ def _folder(node_id: str, provider_name: str, folder_id: str, name: str, materia
             "upload": f"https://files.osf.io/v1/resources/{node_id}/providers/{provider_name}/{folder_id}/",
             "new_folder": f"https://files.osf.io/v1/resources/{node_id}/providers/{provider_name}/{folder_id}/?kind=folder",
             "self": f"{API_ROOT}/files/{folder_id}/",
+        },
+    }
+
+
+def _folder_create_response(
+    node_id: str,
+    provider_name: str,
+    folder_id: str,
+    materialized_path: str,
+    response_id: Optional[str] = None,
+) -> dict[str, Any]:
+    return {
+        "id": response_id or folder_id,
+        "attributes": {
+            "kind": "folder",
+            "name": posixpath.basename(materialized_path.rstrip("/")),
+            "path": materialized_path,
+        },
+        "links": {
+            "upload": f"https://files.osf.io/v1/resources/{node_id}/providers/{provider_name}/{folder_id}/",
+            "new_folder": f"https://files.osf.io/v1/resources/{node_id}/providers/{provider_name}/{folder_id}/?kind=folder",
+            "delete": f"https://files.osf.io/v1/resources/{node_id}/providers/{provider_name}/{folder_id}/",
         },
     }
 
@@ -272,6 +298,34 @@ def test_write_intent_filters_to_writable_nodes():
 
 
 @responses.activate
+def test_invalid_token_error_is_explicit():
+    file_source = _file_source(token="bad-token")
+    responses.add(
+        responses.GET,
+        f"{API_ROOT}/users/me/nodes/",
+        json={"errors": [{"detail": "User provided an invalid OAuth2 access token"}]},
+        status=401,
+    )
+
+    with pytest.raises(MessageException, match="OSF rejected the provided personal access token"):
+        file_source.list("/")
+
+
+@responses.activate
+def test_forbidden_token_error_mentions_scope():
+    file_source = _file_source(token="read-only-token")
+    responses.add(
+        responses.GET,
+        f"{API_ROOT}/users/me/nodes/",
+        json={"errors": [{"detail": "You do not have permission to perform this action"}]},
+        status=403,
+    )
+
+    with pytest.raises(MessageException, match="osf.full_read"):
+        file_source.list("/")
+
+
+@responses.activate
 def test_scoped_recursive_listing_and_download():
     file_source = _file_source(node_id="node01", provider="osfstorage", token="secret-token")
     provider_entry = _provider("node01")
@@ -356,7 +410,7 @@ def test_create_folder_and_upload_file():
         status=200,
     )
 
-    def waterbutler_put_callback(request):
+    def create_folder_or_upload_callback(request):
         query = parse_qs(urlparse(request.url).query)
         assert request.headers["Authorization"] == "Bearer secret-token"
         if query.get("kind") == ["folder"]:
@@ -370,7 +424,7 @@ def test_create_folder_and_upload_file():
     responses.add_callback(
         responses.PUT,
         "https://files.osf.io/v1/resources/node01/providers/osfstorage/",
-        callback=waterbutler_put_callback,
+        callback=create_folder_or_upload_callback,
         content_type="application/json",
     )
 
@@ -402,3 +456,91 @@ def test_create_folder_and_upload_file():
         os.unlink(temp_path)
 
     assert actual_uri == f"{ROOT_URI}/node01/osfstorage/result.txt"
+
+
+@responses.activate
+def test_write_from_creates_missing_parent_folders():
+    file_source = _file_source(writable=True, node_id="node01", provider="osfstorage", token="secret-token")
+    provider_entry = _provider("node01")
+    writable_node = _node("node01", "Writable Node", permissions=["read", "write"])
+    foo_folder_create_response = _folder_create_response(
+        "node01",
+        "osfstorage",
+        "folder-foo",
+        "/foo/",
+        response_id="osfstorage/69adf0289e20212661797439/",
+    )
+    bar_folder_create_response = _folder_create_response(
+        "node01",
+        "osfstorage",
+        "folder-bar",
+        "/foo/bar/",
+        response_id="osfstorage/69adf0289e2021266179743a/",
+    )
+
+    responses.add(
+        responses.GET,
+        f"{API_ROOT}/nodes/node01/",
+        json={"data": writable_node, "meta": {"version": "2.0"}},
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        f"{API_ROOT}/nodes/node01/files/providers/osfstorage/",
+        json={"data": provider_entry, "meta": {"version": "2.0"}},
+        status=200,
+    )
+    def root_children_callback(request):
+        query = parse_qs(urlparse(request.url).query)
+        if not query:
+            payload = _list_response([], total=0)
+        elif query == {"filter[name]": ["foo"], "filter[kind]": ["folder"]}:
+            payload = _list_response([], total=0)
+        else:
+            raise AssertionError(f"Unexpected query string for root children: {query}")
+        return (200, {}, json.dumps(payload))
+
+    responses.add_callback(
+        responses.GET,
+        re.compile(rf"{re.escape(API_ROOT)}/nodes/node01/files/osfstorage/?(?:\?.*)?$"),
+        callback=root_children_callback,
+        content_type="application/json",
+    )
+    responses.add(
+        responses.PUT,
+        "https://files.osf.io/v1/resources/node01/providers/osfstorage/",
+        json={"data": foo_folder_create_response},
+        status=201,
+    )
+    responses.add(
+        responses.PUT,
+        "https://files.osf.io/v1/resources/node01/providers/osfstorage/folder-foo/",
+        json={"data": bar_folder_create_response},
+        status=201,
+    )
+
+    def nested_upload_callback(request):
+        query = parse_qs(urlparse(request.url).query)
+        assert request.headers["Authorization"] == "Bearer secret-token"
+        assert query == {"kind": ["file"], "name": ["result.txt"]}
+        assert request.body == b"nested upload payload"
+        return (201, {}, "{}")
+
+    responses.add_callback(
+        responses.PUT,
+        "https://files.osf.io/v1/resources/node01/providers/osfstorage/folder-bar/",
+        callback=nested_upload_callback,
+        content_type="application/json",
+    )
+
+    with NamedTemporaryFile(mode="wb", delete=False) as temp:
+        temp.write(b"nested upload payload")
+        temp.flush()
+        temp_path = temp.name
+
+    try:
+        actual_uri = file_source.write_from("/node01/osfstorage/foo/bar/result.txt", temp_path)
+    finally:
+        os.unlink(temp_path)
+
+    assert actual_uri == f"{ROOT_URI}/node01/osfstorage/foo/bar/result.txt"

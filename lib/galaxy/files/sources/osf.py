@@ -261,12 +261,11 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
             upload_url = existing_entry["links"].get("upload")
             upload_params = {"kind": "file"}
         else:
-            parent_entry = self._get_entry_by_materialized_path(
+            parent_entry = self._ensure_folder_path(
                 resolved_path.node_id,
                 resolved_path.provider,
                 parent_path,
                 context,
-                expected_kind="folder",
             )
             upload_url = parent_entry["links"].get("upload")
             upload_params = {"kind": "file", "name": filename}
@@ -545,6 +544,60 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
             return files_link
         raise MessageException("OSF folder entry does not expose a children listing URL.")
 
+    def _entry_has_children_listing(self, entry: dict[str, Any]) -> bool:
+        return bool(entry.get("relationships", {}).get("files", {}).get("links", {}).get("related", {}).get("href"))
+
+    def _ensure_folder_path(
+        self,
+        node_id: str,
+        provider: str,
+        materialized_path: str,
+        context: FilesSourceRuntimeContext[OSFFileSourceConfiguration],
+    ) -> dict[str, Any]:
+        current_entry = self._get_provider_root(node_id, provider, context)
+        normalized_path = self._normalize_materialized_path(materialized_path)
+        if normalized_path == "/":
+            return current_entry
+
+        parts = [part for part in normalized_path.strip("/").split("/") if part]
+        for part in parts:
+            if self._entry_has_children_listing(current_entry):
+                try:
+                    current_entry = self._get_child_entry(current_entry, part, context, expected_kind="folder")
+                    continue
+                except ObjectNotFound:
+                    pass
+            current_entry = self._create_child_folder(current_entry, part, context)
+        return current_entry
+
+    def _create_child_folder(
+        self,
+        parent_entry: dict[str, Any],
+        folder_name: str,
+        context: FilesSourceRuntimeContext[OSFFileSourceConfiguration],
+    ) -> dict[str, Any]:
+        new_folder_url = parent_entry["links"].get("new_folder")
+        if not new_folder_url:
+            raise MessageException("The selected OSF location does not allow folder creation.")
+        response = self._request(
+            "PUT",
+            new_folder_url,
+            context,
+            params={"name": folder_name},
+            expected_status_codes={201},
+            auth_required=True,
+        )
+        try:
+            payload = response.json()
+        except Exception:
+            payload = {}
+        created_entry = payload.get("data") if isinstance(payload, dict) else None
+        if isinstance(created_entry, dict):
+            return created_entry
+        if self._entry_has_children_listing(parent_entry):
+            return self._get_child_entry(parent_entry, folder_name, context, expected_kind="folder")
+        raise MessageException("OSF folder creation did not return enough information to continue creating nested folders.")
+
     def _get_all_user_nodes(
         self, context: FilesSourceRuntimeContext[OSFFileSourceConfiguration], query: Optional[str] = None
     ) -> list[dict[str, Any]]:
@@ -606,7 +659,7 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
     def _get_request_headers(
         self, context: FilesSourceRuntimeContext[OSFFileSourceConfiguration], auth_required: bool = False
     ) -> dict[str, str]:
-        token = context.config.token
+        token = context.config.token.strip() if context.config.token else None
         if auth_required and not token:
             self._raise_auth_required()
         return {"Authorization": f"Bearer {token}"} if token else {}
@@ -621,6 +674,21 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
             return
         if response.status_code in {401, 403} and not context.config.token:
             self._raise_auth_required()
+        if response.status_code == 401 and context.config.token:
+            detail = self._response_error_message(response)
+            raise MessageException(
+                "OSF rejected the provided personal access token. "
+                "Check that the token is valid, copied without extra whitespace, and belongs to this OSF server. "
+                f"OSF reported: {detail}"
+            )
+        if response.status_code == 403 and context.config.token:
+            detail = self._response_error_message(response)
+            raise MessageException(
+                "OSF denied this request for the provided personal access token. "
+                "Check that the token has the required OSF scope "
+                "(`osf.full_read` for browsing, `osf.full_write` for uploads) and that you can access this node. "
+                f"OSF reported: {detail}"
+            )
         if response.status_code == 404:
             raise ObjectNotFound(f"Request to {response.url} returned 404.")
         raise MessageException(

@@ -28,6 +28,7 @@ export const URI_PREFIXES = [
     "invenio://",
     "zenodo://",
     "dataverse://",
+    "osf://",
     "elabftw://",
     "zip://",
     "ascp://",

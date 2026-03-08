@@ -185,6 +185,33 @@ describe("buildLegacyPayload", () => {
         expect(element.deferred).toBe(true);
     });
 
+    test("OSF URL payload", () => {
+        const result = buildLegacyPayload(
+            [
+                {
+                    dbKey: "hg38",
+                    deferred: true,
+                    extension: "csv",
+                    fileName: "M07.csv",
+                    fileUri: "osf://osf/xgbna/osfstorage/IBMMA_13_Results/seed_LAmygdala/Mega/GLANCE/REMLcrit/M07.csv",
+                    fileMode: "url",
+                    fileSize: 0,
+                } as LegacyUploadItem,
+            ],
+            "historyId",
+        );
+
+        expect(result.files).toEqual([]);
+
+        const target = result.targets[0]!;
+        const element = target.elements![0] as { src: string; url: string; deferred: boolean };
+        expect(element.src).toBe("url");
+        expect(element.url).toBe(
+            "osf://osf/xgbna/osfstorage/IBMMA_13_Results/seed_LAmygdala/Mega/GLANCE/REMLcrit/M07.csv"
+        );
+        expect(element.deferred).toBe(true);
+    });
+
     test("multiple URLs from new mode", () => {
         const result = buildLegacyPayload(
             [
