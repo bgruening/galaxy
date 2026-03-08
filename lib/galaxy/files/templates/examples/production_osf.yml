@@ -1,0 +1,52 @@
+- id: osf
+  version: 0
+  name: OSF
+  description: |
+      [OSF](https://osf.io) is a research collaboration and data repository platform. This file source lets Galaxy
+      browse OSF projects, providers, folders, and files through the OSF API. It can also upload files and create
+      folders when a personal access token is configured and write support is enabled.
+  variables:
+      url:
+          label: OSF repository URL
+          type: string
+          optional: true
+          default: https://osf.io
+          help: |
+              The normal OSF site URL to connect to, such as `https://osf.io`. Galaxy will infer the corresponding
+              API base URL internally. API-style URLs such as `https://api.osf.io/v2` are also accepted.
+      writable:
+          label: Allow Galaxy to export data to OSF?
+          type: boolean
+          optional: true
+          default: false
+          help: |
+              Set this to "Yes" to allow Galaxy to create folders and upload files through OSF's WaterButler-backed
+              file APIs. A personal access token is required for write operations.
+      node_id:
+          label: Optional OSF node ID
+          type: string
+          optional: true
+          help: |
+              Optionally scope the file source to a single OSF project or component. If omitted, Galaxy will browse the
+              authenticated user's OSF nodes when a token is available, or public nodes otherwise.
+      provider:
+          label: Optional OSF storage provider
+          type: string
+          optional: true
+          help: |
+              Optionally scope the file source to a single provider such as `osfstorage`. If this is set, `node_id`
+              must also be set.
+  secrets:
+      token:
+          label: Personal Access Token
+          optional: true
+          help: |
+              The OSF personal access token used to access private projects and perform write operations.
+
+  configuration:
+      type: osf
+      url: "{{ variables.url }}"
+      token: "{{ secrets.token }}"
+      writable: "{{ variables.writable }}"
+      node_id: "{{ variables.node_id }}"
+      provider: "{{ variables.provider }}"
