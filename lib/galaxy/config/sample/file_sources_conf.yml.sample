@@ -296,6 +296,18 @@
   public_name: ${user.preferences['dataverse_sandbox|public_name']}
   writable: true
 
+- type: osf
+  id: osf
+  doc: Open Science Framework (OSF) projects and files. With a token configured, Galaxy can browse private OSF nodes and optionally upload files or create folders.
+  label: Open Science Framework (OSF)
+  url: https://osf.io
+  token: ${user.user_vault.read_secret('preferences/osf/token')}
+  # token: ${user.preferences['osf|token']} # Alternatively use this for retrieving the token from user preferences instead of the Vault
+  writable: true
+  # Optionally scope the file source to a single OSF node and provider
+  # node_id: abc12
+  # provider: osfstorage
+
 # Note for developers: you can easily set up a minimal, dockerized Onedata environment
 # using the so-called "demo-mode": https://onedata.org/#/home/documentation/topic/stable/demo-mode
 - type: onedata

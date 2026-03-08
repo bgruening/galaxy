@@ -414,6 +414,25 @@ configuration).
 
 ![](file_source_zenodo_configuration.png)
 
+#### `osf`
+
+The `osf` file source integrates Galaxy with the `Open Science Framework (OSF) <https://osf.io>`__.
+Unlike the repository-style InvenioRDM and Zenodo integrations, OSF exposes a nested filesystem made
+up of nodes, storage providers, folders, and files. Galaxy represents OSF paths as
+`/<node_id>/<provider>/<path...>`.
+
+Users should provide the normal OSF repository URL such as `https://osf.io`, not the API root.
+
+The template can optionally be scoped to a single `node_id` and `provider`. This is useful when you
+want Galaxy to expose one OSF project directly instead of starting from the broader list of available
+nodes. When `writable` is enabled, Galaxy can create folders and upload files through OSF's
+WaterButler-backed file API, but this requires a personal access token and write access to the target
+node.
+
+```{literalinclude} ../../../lib/galaxy/files/templates/examples/production_osf.yml
+:language: yaml
+```
+
 #### `rspace`
 
 The syntax for the `configuration` section of `rspace` templates looks like this.
@@ -549,6 +568,19 @@ and you are comfortable with it storing your user's secrets.
 ```
 
 ![Screenshot](user_file_source_form_full_zenodo.png)
+
+#### Allow Users to Define OSF as File Source
+
+```{literalinclude} ../../../lib/galaxy/files/templates/examples/production_osf.yml
+:language: yaml
+```
+
+The OSF file source can be used in a few different ways:
+
+- Leave both `node_id` and `provider` unset to browse OSF nodes dynamically. With a token, Galaxy starts from the authenticated user's nodes; without one, it starts from public nodes.
+- Set `node_id` to pin the file source to one OSF project or component and let users choose among that node's providers.
+- Set both `node_id` and `provider` to expose a single provider root directly, which is often the most convenient option for history export destinations.
+- Enable `writable: true` only when you want Galaxy to create folders and upload files. Write operations require a personal access token and OSF write permissions for the selected node.
 
 #### Allow Users to Define RSpace Instances as File Sources
 
