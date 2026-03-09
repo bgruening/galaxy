@@ -242,6 +242,39 @@ def test_root_listing_uses_osf_node_pagination_and_search():
 
 
 @responses.activate
+def test_root_listing_handles_non_aligned_offset_across_pages():
+    file_source = _file_source()
+
+    def list_nodes_callback(request):
+        query = parse_qs(urlparse(request.url).query)
+        page = query["page"][0]
+        assert query["page[size]"] == ["25"]
+        if page == "1":
+            payload = _list_response(
+                [_node(f"node{i:02d}", f"Project {i:02d}") for i in range(25)],
+                total=40,
+                next_url=f"{API_ROOT}/nodes/?page%5Bsize%5D=25&page=2",
+            )
+        elif page == "2":
+            payload = _list_response([_node(f"node{i:02d}", f"Project {i:02d}") for i in range(25, 40)], total=40)
+        else:
+            raise AssertionError(f"Unexpected page for node listing: {page}")
+        return (200, {}, json.dumps(payload))
+
+    responses.add_callback(
+        responses.GET,
+        f"{API_ROOT}/nodes/",
+        callback=list_nodes_callback,
+        content_type="application/json",
+    )
+
+    entries, total = file_source.list("/", limit=25, offset=10)
+
+    assert total == 40
+    assert [entry.path for entry in entries] == [f"/node{i:02d}" for i in range(10, 35)]
+
+
+@responses.activate
 def test_api_url_is_accepted():
     file_source = _file_source(url=API_ROOT)
     responses.add(
@@ -263,6 +296,43 @@ def test_write_intent_requires_token():
 
     with pytest.raises(AuthenticationRequired):
         file_source.list("/", opts=FilesSourceOptions(write_intent=True))
+
+
+def test_create_folder_at_root_has_clear_error():
+    file_source = _file_source(writable=True, token="secret-token")
+
+    with pytest.raises(MessageException, match="Cannot create a folder at the OSF root"):
+        file_source.create_entry(CreateEntryPayload(target=ROOT_URI, name="exports"))
+
+
+def test_upload_to_project_level_has_clear_error():
+    file_source = _file_source(writable=True, token="secret-token")
+
+    with NamedTemporaryFile(mode="wb", delete=False) as temp:
+        temp.write(b"upload payload")
+        temp.flush()
+        temp_path = temp.name
+
+    try:
+        with pytest.raises(MessageException, match="That level only lists storage providers"):
+            file_source.write_from("/node01", temp_path)
+    finally:
+        os.unlink(temp_path)
+
+
+def test_upload_to_provider_root_requires_filename():
+    file_source = _file_source(writable=True, token="secret-token")
+
+    with NamedTemporaryFile(mode="wb", delete=False) as temp:
+        temp.write(b"upload payload")
+        temp.flush()
+        temp_path = temp.name
+
+    try:
+        with pytest.raises(MessageException, match="/node01/osfstorage/result.txt"):
+            file_source.write_from("/node01/osfstorage", temp_path)
+    finally:
+        os.unlink(temp_path)
 
 
 @responses.activate
@@ -389,6 +459,75 @@ def test_scoped_recursive_listing_and_download():
             assert handle.read() == b"root contents"
     finally:
         os.unlink(output_path)
+
+
+@responses.activate
+def test_recursive_listing_follows_pagination_for_root_and_nested_folders():
+    file_source = _file_source(node_id="node01", provider="osfstorage", token="secret-token")
+    provider_entry = _provider("node01")
+    folder_entry = _folder("node01", "osfstorage", "folder01", "subdir", "/subdir/")
+    nested_file_one = _file("node01", "osfstorage", "file11", "nested-1.txt", "/subdir/nested-1.txt")
+    nested_file_two = _file("node01", "osfstorage", "file12", "nested-2.txt", "/subdir/nested-2.txt")
+    root_file_two = _file("node01", "osfstorage", "file02", "root-2.txt", "/root-2.txt")
+
+    responses.add(
+        responses.GET,
+        f"{API_ROOT}/nodes/node01/files/providers/osfstorage/",
+        json={"data": provider_entry, "meta": {"version": "2.0"}},
+        status=200,
+    )
+
+    def root_children_callback(request):
+        query = parse_qs(urlparse(request.url).query)
+        if not query:
+            payload = _list_response(
+                [folder_entry],
+                total=2,
+                next_url=f"{API_ROOT}/nodes/node01/files/osfstorage/?page=2",
+            )
+        elif query == {"page": ["2"]}:
+            payload = _list_response([root_file_two], total=2)
+        else:
+            raise AssertionError(f"Unexpected query string for root children: {query}")
+        return (200, {}, json.dumps(payload))
+
+    responses.add_callback(
+        responses.GET,
+        re.compile(rf"{re.escape(API_ROOT)}/nodes/node01/files/osfstorage/?(?:\?.*)?$"),
+        callback=root_children_callback,
+        content_type="application/json",
+    )
+
+    def nested_children_callback(request):
+        query = parse_qs(urlparse(request.url).query)
+        if not query:
+            payload = _list_response(
+                [nested_file_one],
+                total=2,
+                next_url=f"{API_ROOT}/nodes/node01/files/osfstorage/folder01/?page=2",
+            )
+        elif query == {"page": ["2"]}:
+            payload = _list_response([nested_file_two], total=2)
+        else:
+            raise AssertionError(f"Unexpected query string for nested children: {query}")
+        return (200, {}, json.dumps(payload))
+
+    responses.add_callback(
+        responses.GET,
+        re.compile(rf"{re.escape(API_ROOT)}/nodes/node01/files/osfstorage/folder01/?(?:\?.*)?$"),
+        callback=nested_children_callback,
+        content_type="application/json",
+    )
+
+    entries, total = file_source.list("/", recursive=True)
+
+    assert total == 4
+    assert [entry.path for entry in entries] == [
+        "/node01/osfstorage/subdir",
+        "/node01/osfstorage/subdir/nested-1.txt",
+        "/node01/osfstorage/subdir/nested-2.txt",
+        "/node01/osfstorage/root-2.txt",
+    ]
 
 
 @responses.activate

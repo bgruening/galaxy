@@ -175,8 +175,7 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
             raise RequestParameterInvalidException("OSF folder creation requires a target URI.")
         target_path = self.to_relative_path(target)
         resolved_path = self._resolve_path(target_path, context)
-        if resolved_path.node_id is None or resolved_path.provider is None:
-            raise MessageException("Select an OSF storage provider or folder before creating a folder.")
+        self._ensure_writable_container_target(resolved_path, action="create a folder")
 
         self._ensure_node_writable(resolved_path.node_id, context)
         folder_entry = self._get_entry_by_materialized_path(
@@ -236,10 +235,12 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
         self, target_path: str, native_path: str, context: FilesSourceRuntimeContext[OSFFileSourceConfiguration]
     ) -> Optional[str]:
         resolved_path = self._resolve_path(target_path, context)
-        if resolved_path.node_id is None or resolved_path.provider is None:
-            raise MessageException("OSF uploads require a destination inside a storage provider.")
+        self._ensure_writable_container_target(resolved_path, action="upload a file")
         if resolved_path.materialized_path in {"", "/"}:
-            raise RequestParameterInvalidException("OSF uploads require a filename in the destination path.")
+            raise RequestParameterInvalidException(
+                "OSF uploads require a filename inside a storage provider, "
+                f"for example '{self._write_target_example(resolved_path.node_id, resolved_path.provider)}'."
+            )
 
         self._ensure_node_writable(resolved_path.node_id, context)
         filename = posixpath.basename(resolved_path.materialized_path.rstrip("/"))
@@ -298,19 +299,26 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
         query: Optional[str] = None,
     ) -> tuple[list[AnyRemoteEntry], int]:
         if write_intent:
-            nodes = self._get_all_user_nodes(context, query=query)
+            params: dict[str, Any] = {}
+            if query:
+                params["filter[title]"] = query
+            nodes = self._get_all_entries(
+                context,
+                self._user_nodes_url(context),
+                params=params,
+                auth_required=True,
+                page_size=DEFAULT_NODE_PAGE_SIZE,
+            )
             writable_nodes = [node for node in nodes if self._node_has_write_access(node)]
             total = len(writable_nodes)
             writable_nodes = self._slice_items(writable_nodes, limit, offset)
             return [self._node_to_remote_directory(node) for node in writable_nodes], total
 
         request_url = self._user_nodes_url(context) if context.config.token else self._nodes_url(context)
-        params = self._pagination_params(limit, offset)
+        params: dict[str, Any] = {}
         if query:
             params["filter[title]"] = query
-        response = self._get_response(context, request_url, params=params)
-        nodes = response["data"]
-        total = response.get("links", {}).get("meta", {}).get("total", len(nodes))
+        nodes, total = self._get_entries_window(context, request_url, params=params, limit=limit, offset=offset)
         return [self._node_to_remote_directory(node) for node in nodes], total
 
     def _list_node_providers(
@@ -362,12 +370,17 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
             total = len(entries)
             return self._slice_items(entries, limit, offset), total
 
-        params = self._pagination_params(limit, offset)
+        params: dict[str, Any] = {}
         if query:
             params["filter[name]"] = query
-        response = self._get_response(context, self._children_url(folder_entry), params=params)
-        entries = [self._api_entry_to_remote_entry(node_id, provider, entry) for entry in response["data"]]
-        total = response.get("links", {}).get("meta", {}).get("total", len(entries))
+        api_entries, total = self._get_entries_window(
+            context,
+            self._children_url(folder_entry),
+            params=params,
+            limit=limit,
+            offset=offset,
+        )
+        entries = [self._api_entry_to_remote_entry(node_id, provider, entry) for entry in api_entries]
         return entries, total
 
     def _collect_entries_recursively(
@@ -378,10 +391,10 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
         context: FilesSourceRuntimeContext[OSFFileSourceConfiguration],
         query: Optional[str] = None,
     ) -> list[AnyRemoteEntry]:
-        response = self._get_response(context, self._children_url(folder_entry))
+        api_entries = self._get_all_entries(context, self._children_url(folder_entry))
         query_lower = query.lower() if query else None
         entries: list[AnyRemoteEntry] = []
-        for entry in response["data"]:
+        for entry in api_entries:
             remote_entry = self._api_entry_to_remote_entry(node_id, provider, entry)
             if query_lower is None or query_lower in remote_entry.name.lower():
                 entries.append(remote_entry)
@@ -494,23 +507,13 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
         context: FilesSourceRuntimeContext[OSFFileSourceConfiguration],
         expected_kind: Optional[str] = None,
     ) -> dict[str, Any]:
-        current_entry = self._get_provider_root(node_id, provider, context)
-        normalized_path = self._normalize_materialized_path(materialized_path)
-        if normalized_path == "/":
-            if expected_kind and expected_kind != "folder":
-                raise MessageException(f"OSF path '/{node_id}/{provider}' does not point to a {expected_kind}.")
-            return current_entry
-
-        parts = [part for part in normalized_path.strip("/").split("/") if part]
-        for index, part in enumerate(parts):
-            part_kind = "folder" if index < len(parts) - 1 else None
-            current_entry = self._get_child_entry(current_entry, part, context, expected_kind=part_kind)
-
-        actual_kind = current_entry["attributes"].get("kind")
-        if expected_kind and actual_kind != expected_kind:
-            plugin_path = self._entry_to_path(node_id, provider, current_entry)
-            raise MessageException(f"OSF path '{plugin_path}' does not point to a {expected_kind}.")
-        return current_entry
+        return self._traverse_materialized_path(
+            node_id,
+            provider,
+            materialized_path,
+            context,
+            expected_kind=expected_kind,
+        )
 
     def _get_provider_root(
         self,
@@ -544,6 +547,25 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
             return files_link
         raise MessageException("OSF folder entry does not expose a children listing URL.")
 
+    def _ensure_writable_container_target(self, resolved_path: OSFPath, action: str) -> None:
+        if resolved_path.node_id is None:
+            raise MessageException(
+                f"Cannot {action} at the OSF root. The root only lists OSF projects. "
+                "Select a project and storage provider first."
+            )
+        if resolved_path.provider is None:
+            raise MessageException(
+                f"Cannot {action} at OSF project '/{resolved_path.node_id}'. "
+                "That level only lists storage providers. Select a storage provider first."
+            )
+
+    def _write_target_example(self, node_id: Optional[str], provider: Optional[str]) -> str:
+        if node_id and provider:
+            return f"/{node_id}/{provider}/result.txt"
+        if node_id:
+            return f"/{node_id}/osfstorage/result.txt"
+        return "/<node_id>/osfstorage/result.txt"
+
     def _entry_has_children_listing(self, entry: dict[str, Any]) -> bool:
         return bool(entry.get("relationships", {}).get("files", {}).get("links", {}).get("related", {}).get("href"))
 
@@ -554,21 +576,14 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
         materialized_path: str,
         context: FilesSourceRuntimeContext[OSFFileSourceConfiguration],
     ) -> dict[str, Any]:
-        current_entry = self._get_provider_root(node_id, provider, context)
-        normalized_path = self._normalize_materialized_path(materialized_path)
-        if normalized_path == "/":
-            return current_entry
-
-        parts = [part for part in normalized_path.strip("/").split("/") if part]
-        for part in parts:
-            if self._entry_has_children_listing(current_entry):
-                try:
-                    current_entry = self._get_child_entry(current_entry, part, context, expected_kind="folder")
-                    continue
-                except ObjectNotFound:
-                    pass
-            current_entry = self._create_child_folder(current_entry, part, context)
-        return current_entry
+        return self._traverse_materialized_path(
+            node_id,
+            provider,
+            materialized_path,
+            context,
+            expected_kind="folder",
+            create_missing_folders=True,
+        )
 
     def _create_child_folder(
         self,
@@ -598,20 +613,127 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
             return self._get_child_entry(parent_entry, folder_name, context, expected_kind="folder")
         raise MessageException("OSF folder creation did not return enough information to continue creating nested folders.")
 
-    def _get_all_user_nodes(
-        self, context: FilesSourceRuntimeContext[OSFFileSourceConfiguration], query: Optional[str] = None
+    def _get_all_entries(
+        self,
+        context: FilesSourceRuntimeContext[OSFFileSourceConfiguration],
+        request_url: str,
+        params: Optional[dict[str, Any]] = None,
+        auth_required: bool = False,
+        page_size: Optional[int] = None,
     ) -> list[dict[str, Any]]:
-        request_url = self._user_nodes_url(context)
-        params: dict[str, Any] = {"page[size]": DEFAULT_NODE_PAGE_SIZE, "page": 1}
-        if query:
-            params["filter[title]"] = query
-        nodes: list[dict[str, Any]] = []
-        while request_url:
-            response = self._get_response(context, request_url, params=params, auth_required=True)
-            nodes.extend(response["data"])
-            request_url = response.get("links", {}).get("next")
-            params = {}
-        return nodes
+        request_params = dict(params or {})
+        if page_size is not None:
+            request_params.setdefault("page[size]", page_size)
+            request_params.setdefault("page", 1)
+        entries: list[dict[str, Any]] = []
+        for response in self._iter_paginated_responses(
+            context,
+            request_url,
+            params=request_params,
+            auth_required=auth_required,
+        ):
+            entries.extend(response["data"])
+        return entries
+
+    def _get_entries_window(
+        self,
+        context: FilesSourceRuntimeContext[OSFFileSourceConfiguration],
+        request_url: str,
+        params: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        auth_required: bool = False,
+    ) -> tuple[list[dict[str, Any]], int]:
+        request_params = dict(params or {})
+        if limit is None and offset is None:
+            response = self._get_response(context, request_url, params=request_params, auth_required=auth_required)
+            entries = response["data"]
+            total = self._response_total(response, len(entries))
+            return entries, total
+
+        page_size = limit or DEFAULT_PAGE_LIMIT
+        start_offset = offset or 0
+        request_params.update({"page[size]": page_size, "page": start_offset // page_size + 1})
+        response_iterator = self._iter_paginated_responses(
+            context,
+            request_url,
+            params=request_params,
+            auth_required=auth_required,
+        )
+        first_response = next(response_iterator)
+        total = self._response_total(first_response, len(first_response["data"]))
+        start_within_page = start_offset % page_size
+        entries = list(first_response["data"][start_within_page:])
+
+        for response in response_iterator:
+            if limit is not None and len(entries) >= limit:
+                break
+            entries.extend(response["data"])
+
+        if limit is not None:
+            entries = entries[:limit]
+        return entries, total
+
+    def _iter_paginated_responses(
+        self,
+        context: FilesSourceRuntimeContext[OSFFileSourceConfiguration],
+        request_url: str,
+        params: Optional[dict[str, Any]] = None,
+        auth_required: bool = False,
+    ):
+        next_url = request_url
+        next_params = dict(params or {})
+        while next_url:
+            response = self._get_response(context, next_url, params=next_params, auth_required=auth_required)
+            yield response
+            next_url = response.get("links", {}).get("next")
+            next_params = {}
+
+    def _traverse_materialized_path(
+        self,
+        node_id: str,
+        provider: str,
+        materialized_path: str,
+        context: FilesSourceRuntimeContext[OSFFileSourceConfiguration],
+        expected_kind: Optional[str] = None,
+        create_missing_folders: bool = False,
+    ) -> dict[str, Any]:
+        current_entry = self._get_provider_root(node_id, provider, context)
+        normalized_path = self._normalize_materialized_path(materialized_path)
+        if normalized_path == "/":
+            if expected_kind and expected_kind != "folder":
+                raise MessageException(f"OSF path '/{node_id}/{provider}' does not point to a {expected_kind}.")
+            return current_entry
+
+        parts = [part for part in normalized_path.strip("/").split("/") if part]
+        for index, part in enumerate(parts):
+            child_expected_kind = "folder" if create_missing_folders or index < len(parts) - 1 else None
+            if create_missing_folders:
+                if self._entry_has_children_listing(current_entry):
+                    try:
+                        current_entry = self._get_child_entry(
+                            current_entry,
+                            part,
+                            context,
+                            expected_kind=child_expected_kind,
+                        )
+                        continue
+                    except ObjectNotFound:
+                        pass
+                current_entry = self._create_child_folder(current_entry, part, context)
+            else:
+                current_entry = self._get_child_entry(
+                    current_entry,
+                    part,
+                    context,
+                    expected_kind=child_expected_kind,
+                )
+
+        actual_kind = current_entry["attributes"].get("kind")
+        if expected_kind and actual_kind != expected_kind:
+            plugin_path = self._entry_to_path(node_id, provider, current_entry)
+            raise MessageException(f"OSF path '{plugin_path}' does not point to a {expected_kind}.")
+        return current_entry
 
     def _ensure_node_writable(self, node_id: str, context: FilesSourceRuntimeContext[OSFFileSourceConfiguration]) -> None:
         node_response = self._get_response(context, self._node_url(context, node_id), auth_required=True)
@@ -707,15 +829,11 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
                 return "; ".join(details)
         return payload.get("message") or response.text
 
+    def _response_total(self, response_data: dict[str, Any], default: int) -> int:
+        return response_data.get("links", {}).get("meta", {}).get("total", default)
+
     def _raise_auth_required(self) -> None:
         raise AuthenticationRequired(f"Please provide an OSF personal access token for '{self.label}'.")
-
-    def _pagination_params(self, limit: Optional[int], offset: Optional[int]) -> dict[str, int]:
-        if limit is None and offset is None:
-            return {}
-        size = limit or DEFAULT_PAGE_LIMIT
-        page = (offset or 0) // size + 1
-        return {"page[size]": size, "page": page}
 
     def _slice_items(self, items: list[Any], limit: Optional[int], offset: Optional[int]) -> list[Any]:
         start = offset or 0
@@ -732,14 +850,7 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
         return self._api_base_url_from_url(context.config.url)
 
     def _api_base_url_from_url(self, url: Optional[str]) -> str:
-        raw_url = (url or DEFAULT_OSF_REPOSITORY_URL).strip()
-        if "://" not in raw_url:
-            raw_url = f"https://{raw_url}"
-        parsed = urlparse(raw_url)
-        scheme = parsed.scheme or "https"
-        netloc = parsed.netloc
-        path = parsed.path.rstrip("/")
-
+        scheme, netloc = self._normalized_url_parts(url)
         if not netloc:
             return DEFAULT_OSF_API_URL
 
@@ -749,17 +860,19 @@ class OSFFilesSource(BaseFilesSource[OSFFileSourceTemplateConfiguration, OSFFile
         return f"{scheme}://api.{netloc}/v2"
 
     def _repository_base_url(self, url: Optional[str]) -> str:
-        raw_url = (url or DEFAULT_OSF_REPOSITORY_URL).strip()
-        if "://" not in raw_url:
-            raw_url = f"https://{raw_url}"
-        parsed = urlparse(raw_url)
-        scheme = parsed.scheme or "https"
-        netloc = parsed.netloc
+        scheme, netloc = self._normalized_url_parts(url)
         if not netloc:
             return DEFAULT_OSF_REPOSITORY_URL
         if netloc.startswith("api."):
             netloc = netloc[4:]
         return f"{scheme}://{netloc}"
+
+    def _normalized_url_parts(self, url: Optional[str]) -> tuple[str, str]:
+        raw_url = (url or DEFAULT_OSF_REPOSITORY_URL).strip()
+        if "://" not in raw_url:
+            raw_url = f"https://{raw_url}"
+        parsed = urlparse(raw_url)
+        return parsed.scheme or "https", parsed.netloc
 
     def _nodes_url(self, context: FilesSourceRuntimeContext[OSFFileSourceConfiguration]) -> str:
         return f"{self._api_base_url(context)}/nodes/"
