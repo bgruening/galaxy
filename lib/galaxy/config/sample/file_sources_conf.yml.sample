@@ -127,6 +127,25 @@
   config_path: ""
   port: 2222
 
+- type: dcache
+  id: dcache-desy
+  label: Public dCache Project Space
+  doc: Access data stored in a dCache instance
+  api_url: "https://dcache.example.org/api/v1"
+  webdav_url: "https://dcache.example.org:2880"
+  root_path: "/pnfs/example.org/data/project"
+  token: "<BEARER_TOKEN>"
+  # Alternatively, use basic auth instead of a bearer token:
+  # username: "<USERNAME>"
+  # password: "<PASSWORD>"
+  writable: false
+  # Optional advanced aiohttp kwargs passed through dcachefs:
+  # client_kwargs:
+  #   headers:
+  #     X-My-Header: my-value
+  # request_kwargs:
+  #   ssl: false
+
 - type: s3fs
   label: My MinIO storage
   endpoint_url: "https://minio.usegalaxy.eu"
