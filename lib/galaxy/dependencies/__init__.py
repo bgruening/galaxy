@@ -344,6 +344,9 @@ class ConditionalDependencies:
     def check_adlfs(self):
         return "azureflat" in self.file_sources
 
+    def check_dcachefs(self):
+        return "dcache" in self.file_sources
+
     def check_huggingface_hub(self):
         return "huggingface" in self.file_sources
 
