@@ -1,0 +1,46 @@
+- id: dcache
+  version: 0
+  name: dCache via Bearer Token
+  description: |
+    Setup access to files stored in a [dCache](https://www.dcache.org/) instance using
+    its REST API and WebDAV endpoints. This template is intended for user-defined file
+    sources, so each user can configure their own dCache connection and credentials.
+  configuration:
+    type: dcache
+    api_url: "{{ variables.api_url }}"
+    webdav_url: "{{ variables.webdav_url }}"
+    root_path: "{{ variables.root_path }}"
+    token: "{{ secrets.token }}"
+    writable: "{{ variables.writable }}"
+  variables:
+    api_url:
+      label: dCache API URL
+      type: string
+      help: |
+        Full URL of the dCache REST API endpoint, for example
+        `https://dcache.example.org/api/v1`.
+    webdav_url:
+      label: dCache WebDAV URL
+      type: string
+      help: |
+        Full URL of the dCache WebDAV door used for file transfers, for example
+        `https://dcache.example.org:2880`.
+    root_path:
+      label: Root Path
+      type: string
+      optional: true
+      default: /
+      help: |
+        Restrict the exposed file source to a path inside the dCache namespace,
+        for example `/pnfs/example.org/data/project`.
+    writable:
+      label: Writable?
+      type: boolean
+      optional: true
+      default: false
+      help: Allow Galaxy to upload data back to this dCache location.
+  secrets:
+    token:
+      label: Bearer Token
+      help: |
+        Bearer token used to authenticate against the dCache instance.

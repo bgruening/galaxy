@@ -32,6 +32,7 @@ from galaxy.util.config_templates import (
 )
 
 FileSourceTemplateType = Literal[
+    "dcache",
     "ftp",
     "posix",
     "s3fs",
@@ -49,6 +50,30 @@ FileSourceTemplateType = Literal[
     "huggingface",
     "omero",
 ]
+
+
+class DCacheFileSourceTemplateConfiguration(StrictModel):
+    type: Literal["dcache"]
+    api_url: Union[str, TemplateExpansion]
+    webdav_url: Union[str, TemplateExpansion]
+    root_path: Optional[Union[str, TemplateExpansion]] = None
+    username: Optional[Union[str, TemplateExpansion]] = None
+    password: Optional[Union[str, TemplateExpansion]] = None
+    token: Optional[Union[str, TemplateExpansion]] = None
+    writable: Union[bool, TemplateExpansion] = False
+    template_start: Optional[str] = None
+    template_end: Optional[str] = None
+
+
+class DCacheFileSourceConfiguration(StrictModel):
+    type: Literal["dcache"]
+    api_url: str
+    webdav_url: str
+    root_path: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    token: Optional[str] = None
+    writable: bool = False
 
 
 class PosixFileSourceTemplateConfiguration(StrictModel):
@@ -353,6 +378,7 @@ class OmeroFileSourceConfiguration(StrictModel):
 
 FileSourceTemplateConfiguration = Annotated[
     Union[
+        DCacheFileSourceTemplateConfiguration,
         PosixFileSourceTemplateConfiguration,
         S3FSFileSourceTemplateConfiguration,
         FtpFileSourceTemplateConfiguration,
@@ -375,6 +401,7 @@ FileSourceTemplateConfiguration = Annotated[
 
 FileSourceConfiguration = Annotated[
     Union[
+        DCacheFileSourceConfiguration,
         PosixFileSourceConfiguration,
         S3FSFileSourceConfiguration,
         FtpFileSourceConfiguration,
@@ -455,6 +482,7 @@ def template_to_configuration(
 
 
 TypesToConfigurationClasses: dict[FileSourceTemplateType, type[FileSourceConfiguration]] = {
+    "dcache": DCacheFileSourceConfiguration,
     "ftp": FtpFileSourceConfiguration,
     "posix": PosixFileSourceConfiguration,
     "s3fs": S3FSFileSourceConfiguration,
