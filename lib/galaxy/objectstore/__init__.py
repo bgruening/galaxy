@@ -2106,13 +2106,18 @@ class ObjectStorePopulator:
         # Create an empty file immediately.  The first dataset will be
         # created in the "default" store, all others will be created in
         # the same store as the first.
+        previous_object_store_id = dataset.object_store_id
         dataset.object_store_id = self.object_store_id
         try:
             concrete_store = self.object_store.create(dataset)
             if concrete_store.private and require_shareable:
                 raise ObjectCreationProblemSharingDisabled()
         except ObjectInvalid:
+            dataset.object_store_id = previous_object_store_id
             raise ObjectCreationProblemStoreFull()
+        except Exception:
+            dataset.object_store_id = previous_object_store_id
+            raise
         self.object_store_id = dataset.object_store_id  # these will be the same thing after the first output
 
 

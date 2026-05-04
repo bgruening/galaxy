@@ -1348,7 +1348,7 @@ class MinimalJobWrapper(HasResourceParameters):
             # will also create the directory on the worker.
             # It is possible these next two lines are not needed - if a job a cannot be recovered
             # before enqueue is called (seems likely) - this shouldn't be needed.
-            if job.object_store_id:
+            if not job.object_store_id:
                 self._set_object_store_ids(job)
 
             self.__working_directory = self.app.object_store.get_filename(
