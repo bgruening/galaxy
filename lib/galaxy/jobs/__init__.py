@@ -1488,6 +1488,7 @@ class MinimalJobWrapper(HasResourceParameters):
             for dataset_assoc in job.output_datasets + job.output_library_datasets:
                 dataset = dataset_assoc.dataset
                 self.sa_session.refresh(dataset)
+                self.sa_session.refresh(dataset.dataset)
                 dataset.state = dataset.states.ERROR
                 dataset.blurb = "tool error"
                 dataset.info = message
