@@ -35,6 +35,7 @@ DEFAULT_TIMEOUT_SECONDS = 60
 # functions (which the test suite imports) keep their existing signatures.
 API_URL = DEFAULT_API_URL
 OUTPUT_FILE = DEFAULT_OUTPUT_FILE
+
 SAFE_UNQUOTED_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 YAML_BOOLEAN_LIKE_VALUES = {"", "~", "null", "Null", "NULL", "true", "True", "TRUE", "false", "False", "FALSE"}
 
@@ -47,7 +48,7 @@ class QuotingDumper(yaml.SafeDumper):
     """YAML dumper that keeps scalar quoting explicit and predictable.
 
     PyYAML's default dumper changes quoting heuristically when scalar lengths
-    cross internal thresholds, which churns the output for diff review every
+    cross internal thresholds, which churns the output for code review every
     time we regenerate the file. A round-trip dumper from ``ruamel.yaml`` would
     avoid this, but ruamel.yaml isn't a Galaxy runtime dependency and this
     script is admin-only, so we patch the simple-key heuristic instead.
@@ -103,16 +104,18 @@ def normalize_section_alias(value: str) -> str:
     return re.sub(r"_+", "_", re.sub(r"[^a-z0-9]+", "_", value.lower())).strip("_")
 
 
-def tool_id_candidates(tool_id: str) -> list[str]:
-    candidates = [tool_id]
-    if tool_id.startswith("toolshed.") and tool_id.count("/") >= 5:
+def tool_id_candidates(tool_id: str, tool_id_format: str = "without-version") -> list[str]:
+    candidates = []
+    if tool_id_format in ("with-version", "both"):
+        candidates.append(tool_id)
+    if tool_id.count("/") >= 5:
         short_id = tool_id.rsplit("/", 1)[0]
-        if short_id not in candidates:
+        if tool_id_format in ("without-version", "both") and short_id not in candidates:
             candidates.append(short_id)
     return candidates
 
 
-def extract_sections_and_tools(data: list[dict[str, Any]]) -> tuple[dict[str, list[str]], dict[str, str]]:
+def extract_sections_and_tools(data: list[dict[str, Any]], tool_id_format: str = "without-version") -> tuple[dict[str, list[str]], dict[str, str]]:
     """Extract ToolSections and their tools from API response."""
     sections: dict[str, list[str]] = {}
     section_ids: dict[str, str] = {}
@@ -123,7 +126,7 @@ def extract_sections_and_tools(data: list[dict[str, Any]]) -> tuple[dict[str, li
             section_name = item.get("name")
             if section_id and section_name:
                 section_ids[section_id] = section_name
-            print(f"Found section: {section_name} (id: {section_id})")
+                print(f"Found section: {section_name} (id: {section_id})")
 
             # Extract tools in this section
             tools = []
@@ -132,13 +135,13 @@ def extract_sections_and_tools(data: list[dict[str, Any]]) -> tuple[dict[str, li
                 if isinstance(model_class, str) and model_class.endswith("Tool"):
                     tool_id = elem.get("id")
                     if tool_id:
-                        for candidate in tool_id_candidates(tool_id):
+                        for candidate in tool_id_candidates(tool_id, tool_id_format=tool_id_format):
                             if candidate not in tools:
                                 tools.append(candidate)
 
             if tools:
                 sections.setdefault(section_name, []).extend(tools)
-                print(f"  - Contains {len(tools)} tools")
+                print(f"  Contains {len(tools)} tools")
 
     return sections, section_ids
 
@@ -153,16 +156,16 @@ def load_existing_mappings() -> dict[str, Any]:
 
 def normalize_tool_tags(tool_tags: dict[str, list[str]]) -> dict[str, list[str]]:
     normalized: dict[str, list[str]] = {}
-    for tool_id, tags in tool_tags.items():
+    for tool_id, tags in sorted(tool_tags.items()):
         unique_tags: list[str] = []
         for tag in tags:
             if tag not in unique_tags:
                 unique_tags.append(tag)
-        normalized[tool_id] = unique_tags
+        normalized[tool_id] = sorted(unique_tags)
     return normalized
 
 
-def validate_mappings_data(data: dict[str, Any]) -> dict[str, dict[str, list[str]]]:
+def validate_mappings_data(data: dict[str, Any]) -> dict[str, dict[str, list[str]]:
     tool_tags = data.get("tool_tags", {})
     if not isinstance(tool_tags, dict):
         raise ValueError("tool_tag_mappings.yml must contain a top-level 'tool_tags' mapping.")
@@ -192,7 +195,8 @@ def update_mappings(
     existing_data: dict[str, Any],
     sections: dict[str, list[str]],
     section_ids: dict[str, str],
-) -> dict[str, dict[str, list[str]]]:
+    tool_id_format: str = "without-version",
+) -> dict[str, dict[str, list[str]]:
     """Refresh section tags while preserving existing non-section curated tags."""
     section_aliases = {normalize_section_alias(alias) for alias in set(section_ids) | set(section_ids.values())}
     tool_tags: dict[str, list[str]] = {}
@@ -200,7 +204,7 @@ def update_mappings(
     for tool_id, tags in existing_data.get("tool_tags", {}).items():
         custom_tags = [tag for tag in tags if normalize_section_alias(tag) not in section_aliases]
         if custom_tags:
-            tool_tags[tool_id] = custom_tags
+            tool_tags[tool_id] = sorted(custom_tags)
 
     # Track statistics
     new_mappings = 0
@@ -229,29 +233,6 @@ def update_mappings(
     return {"tool_tags": normalize_tool_tags(tool_tags)}
 
 
-def save_mappings(data: dict[str, Any]) -> None:
-    """Save updated tool_tag_mappings.yml"""
-    validated_data = validate_mappings_data(data)
-    serialized = yaml.dump(
-        prepare_for_dump(validated_data),
-        Dumper=QuotingDumper,
-        default_flow_style=False,
-        sort_keys=False,
-        allow_unicode=True,
-        width=1000,
-    )
-
-    # Validate that the serialized YAML round-trips cleanly.
-    round_trip = yaml.safe_load(serialized)
-    if round_trip != validated_data:
-        raise ValueError("Serialized YAML did not round-trip correctly.")
-
-    print(f"\nSaving to {OUTPUT_FILE}...")
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        f.write(serialized)
-    print("Done!")
-
-
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -264,6 +245,15 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         type=Path,
         default=DEFAULT_OUTPUT_FILE,
         help=f"Path of the curated tool_tag_mappings.yml to write (default: {DEFAULT_OUTPUT_FILE}).",
+    )
+    parser.add_argument(
+        "--tool-id-format",
+        choices=["with-version", "without-version", "both"],
+        default="without-version",
+        help=(
+            "Whether to write tool_ids with their version suffix, without their version suffix, or both. "
+            "Default is without-version (toolshed.g2.bx.psu.edu/repos/ctorrano/qiime_rda/42 -> qiime_rda)."
+        ),
     )
     parser.add_argument(
         "--timeout",
@@ -287,13 +277,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
 
-    sections, section_ids = extract_sections_and_tools(data)
+    sections, section_ids = extract_sections_and_tools(data, tool_id_format=args.tool_id_format)
     if not sections:
         print("No sections found!", file=sys.stderr)
         return 1
 
     existing_data = load_existing_mappings()
-    updated_data = update_mappings(existing_data, sections, section_ids)
+    updated_data = update_mappings(existing_data, sections, section_ids, tool_id_format=args.tool_id_format)
     save_mappings(updated_data)
     return 0
 
