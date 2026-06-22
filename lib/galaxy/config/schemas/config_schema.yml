@@ -4212,10 +4212,11 @@ mapping:
         desc: |
           Configuration for AI inference services used by agents and visualization plugins.
           Supports per-agent or per-plugin model, temperature, max_tokens, retries, api_key, api_base_url, and enabled settings.
-          Valid keys include agent types (e.g. router, error_analysis) and plugin names (e.g. jupyterlite).
+          Valid keys include agent types (e.g. router, error_analysis), plugin names (e.g. jupyterlite),
+          and prompt-neutral API consumers (e.g. loom).
           Agents and plugins inherit from 'default' configuration, which itself falls back to global ai_model/ai_api_key settings.
           All agents are enabled by default.
-          Example: inference_services: { default: { model: gpt-4o-mini, temperature: 0.7 }, custom_tool: { enabled: false }, jupyterlite: { model: gpt-4o } }
+          Example: inference_services: { default: { model: gpt-4o-mini, temperature: 0.7 }, custom_tool: { enabled: false }, jupyterlite: { model: gpt-4o }, loom: { model: gpt-4o } }
           Set static_responses to a YAML file path to replace all LLM calls with
           deterministic responses for testing:
           inference_services: { static_responses: test/integration/static_agents.yml }
