@@ -1,7 +1,11 @@
 import { createTestingPinia } from "@pinia/testing";
 import { getLocalVue } from "@tests/vitest/helpers";
 import { mount } from "@vue/test-utils";
+import flushPromises from "flush-promises";
 import { describe, expect, it, vi } from "vitest";
+
+import type { RegisteredUser } from "@/api";
+import { useUserStore } from "@/stores/userStore";
 
 import ToolsListTagFilter from "./ToolsListTagFilter.vue";
 
@@ -56,6 +60,36 @@ describe("ToolsListTagFilter", () => {
         });
         await wrapper.get("button.dropdown-toggle").trigger("click");
         expect(wrapper.findAll("a.dropdown-item").map((item) => item.text())).toEqual(["Get Data"]);
+    });
+
+    function mountSignedIn(tags: string[], selectedTags: string[]) {
+        const pinia = createTestingPinia({ createSpy: vi.fn });
+        const userStore = useUserStore(pinia);
+        userStore.currentUser = { id: "user1", email: "user@example.org", isAnonymous: false } as RegisteredUser;
+        userStore.currentPreferences = { favorites: { tools: [], tags: [], edam_operations: [], edam_topics: [] } };
+        const wrapper = mount(ToolsListTagFilter, { localVue, pinia, props: { tags, selectedTags } });
+        return { wrapper, userStore };
+    }
+
+    it("favorites a tag typed in another case under its catalog name", async () => {
+        const { wrapper, userStore } = mountSignedIn(["Statistics"], ["statistics"]);
+        const add = vi.spyOn(userStore, "addFavoriteTag").mockResolvedValue();
+        await wrapper.get('button[title="Add Statistics to Favorites"]').trigger("click");
+        await flushPromises();
+        expect(add).toHaveBeenCalledWith("Statistics");
+        userStore.currentPreferences!.favorites.tags = ["Statistics"];
+        await flushPromises();
+        expect(wrapper.get('button[title="Remove Statistics from Favorites"]').attributes("aria-pressed")).toBe("true");
+        await wrapper.get('button[title="Remove tag Statistics"]').trigger("click");
+        expect(wrapper.emitted("toggle-tag")).toEqual([["statistics"]]);
+    });
+
+    it("prefers the exactly matching catalog name when tags differ only in case", async () => {
+        const { wrapper, userStore } = mountSignedIn(["statistics", "Statistics"], ["statistics"]);
+        const add = vi.spyOn(userStore, "addFavoriteTag").mockResolvedValue();
+        await wrapper.get('button[title="Add statistics to Favorites"]').trigger("click");
+        await flushPromises();
+        expect(add).toHaveBeenCalledWith("statistics");
     });
 
     it("removes a selected tag with its visible remove button without opening the menu", async () => {

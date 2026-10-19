@@ -30,6 +30,15 @@ const matches = computed(() => {
     return props.tags.filter((tag) => !selected.has(tag.toLowerCase()) && tag.toLowerCase().includes(query));
 });
 const visibleTags = computed(() => matches.value.slice(0, 100));
+// Favorites only accept catalog names, so typed tags are shown and starred under their catalog spelling
+const selectedChips = computed(() => {
+    const exact = new Set(props.tags);
+    const catalog = new Map(props.tags.map((tag) => [tag.toLowerCase(), tag]));
+    return props.selectedTags.map((tag) => ({
+        tag,
+        name: exact.has(tag) ? tag : (catalog.get(tag.toLowerCase()) ?? tag),
+    }));
+});
 </script>
 
 <template>
@@ -73,12 +82,12 @@ const visibleTags = computed(() => matches.value.slice(0, 100));
             </div>
         </GDropdown>
         <ToolFilterChip
-            v-for="tag in selectedTags"
+            v-for="{ tag, name } in selectedChips"
             :key="tag"
-            :label="tag"
-            :value="tag"
+            :label="name"
+            :value="name"
             kind="tags"
-            :remove-title="`Remove tag ${tag}`"
+            :remove-title="`Remove tag ${name}`"
             :disabled="disabled"
             @remove="emit('toggle-tag', tag)" />
     </div>
